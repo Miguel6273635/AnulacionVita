@@ -1,0 +1,204 @@
+.customPageBg {
+    background: linear-gradient(180deg, #f4f7fb 0%, #eef3f8 100%);
+}
+
+.mainWrapper {
+    padding: 1.25rem;
+    gap: 1rem;
+}
+
+.heroSection {
+    background: linear-gradient(135deg, #0a6ed1 0%, #3b82f6 100%);
+    border-radius: 1rem;
+    padding: 1.4rem 1.6rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 0.35rem 1.2rem rgba(0, 0, 0, 0.12);
+}
+
+.heroTitle {
+    color: #ffffff !important;
+    font-size: 1.8rem !important;
+    font-weight: 700 !important;
+}
+
+.heroSubtitle {
+    color: rgba(255, 255, 255, 0.92) !important;
+    margin-top: 0.25rem;
+}
+
+.heroBadgeBox {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 0.85rem;
+    padding: 0.8rem 1rem;
+    min-width: 160px;
+    margin-top: 0.5rem;
+}
+
+.heroBadgeLabel {
+    color: #ffffff !important;
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.heroStatus {
+    font-weight: 700;
+}
+
+.modernPanel {
+    border-radius: 1rem !important;
+    overflow: hidden;
+    border: 1px solid #e4ebf3;
+    box-shadow: 0 0.3rem 1rem rgba(0, 0, 0, 0.08);
+    background: #ffffff;
+    margin-bottom: 1rem;
+}
+
+.modernPanel .sapMPanelHdr {
+    background: #f8fafd;
+    color: #12324a;
+    font-weight: 700;
+    border-bottom: 1px solid #e8eef5;
+}
+
+.panelInner {
+    padding: 1.2rem;
+}
+
+.fieldLabel {
+    color: #12324a;
+    margin-bottom: 0.45rem;
+}
+
+.modernInput .sapMInputBaseInner {
+    border-radius: 0.8rem !important;
+    border: 1px solid #d8e2ee !important;
+    background: #fbfdff;
+    height: 2.75rem;
+}
+
+.modernInput .sapMInputBaseInner:focus {
+    border-color: #0a6ed1 !important;
+}
+
+.actionToolbar {
+    margin-top: 0.9rem;
+    background: transparent !important;
+    border: none !important;
+    padding: 0;
+}
+
+.sapMBtn {
+    border-radius: 0.7rem !important;
+}
+
+.btnPrimary,
+.btnDanger,
+.btnLight {
+    margin-left: 0.4rem;
+}
+
+.sectionTitle {
+    color: #12324a !important;
+    font-weight: 700 !important;
+}
+
+.sectionSubtitle {
+    color: #5f7285;
+    margin-top: 0.2rem;
+}
+
+.resultStatus {
+    font-weight: 700;
+    margin-top: 0.4rem;
+}
+
+.resultMessageStrip {
+    margin-top: 1rem;
+    border-radius: 0.8rem;
+}
+
+.modernTabs {
+    margin-top: 0.35rem;
+}
+
+.modernTabs .sapMITBHead {
+    background: transparent;
+    border: none;
+}
+
+.modernTabs .sapMITBFilterDefault {
+    border-radius: 0.8rem;
+}
+
+.modernTabs .sapMITBContent {
+    background: #ffffff;
+    border-radius: 1rem;
+    border: 1px solid #e4ebf3;
+    box-shadow: 0 0.3rem 1rem rgba(0, 0, 0, 0.08);
+    padding: 0.6rem;
+}
+
+.tabContentBox {
+    padding: 0.35rem;
+}
+
+.tableToolbar {
+    background: transparent !important;
+    border-bottom: 1px solid #e9eff5;
+    margin-bottom: 0.5rem;
+}
+
+.tableTitle {
+    color: #12324a !important;
+    font-weight: 700 !important;
+}
+
+.modernTable .sapMListTblHeaderCell {
+    background: #f4f8fc;
+    border-bottom: 1px solid #e2eaf2;
+}
+
+.modernTable .sapMColumnHeader .sapMLabel,
+.modernTable .sapMListTblHeaderCell .sapMText {
+    color: #35526b;
+    font-weight: 700;
+}
+
+.modernTable .sapMListTblRow {
+    transition: background-color 0.2s ease;
+}
+
+.modernTable .sapMListTblRow:hover {
+    background-color: #f9fbfe;
+}
+
+.tableRowCustom .sapMText {
+    color: #243746;
+}
+
+.matDocId .sapMObjectIdentifierTitle {
+    color: #0a6ed1 !important;
+    font-weight: 700 !important;
+}
+
+.sapMObjStatus {
+    font-weight: 700;
+}
+
+@media (max-width: 768px) {
+    .mainWrapper {
+        padding: 0.75rem;
+    }
+
+    .heroSection {
+        padding: 1rem;
+    }
+
+    .heroTitle {
+        font-size: 1.45rem !important;
+    }
+
+    .heroBadgeBox {
+        width: 100%;
+    }
+}

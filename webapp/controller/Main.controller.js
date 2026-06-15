@@ -1,0 +1,521 @@
+sap.ui.define([
+    "sap/ui/core/mvc/Controller",
+    "sap/ui/model/json/JSONModel",
+    "sap/ui/model/Filter",
+    "sap/ui/model/FilterOperator",
+    "sap/m/MessageBox",
+    "sap/m/MessageToast"
+], function (Controller, JSONModel, Filter, FilterOperator, MessageBox, MessageToast) {
+    "use strict";
+
+    return Controller.extend("z.anulacion.anulacion.controller.Main", {
+
+        onInit: function () {
+            var oVM = new JSONModel({
+                matDoc: "",
+                canCancel: false,
+                busy: false,
+                lastRunId: "",
+                resultado: {
+                    Status: "",
+                    Message: ""
+                },
+                resultadoState: "None",
+                preview: [],
+                detalle: []
+            });
+
+            this.getView().setModel(oVM, "viewModel");
+            this._logInfo("onInit", "Controlador inicializado");
+            this._logAmbiente();
+        },
+
+        getModel: function () {
+            return this.getOwnerComponent().getModel();
+        },
+
+        getVM: function () {
+            return this.getView().getModel("viewModel");
+        },
+
+        _generateTraceId: function (sPrefix) {
+            return (sPrefix || "TRACE") + "_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+        },
+
+        _logInfo: function (sStep, sMessage, oData) {
+            console.log("[INFO][" + sStep + "] " + sMessage, oData || "");
+        },
+
+        _logWarn: function (sStep, sMessage, oData) {
+            console.warn("[WARN][" + sStep + "] " + sMessage, oData || "");
+        },
+
+        _logError: function (sStep, sMessage, oData) {
+            console.error("[ERROR][" + sStep + "] " + sMessage, oData || "");
+        },
+
+        _serializeError: function (oError) {
+            var oOut = {
+                message: "",
+                statusCode: "",
+                statusText: "",
+                responseText: ""
+            };
+
+            try {
+                oOut.message = oError && oError.message ? oError.message : "";
+                oOut.statusCode = oError && oError.statusCode ? oError.statusCode : "";
+                oOut.statusText = oError && oError.statusText ? oError.statusText : "";
+                oOut.responseText = oError && oError.responseText ? oError.responseText : "";
+            } catch (e) {}
+
+            try {
+                if (oOut.responseText) {
+                    oOut.responseJSON = JSON.parse(oOut.responseText);
+                }
+            } catch (e2) {
+                oOut.responseJSON = null;
+            }
+
+            return oOut;
+        },
+
+        _logAmbiente: function () {
+            var oModel = this.getModel();
+            var sServiceUrl = "";
+
+            try {
+                sServiceUrl = oModel && oModel.sServiceUrl ? oModel.sServiceUrl : "";
+            } catch (e) {}
+
+            this._logInfo("_logAmbiente", "Información de servicio", {
+                serviceUrl: sServiceUrl,
+                currentUrl: window.location.href,
+                host: window.location.host,
+                origin: window.location.origin
+            });
+        },
+
+        onMatDocLiveChange: function (oEvent) {
+            var sOriginal = oEvent.getParameter("value") || "";
+            var sSoloNumeros = sOriginal.replace(/\D/g, "");
+
+            this._logInfo("onMatDocLiveChange", "Cambio en input", {
+                original: sOriginal,
+                soloNumeros: sSoloNumeros
+            });
+
+            this.getVM().setProperty("/matDoc", sSoloNumeros);
+        },
+
+        onLimpiar: function () {
+            this._logInfo("onLimpiar", "Se limpian datos");
+
+            this.getVM().setData({
+                matDoc: "",
+                canCancel: false,
+                busy: false,
+                lastRunId: "",
+                resultado: {
+                    Status: "",
+                    Message: ""
+                },
+                resultadoState: "None",
+                preview: [],
+                detalle: []
+            });
+        },
+
+        onBuscarDocumento: function () {
+            var sMatDoc = this.getVM().getProperty("/matDoc");
+
+            this._logInfo("onBuscarDocumento", "Click en buscar", {
+                matDoc: sMatDoc
+            });
+
+            if (!sMatDoc) {
+                MessageBox.warning("Ingresa un MatDoc.");
+                return;
+            }
+
+            this._getPreview(sMatDoc);
+        },
+
+        _getPreview: function (sMatDoc) {
+            var oModel = this.getModel();
+            var sTraceId = this._generateTraceId("PREVIEW");
+            var sPath = "/AnulacionDetallePreviewSet";
+            var aFilters = [
+                new Filter("MatDoc", FilterOperator.EQ, sMatDoc)
+            ];
+
+            this._logInfo("_getPreview", "Inicia consulta de preview", {
+                traceId: sTraceId,
+                path: sPath,
+                matDoc: sMatDoc,
+                filters: [{
+                    path: "MatDoc",
+                    operator: "EQ",
+                    value1: sMatDoc
+                }]
+            });
+
+            this.getVM().setProperty("/busy", true);
+            this.getVM().setProperty("/preview", []);
+            this.getVM().setProperty("/detalle", []);
+            this.getVM().setProperty("/canCancel", false);
+            this.getVM().setProperty("/lastRunId", "");
+            this.getVM().setProperty("/resultado", {
+                Status: "",
+                Message: ""
+            });
+            this.getVM().setProperty("/resultadoState", "None");
+
+            oModel.read(sPath, {
+                filters: aFilters,
+                success: function (oData) {
+                    var aResults = (oData && oData.results) ? oData.results : [];
+                    var bTieneDatosValidos = aResults.some(function (oItem) {
+                        return !!(oItem && (oItem.MatDoc || oItem.Message || oItem.Status || oItem.ObjTipo));
+                    });
+
+                    this._logInfo("_getPreview.success", "Respuesta recibida", {
+                        traceId: sTraceId,
+                        oData: oData,
+                        totalResultados: aResults.length,
+                        results: aResults,
+                        tieneDatosValidos: bTieneDatosValidos
+                    });
+
+                    this.getVM().setProperty("/preview", aResults);
+
+                    if (!aResults.length || !bTieneDatosValidos) {
+                        this.getVM().setProperty("/resultado", {
+                            Status: "E",
+                            Message: "No se encontraron registros para el documento."
+                        });
+                        this.getVM().setProperty("/resultadoState", "Error");
+                        this.getVM().setProperty("/canCancel", false);
+                        this.getVM().setProperty("/busy", false);
+
+                        this._logWarn("_getPreview.success", "Sin datos válidos", {
+                            matDoc: sMatDoc,
+                            results: aResults
+                        });
+
+                        MessageBox.error("No se encontraron registros para el MatDoc capturado.");
+                        return;
+                    }
+
+                    this.getVM().setProperty("/resultado", {
+                        Status: "S",
+                        Message: "Vista previa obtenida correctamente."
+                    });
+                    this.getVM().setProperty("/resultadoState", "Success");
+                    this.getVM().setProperty("/canCancel", true);
+                    this.getVM().setProperty("/busy", false);
+
+                    MessageToast.show("Vista previa cargada correctamente.");
+                }.bind(this),
+
+                error: function (oError) {
+                    this.getVM().setProperty("/busy", false);
+                    this.getVM().setProperty("/canCancel", false);
+
+                    this._logError("_getPreview.error", "Error al consultar preview", {
+                        traceId: sTraceId,
+                        path: sPath,
+                        matDoc: sMatDoc,
+                        error: this._serializeError(oError)
+                    });
+
+                    this._showODataError("Error al consultar la vista previa.", oError);
+                }.bind(this)
+            });
+        },
+
+        onAnularDocumento: function () {
+            var sMatDoc = this.getVM().getProperty("/matDoc");
+            var bCanCancel = this.getVM().getProperty("/canCancel");
+
+            this._logInfo("onAnularDocumento", "Click en anular", {
+                matDoc: sMatDoc,
+                canCancel: bCanCancel
+            });
+
+            if (!sMatDoc) {
+                MessageBox.warning("Primero captura un MatDoc.");
+                return;
+            }
+
+            if (!bCanCancel) {
+                MessageBox.warning("Primero consulta la vista previa antes de anular.");
+                return;
+            }
+
+            MessageBox.confirm("¿Deseas anular el documento " + sMatDoc + "?", {
+                title: "Confirmar anulación",
+                actions: [MessageBox.Action.OK, MessageBox.Action.CANCEL],
+                emphasizedAction: MessageBox.Action.OK,
+                onClose: function (sAction) {
+                    if (sAction === MessageBox.Action.OK) {
+                        this._postAnulacion(sMatDoc);
+                    }
+                }.bind(this)
+            });
+        },
+
+        _postAnulacion: function (sMatDoc) {
+            var oModel = this.getModel();
+            var sTraceId = this._generateTraceId("POST_ANULACION");
+            var sPath = "/AnulacionSet";
+            var oPayload = {
+                MatDoc: sMatDoc
+            };
+
+            this._logInfo("_postAnulacion", "Inicia create", {
+                traceId: sTraceId,
+                path: sPath,
+                payload: oPayload
+            });
+
+            this.getVM().setProperty("/busy", true);
+            this.getVM().setProperty("/detalle", []);
+
+            oModel.create(sPath, oPayload, {
+                success: function (oData) {
+                    var sStatus = (oData && oData.Status) ? oData.Status : "S";
+                    var sMessage = (oData && oData.Message) ? oData.Message : "Proceso de anulación ejecutado.";
+                    var sRunId = (oData && oData.RunId) ? oData.RunId : "";
+
+                    this._logInfo("_postAnulacion.success", "Respuesta create", {
+                        traceId: sTraceId,
+                        oData: oData
+                    });
+
+                    this.getVM().setProperty("/resultado", {
+                        Status: sStatus,
+                        Message: sMessage
+                    });
+                    this.getVM().setProperty("/resultadoState", this._getState(sStatus));
+                    this.getVM().setProperty("/canCancel", false);
+                    this.getVM().setProperty("/lastRunId", sRunId);
+
+                    MessageToast.show("Solicitud de anulación enviada correctamente.");
+
+                    if (sRunId) {
+                        this._getDetalleFinalByRunId(sRunId);
+                    } else {
+                        this._getDetalleFinalByMatDoc(sMatDoc);
+                    }
+                }.bind(this),
+
+                error: function (oError) {
+                    this.getVM().setProperty("/canCancel", false);
+
+                    this._logError("_postAnulacion.error", "Error en create", {
+                        traceId: sTraceId,
+                        payload: oPayload,
+                        error: this._serializeError(oError)
+                    });
+
+                    this._showODataError("Error al anular el documento.", oError);
+
+                    this._getDetalleFinalByMatDoc(sMatDoc);
+                }.bind(this)
+            });
+        },
+
+        _getDetalleFinalByRunId: function (sRunId) {
+            var oModel = this.getModel();
+            var sTraceId = this._generateTraceId("DETALLE_RUNID");
+            var sPath = "/AnulacionDetalleSet";
+            var aFilters = [
+                new Filter("RunId", FilterOperator.EQ, sRunId)
+            ];
+
+            this._logInfo("_getDetalleFinalByRunId", "Consulta detalle por RunId", {
+                traceId: sTraceId,
+                runId: sRunId
+            });
+
+            oModel.read(sPath, {
+                filters: aFilters,
+                success: function (oData) {
+                    var aResults = (oData && oData.results) ? oData.results : [];
+
+                    this._logInfo("_getDetalleFinalByRunId.success", "Detalle recibido", {
+                        traceId: sTraceId,
+                        total: aResults.length,
+                        results: aResults
+                    });
+
+                    this.getVM().setProperty("/detalle", aResults);
+                    this.getVM().setProperty("/busy", false);
+
+                    this._actualizarResultadoDesdeDetalle(aResults);
+                }.bind(this),
+
+                error: function (oError) {
+                    this.getVM().setProperty("/detalle", []);
+                    this.getVM().setProperty("/busy", false);
+
+                    this._logError("_getDetalleFinalByRunId.error", "Error detalle por RunId", {
+                        traceId: sTraceId,
+                        runId: sRunId,
+                        error: this._serializeError(oError)
+                    });
+
+                    this._showODataError("Error al consultar el detalle final por RunId.", oError);
+                }.bind(this)
+            });
+        },
+
+        _getDetalleFinalByMatDoc: function (sMatDoc) {
+            var oModel = this.getModel();
+            var sTraceId = this._generateTraceId("DETALLE_MATDOC");
+            var sPath = "/AnulacionDetalleSet";
+            var aFilters = [
+                new Filter("MatDoc", FilterOperator.EQ, sMatDoc)
+            ];
+
+            this._logInfo("_getDetalleFinalByMatDoc", "Consulta detalle por MatDoc", {
+                traceId: sTraceId,
+                matDoc: sMatDoc
+            });
+
+            oModel.read(sPath, {
+                filters: aFilters,
+                success: function (oData) {
+                    var aResults = (oData && oData.results) ? oData.results : [];
+
+                    this._logInfo("_getDetalleFinalByMatDoc.success", "Detalle recibido", {
+                        traceId: sTraceId,
+                        total: aResults.length,
+                        results: aResults
+                    });
+
+                    this.getVM().setProperty("/detalle", aResults);
+                    this.getVM().setProperty("/busy", false);
+
+                    this._actualizarResultadoDesdeDetalle(aResults);
+                }.bind(this),
+
+                error: function (oError) {
+                    this.getVM().setProperty("/detalle", []);
+                    this.getVM().setProperty("/busy", false);
+
+                    this._logError("_getDetalleFinalByMatDoc.error", "Error detalle por MatDoc", {
+                        traceId: sTraceId,
+                        matDoc: sMatDoc,
+                        error: this._serializeError(oError)
+                    });
+                }.bind(this)
+            });
+        },
+
+        _actualizarResultadoDesdeDetalle: function (aDetalle) {
+            if (!aDetalle || !aDetalle.length) {
+                this._logWarn("_actualizarResultadoDesdeDetalle", "No hay detalle para evaluar");
+                return;
+            }
+
+            var oError = aDetalle.find(function (oItem) {
+                return oItem.Status === "E";
+            });
+
+            var oWarning = aDetalle.find(function (oItem) {
+                return oItem.Status === "W";
+            });
+
+            var oSuccess = aDetalle.find(function (oItem) {
+                return oItem.Status === "S";
+            });
+
+            var oFinal = oError || oWarning || oSuccess || aDetalle[0];
+
+            this._logInfo("_actualizarResultadoDesdeDetalle", "Registro final", oFinal);
+
+            this.getVM().setProperty("/resultado", {
+                Status: oFinal.Status || "",
+                Message: oFinal.Message || "Proceso consultado correctamente."
+            });
+            this.getVM().setProperty("/resultadoState", this._getState(oFinal.Status || ""));
+        },
+
+        _getState: function (sStatus) {
+            if (sStatus === "S") {
+                return "Success";
+            }
+            if (sStatus === "E") {
+                return "Error";
+            }
+            if (sStatus === "W") {
+                return "Warning";
+            }
+            if (sStatus === "I") {
+                return "Information";
+            }
+            return "None";
+        },
+
+        formatDetalleState: function (sStatus) {
+            return this._getState(sStatus);
+        },
+
+        formatStatusText: function (sStatus) {
+            if (sStatus === "S") {
+                return "Éxito";
+            }
+            if (sStatus === "E") {
+                return "Error";
+            }
+            if (sStatus === "W") {
+                return "Advertencia";
+            }
+            if (sStatus === "I") {
+                return "Información";
+            }
+            return sStatus || "";
+        },
+
+        _showODataError: function (sDefaultMessage, oError) {
+            var sMessage = sDefaultMessage;
+
+            this._logError("_showODataError", "Entró al manejador de error", {
+                defaultMessage: sDefaultMessage,
+                error: this._serializeError(oError)
+            });
+
+            try {
+                if (oError && oError.responseText) {
+                    var oResponse = JSON.parse(oError.responseText);
+
+                    if (oResponse &&
+                        oResponse.error &&
+                        oResponse.error.message &&
+                        oResponse.error.message.value) {
+                        sMessage = oResponse.error.message.value;
+                    }
+                } else if (oError && oError.message) {
+                    sMessage = oError.message;
+                }
+            } catch (e) {
+                this._logError("_showODataError", "No se pudo parsear responseText", e);
+
+                if (oError && oError.message) {
+                    sMessage = oError.message;
+                }
+            }
+
+            this.getVM().setProperty("/resultado", {
+                Status: "E",
+                Message: sMessage
+            });
+            this.getVM().setProperty("/resultadoState", "Error");
+
+            MessageBox.error(sMessage);
+        }
+
+    });
+});
