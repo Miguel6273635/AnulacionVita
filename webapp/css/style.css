@@ -1,5 +1,13 @@
+/* =========================================================
+   App: Anulación de documentos
+   Diseño moderno SAP Fiori / BTP
+   Autor: Miguel Ángel Hernández Álvarez
+   ========================================================= */
+
 .customPageBg {
-    background: linear-gradient(180deg, #f4f7fb 0%, #eef3f8 100%);
+    background:
+        radial-gradient(circle at top left, rgba(10, 110, 209, 0.14), transparent 32rem),
+        linear-gradient(180deg, #f5f8fb 0%, #edf2f7 100%);
 }
 
 .mainWrapper {
@@ -7,57 +15,84 @@
     gap: 1rem;
 }
 
+/* =========================
+   HERO
+   ========================= */
+
 .heroSection {
-    background: linear-gradient(135deg, #0a6ed1 0%, #3b82f6 100%);
-    border-radius: 1rem;
-    padding: 1.4rem 1.6rem;
+    background:
+        linear-gradient(135deg, rgba(10, 110, 209, 0.98) 0%, rgba(37, 99, 235, 0.96) 55%, rgba(14, 165, 233, 0.92) 100%);
+    border-radius: 1.25rem;
+    padding: 1.5rem 1.7rem;
     margin-bottom: 1rem;
-    box-shadow: 0 0.35rem 1.2rem rgba(0, 0, 0, 0.12);
+    box-shadow: 0 0.7rem 1.8rem rgba(10, 110, 209, 0.22);
+    position: relative;
+    overflow: hidden;
+}
+
+.heroSection::after {
+    content: "";
+    position: absolute;
+    width: 18rem;
+    height: 18rem;
+    right: -7rem;
+    top: -8rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14);
 }
 
 .heroTitle {
     color: #ffffff !important;
-    font-size: 1.8rem !important;
-    font-weight: 700 !important;
+    font-size: 1.85rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02rem;
 }
 
 .heroSubtitle {
     color: rgba(255, 255, 255, 0.92) !important;
-    margin-top: 0.25rem;
+    margin-top: 0.35rem;
+    max-width: 48rem;
 }
 
 .heroBadgeBox {
     background: rgba(255, 255, 255, 0.18);
-    border-radius: 0.85rem;
-    padding: 0.8rem 1rem;
-    min-width: 160px;
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    border-radius: 1rem;
+    padding: 0.85rem 1.1rem;
+    min-width: 170px;
     margin-top: 0.5rem;
+    backdrop-filter: blur(8px);
+    z-index: 1;
 }
 
 .heroBadgeLabel {
-    color: #ffffff !important;
+    color: rgba(255, 255, 255, 0.92) !important;
     font-size: 0.75rem;
     margin-bottom: 0.25rem;
 }
 
 .heroStatus {
-    font-weight: 700;
+    font-weight: 800;
 }
 
+/* =========================
+   PANELS
+   ========================= */
+
 .modernPanel {
-    border-radius: 1rem !important;
+    border-radius: 1.1rem !important;
     overflow: hidden;
-    border: 1px solid #e4ebf3;
-    box-shadow: 0 0.3rem 1rem rgba(0, 0, 0, 0.08);
-    background: #ffffff;
+    border: 1px solid #e3ebf3;
+    box-shadow: 0 0.45rem 1.25rem rgba(15, 23, 42, 0.07);
+    background: rgba(255, 255, 255, 0.96);
     margin-bottom: 1rem;
 }
 
 .modernPanel .sapMPanelHdr {
-    background: #f8fafd;
+    background: #f8fbfe;
     color: #12324a;
-    font-weight: 700;
-    border-bottom: 1px solid #e8eef5;
+    font-weight: 800;
+    border-bottom: 1px solid #e7eef6;
 }
 
 .panelInner {
@@ -70,52 +105,92 @@
 }
 
 .modernInput .sapMInputBaseInner {
-    border-radius: 0.8rem !important;
-    border: 1px solid #d8e2ee !important;
+    border-radius: 0.85rem !important;
+    border: 1px solid #d7e2ee !important;
     background: #fbfdff;
-    height: 2.75rem;
+    height: 2.85rem;
+    font-weight: 600;
 }
 
 .modernInput .sapMInputBaseInner:focus {
     border-color: #0a6ed1 !important;
+    box-shadow: 0 0 0 0.12rem rgba(10, 110, 209, 0.16) !important;
 }
 
 .actionToolbar {
-    margin-top: 0.9rem;
+    margin-top: 0.95rem;
     background: transparent !important;
     border: none !important;
     padding: 0;
 }
 
 .sapMBtn {
-    border-radius: 0.7rem !important;
+    border-radius: 0.75rem !important;
 }
 
 .btnPrimary,
 .btnDanger,
 .btnLight {
-    margin-left: 0.4rem;
+    margin-left: 0.45rem;
 }
+
+/* =========================
+   RESULTADOS
+   ========================= */
 
 .sectionTitle {
     color: #12324a !important;
-    font-weight: 700 !important;
+    font-weight: 800 !important;
 }
 
 .sectionSubtitle {
-    color: #5f7285;
+    color: #64748b;
     margin-top: 0.2rem;
 }
 
 .resultStatus {
-    font-weight: 700;
+    font-weight: 800;
     margin-top: 0.4rem;
 }
 
 .resultMessageStrip {
     margin-top: 1rem;
-    border-radius: 0.8rem;
+    border-radius: 0.85rem;
 }
+
+/* =========================
+   CARDS DE RESUMEN
+   ========================= */
+
+.summaryGrid {
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.summaryCard {
+    min-width: 11rem;
+    padding: 0.9rem 1rem;
+    border-radius: 1rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    border: 1px solid #e5edf6;
+    box-shadow: 0 0.25rem 0.85rem rgba(15, 23, 42, 0.05);
+}
+
+.summaryLabel {
+    color: #64748b;
+    font-size: 0.78rem;
+}
+
+.summaryValue {
+    color: #0f2d45 !important;
+    font-weight: 800 !important;
+    font-size: 1.25rem !important;
+    margin-top: 0.2rem;
+}
+
+/* =========================
+   TABS
+   ========================= */
 
 .modernTabs {
     margin-top: 0.35rem;
@@ -127,20 +202,24 @@
 }
 
 .modernTabs .sapMITBFilterDefault {
-    border-radius: 0.8rem;
+    border-radius: 0.85rem;
 }
 
 .modernTabs .sapMITBContent {
     background: #ffffff;
-    border-radius: 1rem;
+    border-radius: 1.1rem;
     border: 1px solid #e4ebf3;
-    box-shadow: 0 0.3rem 1rem rgba(0, 0, 0, 0.08);
+    box-shadow: 0 0.45rem 1.25rem rgba(15, 23, 42, 0.07);
     padding: 0.6rem;
 }
 
 .tabContentBox {
     padding: 0.35rem;
 }
+
+/* =========================
+   TABLAS
+   ========================= */
 
 .tableToolbar {
     background: transparent !important;
@@ -150,7 +229,12 @@
 
 .tableTitle {
     color: #12324a !important;
-    font-weight: 700 !important;
+    font-weight: 800 !important;
+}
+
+.modernTable {
+    border-radius: 0.9rem;
+    overflow: hidden;
 }
 
 .modernTable .sapMListTblHeaderCell {
@@ -161,15 +245,15 @@
 .modernTable .sapMColumnHeader .sapMLabel,
 .modernTable .sapMListTblHeaderCell .sapMText {
     color: #35526b;
-    font-weight: 700;
+    font-weight: 800;
 }
 
 .modernTable .sapMListTblRow {
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 .modernTable .sapMListTblRow:hover {
-    background-color: #f9fbfe;
+    background-color: #f8fbff;
 }
 
 .tableRowCustom .sapMText {
@@ -178,12 +262,28 @@
 
 .matDocId .sapMObjectIdentifierTitle {
     color: #0a6ed1 !important;
-    font-weight: 700 !important;
+    font-weight: 800 !important;
 }
 
 .sapMObjStatus {
+    font-weight: 800;
+}
+
+/* =========================
+   BADGES
+   ========================= */
+
+.badgeInfo {
+    padding: 0.2rem 0.55rem;
+    border-radius: 1rem;
+    background: #eaf4ff;
+    color: #0a6ed1 !important;
     font-weight: 700;
 }
+
+/* =========================
+   RESPONSIVE
+   ========================= */
 
 @media (max-width: 768px) {
     .mainWrapper {
@@ -199,6 +299,17 @@
     }
 
     .heroBadgeBox {
+        width: 100%;
+    }
+
+    .btnPrimary,
+    .btnDanger,
+    .btnLight {
+        margin-left: 0;
+        margin-top: 0.45rem;
+    }
+
+    .summaryCard {
         width: 100%;
     }
 }
