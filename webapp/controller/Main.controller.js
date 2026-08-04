@@ -257,40 +257,63 @@ sap.ui.define([
             });
         },
 
-        _updateSummary: function (aItems) {
-            var iHU = 0;
-            var iMaterial = 0;
-            var iOtros = 0;
+       _updateSummary: function (aItems) {
+    var iHU = 0;
+    var iMaterial = 0;
+    var iOtros = 0;
+    var iTotalObjetosValidos = 0;
 
-            (aItems || []).forEach(function (oItem) {
-                var sText = [
-                    oItem.ObjTipo,
-                    oItem.Message,
-                    oItem.ObjKey1,
-                    oItem.ObjKey2,
-                    oItem.ObjKey3
-                ].join(" ").toUpperCase();
+    (aItems || []).forEach(function (oItem) {
+        var sMatDoc = (oItem.MatDoc || "").trim();
+        var sMessage = (oItem.Message || "").trim().toUpperCase();
+        var sObjTipo = (oItem.ObjTipo || "").trim().toUpperCase();
+        var sObjKey1 = (oItem.ObjKey1 || "").trim();
+        var sObjKey2 = (oItem.ObjKey2 || "").trim();
 
-                if (sText.indexOf("HU") >= 0) {
-                    iHU++;
-                } else if (
-                    sText.indexOf("MATERIAL") >= 0 ||
-                    sText.indexOf("MATDOC") >= 0 ||
-                    sText.indexOf("DOCUMENTO") >= 0
-                ) {
-                    iMaterial++;
-                } else {
-                    iOtros++;
-                }
-            });
+        /*
+         * Solo contamos como objeto válido las filas que realmente tienen
+         * documento/objeto identificado.
+         *
+         * No se cuentan mensajes como:
+         * - Pedido de compra no encontrado.
+         * - Pedido de ventas no encontrado.
+         */
+        var bEsMensajeNoEncontrado =
+            sMessage.indexOf("NO ENCONTRADO") >= 0 ||
+            sMessage.indexOf("NO ENCONTRADA") >= 0;
 
-            this.getVM().setProperty("/summary", {
-                total: aItems ? aItems.length : 0,
-                hu: iHU,
-                material: iMaterial,
-                otros: iOtros
-            });
-        },
+        var bTieneObjetoReal =
+            !!sMatDoc ||
+            !!sObjTipo ||
+            !!sObjKey1 ||
+            !!sObjKey2;
+
+        if (!bTieneObjetoReal || bEsMensajeNoEncontrado) {
+            return;
+        }
+
+        iTotalObjetosValidos++;
+
+        if (sMessage === "HU" || sMessage.indexOf("HU") >= 0) {
+            iHU++;
+        } else if (
+            sMessage.indexOf("DOCUMENTO DEL MATERIAL") >= 0 ||
+            sMessage.indexOf("DOCUMENTO MATERIAL") >= 0 ||
+            sMessage.indexOf("MATERIAL") >= 0
+        ) {
+            iMaterial++;
+        } else {
+            iOtros++;
+        }
+    });
+
+    this.getVM().setProperty("/summary", {
+        total: iTotalObjetosValidos,
+        hu: iHU,
+        material: iMaterial,
+        otros: iOtros
+    });
+},
 
         _evaluatePreviewBeforeCancel: function (aResults) {
             var oSummary = this.getVM().getProperty("/summary");

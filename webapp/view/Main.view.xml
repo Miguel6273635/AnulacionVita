@@ -21,13 +21,17 @@
                                 text="Gestión de anulación"
                                 level="H1"
                                 class="heroTitle" />
+
                             <Text
                                 text="Consulta el documento material, valida la cadena relacionada y ejecuta la anulación desde SAP BTP."
                                 class="heroSubtitle" />
                         </VBox>
 
                         <VBox class="heroBadgeBox">
-                            <Label text="Estado actual" class="heroBadgeLabel" />
+                            <Label
+                                text="Estado actual"
+                                class="heroBadgeLabel" />
+
                             <ObjectStatus
                                 text="{path:'viewModel>/resultado/Status', formatter:'.formatStatusText'}"
                                 state="{viewModel>/resultadoState}"
@@ -36,7 +40,7 @@
                     </HBox>
                 </VBox>
 
-                <!-- BUSQUEDA -->
+                <!-- BÚSQUEDA -->
                 <Panel
                     headerText="Búsqueda de documento"
                     expandable="false"
@@ -93,12 +97,17 @@
                     class="modernPanel resultPanel">
 
                     <VBox class="panelInner">
-                        <HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap">
+                        <HBox
+                            alignItems="Center"
+                            justifyContent="SpaceBetween"
+                            wrap="Wrap">
+
                             <VBox>
                                 <Title
                                     text="Estatus de la operación"
                                     level="H4"
                                     class="sectionTitle" />
+
                                 <Text
                                     text="Resumen de la consulta o anulación ejecutada."
                                     class="sectionSubtitle" />
@@ -121,30 +130,57 @@
                         <!-- RESUMEN DE OBJETOS -->
                         <HBox class="summaryGrid" wrap="Wrap">
                             <VBox class="summaryCard">
-                                <Text text="Objetos encontrados" class="summaryLabel" />
-                                <Title text="{viewModel>/summary/total}" level="H4" class="summaryValue" />
+                                <Text
+                                    text="Objetos encontrados"
+                                    class="summaryLabel" />
+
+                                <Title
+                                    text="{viewModel>/summary/total}"
+                                    level="H4"
+                                    class="summaryValue" />
                             </VBox>
 
                             <VBox class="summaryCard">
-                                <Text text="HU" class="summaryLabel" />
-                                <Title text="{viewModel>/summary/hu}" level="H4" class="summaryValue" />
+                                <Text
+                                    text="HU"
+                                    class="summaryLabel" />
+
+                                <Title
+                                    text="{viewModel>/summary/hu}"
+                                    level="H4"
+                                    class="summaryValue" />
                             </VBox>
 
                             <VBox class="summaryCard">
-                                <Text text="Documento material" class="summaryLabel" />
-                                <Title text="{viewModel>/summary/material}" level="H4" class="summaryValue" />
+                                <Text
+                                    text="Documento material"
+                                    class="summaryLabel" />
+
+                                <Title
+                                    text="{viewModel>/summary/material}"
+                                    level="H4"
+                                    class="summaryValue" />
                             </VBox>
 
                             <VBox class="summaryCard">
-                                <Text text="Pedido / entrega / transporte" class="summaryLabel" />
-                                <Title text="{viewModel>/summary/otros}" level="H4" class="summaryValue" />
+                                <Text
+                                    text="Pedido / entrega / transporte"
+                                    class="summaryLabel" />
+
+                                <Title
+                                    text="{viewModel>/summary/otros}"
+                                    level="H4"
+                                    class="summaryValue" />
                             </VBox>
                         </HBox>
                     </VBox>
                 </Panel>
 
                 <!-- TABS -->
-                <IconTabBar class="modernTabs" expandable="false">
+                <IconTabBar
+                    class="modernTabs"
+                    expandable="false">
+
                     <items>
 
                         <!-- VISTA PREVIA -->
@@ -159,6 +195,7 @@
                                         text="Vista previa de anulación"
                                         level="H4"
                                         class="tableTitle" />
+
                                     <ToolbarSpacer />
                                 </Toolbar>
 
@@ -176,51 +213,43 @@
                                         <Column minScreenWidth="Tablet" demandPopin="true">
                                             <Text text="Documento material" />
                                         </Column>
+
+                                        <Column minScreenWidth="Tablet" demandPopin="true">
+                                            <Text text="Descripción" />
+                                        </Column>
+
                                         <Column minScreenWidth="Tablet" demandPopin="true">
                                             <Text text="Tipo de objeto" />
                                         </Column>
+
                                         <Column minScreenWidth="Tablet" demandPopin="true">
                                             <Text text="Referencia 1" />
                                         </Column>
+
                                         <Column minScreenWidth="Tablet" demandPopin="true">
                                             <Text text="Referencia 2" />
-                                        </Column>
-                                        <Column minScreenWidth="Tablet" demandPopin="true">
-                                            <Text text="Referencia 3" />
-                                        </Column>
-                                        <Column minScreenWidth="Tablet" demandPopin="true">
-                                            <Text text="Estatus" />
-                                        </Column>
-                                        <Column minScreenWidth="Desktop" demandPopin="true">
-                                            <Text text="Descripción" />
-                                        </Column>
-                                        <Column minScreenWidth="Desktop" demandPopin="true">
-                                            <Text text="Id ejecución" />
-                                        </Column>
-                                        <Column minScreenWidth="Desktop" demandPopin="true" hAlign="End">
-                                            <Text text="Secuencia" />
                                         </Column>
                                     </columns>
 
                                     <items>
-                                        <ColumnListItem vAlign="Middle" class="tableRowCustom">
+                                        <ColumnListItem
+                                            vAlign="Middle"
+                                            class="tableRowCustom">
+
                                             <cells>
                                                 <ObjectIdentifier
                                                     title="{viewModel>MatDoc}"
                                                     class="matDocId" />
 
+                                                <Text
+                                                    text="{viewModel>Message}"
+                                                    wrapping="true" />
+
                                                 <Text text="{viewModel>ObjTipo}" />
+
                                                 <Text text="{viewModel>ObjKey1}" />
+
                                                 <Text text="{viewModel>ObjKey2}" />
-                                                <Text text="{viewModel>ObjKey3}" />
-
-                                                <ObjectStatus
-                                                    text="{path:'viewModel>Status', formatter:'.formatStatusText'}"
-                                                    state="{path:'viewModel>Status', formatter:'.formatDetalleState'}" />
-
-                                                <Text text="{viewModel>Message}" wrapping="true" />
-                                                <Text text="{viewModel>RunId}" wrapping="false" />
-                                                <Text text="{viewModel>SeqNo}" />
                                             </cells>
                                         </ColumnListItem>
                                     </items>
@@ -240,67 +269,65 @@
                                         text="Detalle final de anulación"
                                         level="H4"
                                         class="tableTitle" />
+
                                     <ToolbarSpacer />
                                 </Toolbar>
 
                                 <Table
-    items="{viewModel>/preview}"
-    inset="false"
-    growing="true"
-    growingThreshold="20"
-    growingScrollToLoad="true"
-    width="100%"
-    class="modernTable"
-    noDataText="No hay datos de vista previa.">
+                                    items="{viewModel>/detalle}"
+                                    inset="false"
+                                    growing="true"
+                                    growingThreshold="20"
+                                    growingScrollToLoad="true"
+                                    width="100%"
+                                    class="modernTable"
+                                    noDataText="No hay datos de detalle final.">
 
-    <columns>
-        <Column minScreenWidth="Tablet" demandPopin="true">
-            <Text text="Documento material" />
-        </Column>
+                                    <columns>
+                                        <Column minScreenWidth="Tablet" demandPopin="true">
+                                            <Text text="Documento material" />
+                                        </Column>
 
-        <Column minScreenWidth="Tablet" demandPopin="true">
-            <Text text="Tipo de documento" />
-        </Column>
+                                        <Column minScreenWidth="Tablet" demandPopin="true">
+                                            <Text text="Descripción" />
+                                        </Column>
 
-        <Column minScreenWidth="Tablet" demandPopin="true">
-            <Text text="Referencia 1" />
-        </Column>
+                                        <Column minScreenWidth="Tablet" demandPopin="true">
+                                            <Text text="Tipo de objeto" />
+                                        </Column>
 
-        <Column minScreenWidth="Tablet" demandPopin="true">
-            <Text text="Referencia 2" />
-        </Column>
+                                        <Column minScreenWidth="Tablet" demandPopin="true">
+                                            <Text text="Referencia 1" />
+                                        </Column>
 
-        <Column minScreenWidth="Desktop" demandPopin="true">
-            <Text text="Descripción" />
-        </Column>
+                                        <Column minScreenWidth="Tablet" demandPopin="true">
+                                            <Text text="Referencia 2" />
+                                        </Column>
+                                    </columns>
 
-        <Column minScreenWidth="Desktop" demandPopin="true" hAlign="End">
-            <Text text="Secuencia" />
-        </Column>
-    </columns>
+                                    <items>
+                                        <ColumnListItem
+                                            vAlign="Middle"
+                                            class="tableRowCustom">
 
-    <items>
-        <ColumnListItem vAlign="Middle" class="tableRowCustom">
-            <cells>
-                <ObjectIdentifier
-                    title="{viewModel>MatDoc}"
-                    class="matDocId" />
+                                            <cells>
+                                                <ObjectIdentifier
+                                                    title="{viewModel>MatDoc}"
+                                                    class="matDocId" />
 
-                <Text text="{viewModel>ObjTipo}" />
+                                                <Text
+                                                    text="{viewModel>Message}"
+                                                    wrapping="true" />
 
-                <Text text="{viewModel>ObjKey1}" />
+                                                <Text text="{viewModel>ObjTipo}" />
 
-                <Text text="{viewModel>ObjKey2}" />
+                                                <Text text="{viewModel>ObjKey1}" />
 
-                <Text
-                    text="{viewModel>Message}"
-                    wrapping="true" />
-
-                <Text text="{viewModel>SeqNo}" />
-            </cells>
-        </ColumnListItem>
-    </items>
-</Table>
+                                                <Text text="{viewModel>ObjKey2}" />
+                                            </cells>
+                                        </ColumnListItem>
+                                    </items>
+                                </Table>
                             </VBox>
                         </IconTabFilter>
 
