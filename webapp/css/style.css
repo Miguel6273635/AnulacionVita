@@ -1,464 +1,716 @@
 /* =========================================================
-   App: Anulación de documentos
-   Diseño moderno SAP Fiori / BTP
-   Autor: Miguel Ángel Hernández Álvarez
-   Versión: UI moderna mejorada
+   VITAFOODS - ANULACIÓN DE DOCUMENTOS
+   Diseño premium SAPUI5 / SAP BTP
    ========================================================= */
 
+:root {
+    --vf-primary-900: #082f49;
+    --vf-primary-800: #0c4a6e;
+    --vf-primary-700: #075985;
+    --vf-primary-600: #0369a1;
+    --vf-primary-500: #0a6ed1;
+    --vf-primary-400: #38bdf8;
+    --vf-primary-100: #e0f2fe;
+    --vf-primary-050: #f0f9ff;
+
+    --vf-success-700: #107e3e;
+    --vf-success-100: #e7f6ec;
+    --vf-warning-700: #e9730c;
+    --vf-warning-100: #fff4e5;
+    --vf-error-700: #bb0000;
+    --vf-error-100: #ffeaf0;
+
+    --vf-text-900: #102a43;
+    --vf-text-700: #334e68;
+    --vf-text-500: #627d98;
+    --vf-text-300: #9fb3c8;
+
+    --vf-border: #d9e5f0;
+    --vf-border-soft: #e9f0f6;
+    --vf-surface: #ffffff;
+    --vf-surface-soft: #f8fbfe;
+    --vf-shadow-sm: 0 0.25rem 0.75rem rgba(15, 23, 42, 0.06);
+    --vf-shadow-md: 0 0.65rem 1.6rem rgba(15, 23, 42, 0.09);
+    --vf-shadow-lg: 0 1.15rem 2.8rem rgba(3, 105, 161, 0.18);
+}
+
 /* =========================
-   BASE GENERAL
+   PÁGINA Y CONTENEDOR
    ========================= */
 
 .customPageBg {
-    background:
-        radial-gradient(circle at 8% 0%, rgba(10, 110, 209, 0.18), transparent 24rem),
-        radial-gradient(circle at 92% 10%, rgba(14, 165, 233, 0.16), transparent 24rem),
-        linear-gradient(180deg, #f6f9fc 0%, #edf3f8 48%, #e8eef5 100%);
+    width: 100% !important;
     min-height: 100%;
+    background:
+        radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.17), transparent 28rem),
+        radial-gradient(circle at 100% 3%, rgba(10, 110, 209, 0.15), transparent 30rem),
+        linear-gradient(180deg, #f7fbff 0%, #eef4f9 55%, #e8eff6 100%);
+}
+
+.customPageBg,
+.customPageBg .sapMPage,
+.customPageBg .sapMPageScroll,
+.customPageBg .sapMPageEnableScrolling,
+.customPageBg .sapMPageCont {
+    width: 100% !important;
+    max-width: none !important;
 }
 
 .mainWrapper {
-    padding: 1.35rem;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    margin: 0;
+    padding: 1rem 1.25rem 2rem;
     gap: 1rem;
-    max-width: 1500px;
-    margin: 0 auto;
     box-sizing: border-box;
 }
 
 /* =========================
-   HERO PRINCIPAL
+   HERO
    ========================= */
 
 .heroSection {
-    background:
-        linear-gradient(135deg, #063b73 0%, #0a6ed1 45%, #16a3e8 100%);
-    border-radius: 1.35rem;
-    padding: 1.65rem 1.85rem;
-    margin-bottom: 1rem;
-    box-shadow:
-        0 1rem 2.2rem rgba(10, 110, 209, 0.24),
-        inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    width: 100%;
+    min-height: 10rem;
+    padding: 1.55rem 1.8rem;
+    border-radius: 1.4rem;
+    box-sizing: border-box;
     position: relative;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    background:
+        linear-gradient(130deg, #062f4f 0%, #075985 35%, #0a6ed1 68%, #38bdf8 100%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow:
+        var(--vf-shadow-lg),
+        inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
 .heroSection::before {
     content: "";
     position: absolute;
-    width: 26rem;
-    height: 26rem;
-    left: -12rem;
-    bottom: -18rem;
+    width: 32rem;
+    height: 32rem;
+    left: -17rem;
+    bottom: -25rem;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.10);
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .heroSection::after {
     content: "";
     position: absolute;
-    width: 19rem;
-    height: 19rem;
-    right: -7rem;
-    top: -8rem;
+    width: 23rem;
+    height: 23rem;
+    right: -8rem;
+    top: -11rem;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.heroTextContainer {
+    position: relative;
+    z-index: 2;
+    min-width: 0;
+    max-width: calc(100% - 15rem);
+}
+
+.heroEyebrow {
+    color: rgba(255, 255, 255, 0.76) !important;
+    font-size: 0.73rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.12rem;
 }
 
 .heroTitle {
     color: #ffffff !important;
-    font-size: 1.95rem !important;
+    margin-top: 0.28rem;
+    font-size: 2rem !important;
     font-weight: 900 !important;
-    letter-spacing: -0.035rem;
-    line-height: 1.15;
-    position: relative;
-    z-index: 1;
+    letter-spacing: -0.045rem;
+    line-height: 1.08;
 }
 
 .heroSubtitle {
-    color: rgba(255, 255, 255, 0.92) !important;
-    margin-top: 0.45rem;
-    max-width: 52rem;
-    font-size: 0.98rem;
-    line-height: 1.45;
-    position: relative;
-    z-index: 1;
+    color: rgba(255, 255, 255, 0.9) !important;
+    margin-top: 0.55rem;
+    max-width: 58rem;
+    font-size: 0.97rem;
+    line-height: 1.5;
 }
 
 .heroBadgeBox {
-    background: rgba(255, 255, 255, 0.16);
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    border-radius: 1.1rem;
-    padding: 0.95rem 1.15rem;
-    min-width: 185px;
-    margin-top: 0.5rem;
-    backdrop-filter: blur(12px);
-    box-shadow: 0 0.55rem 1.1rem rgba(0, 0, 0, 0.13);
     position: relative;
-    z-index: 1;
+    z-index: 2;
+    min-width: 12rem;
+    padding: 0.9rem 1.05rem;
+    border-radius: 1.05rem;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 0.55rem 1.2rem rgba(0, 0, 0, 0.12);
 }
 
 .heroBadgeLabel {
-    color: rgba(255, 255, 255, 0.88) !important;
-    font-size: 0.76rem;
-    margin-bottom: 0.25rem;
+    color: rgba(255, 255, 255, 0.78) !important;
+    font-size: 0.72rem;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.045rem;
+    letter-spacing: 0.06rem;
 }
 
 .heroStatus {
+    margin-top: 0.25rem;
     font-weight: 900;
 }
 
 /* =========================
-   PANELES / TARJETAS
+   PANELES
    ========================= */
 
 .modernPanel {
-    border-radius: 1.25rem !important;
+    width: 100% !important;
+    border-radius: 1.2rem !important;
     overflow: hidden;
-    border: 1px solid rgba(213, 226, 238, 0.95);
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid var(--vf-border);
     box-shadow:
-        0 0.55rem 1.45rem rgba(15, 23, 42, 0.075),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    background: rgba(255, 255, 255, 0.97);
-    margin-bottom: 1rem;
+        var(--vf-shadow-md),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 .modernPanel .sapMPanelHdr {
-    background:
-        linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
-    color: #12324a;
+    height: 3rem;
+    line-height: 3rem;
+    padding-left: 1.15rem;
+    color: var(--vf-text-900);
     font-weight: 900;
-    border-bottom: 1px solid #e5eef6;
-    height: 3.05rem;
-    line-height: 3.05rem;
-    padding-left: 1rem;
+    background:
+        linear-gradient(180deg, #ffffff 0%, #f5faff 100%);
+    border-bottom: 1px solid var(--vf-border-soft);
 }
 
 .modernPanel .sapMPanelContent {
+    padding: 0 !important;
     border-bottom: none !important;
 }
 
 .panelInner {
-    padding: 1.25rem;
+    width: 100%;
+    padding: 1.15rem 1.2rem 1.25rem;
+    box-sizing: border-box;
 }
 
 /* =========================
-   CAMPOS / INPUT
+   BÚSQUEDA
    ========================= */
 
-.fieldLabel {
-    color: #12324a;
-    margin-bottom: 0.48rem;
-    font-weight: 800;
+.searchContentRow {
+    gap: 1rem;
 }
+
+.searchInputArea {
+    flex: 1 1 35rem;
+    min-width: 18rem;
+}
+
+.searchActions {
+    gap: 0.5rem;
+    flex: 0 0 auto;
+}
+
+.fieldLabel {
+    margin-bottom: 0.42rem;
+    color: var(--vf-text-900);
+    font-weight: 900;
+}
+
 .modernInput {
     width: 100%;
 }
 
 .modernInput .sapMInputBaseContentWrapper {
-    border-radius: 0.95rem !important;
-    border: 1px solid #d4e0ec !important;
+    height: 3rem !important;
+    border-radius: 0.9rem !important;
+    border: 1px solid #cbd9e6 !important;
     background: #fbfdff !important;
-    height: 2.95rem !important;
-    box-shadow: none !important;
-    transition: all 0.18s ease;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+    transition:
+        border-color 0.18s ease,
+        box-shadow 0.18s ease,
+        background 0.18s ease;
 }
 
 .modernInput .sapMInputBaseInner {
-    border: none !important;
-    outline: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
-    height: 2.95rem !important;
-    line-height: 2.95rem !important;
-    font-weight: 700;
-    color: #163247 !important;
+    height: 3rem !important;
+    line-height: 3rem !important;
     padding-left: 0.95rem !important;
-    text-decoration: none !important;
+    color: var(--vf-text-900) !important;
+    font-weight: 750;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 .modernInput .sapMInputBaseInner::placeholder {
-    color: #7a8694 !important;
-    opacity: 1 !important;
-    font-style: italic !important;
-    text-decoration: none !important;
+    color: #7b8fa3 !important;
+    opacity: 1;
+    font-style: italic;
     font-weight: 600;
 }
 
+.modernInput .sapMInputBaseContentWrapper:hover {
+    border-color: #93b8dc !important;
+    background: #ffffff !important;
+}
+
 .modernInput .sapMInputBaseContentWrapper:focus-within {
-    border-color: #0a6ed1 !important;
-    box-shadow: 0 0 0 0.08rem rgba(10, 110, 209, 0.25) !important;
-}
-
-.modernInput .sapMInputBaseInner:hover {
-    border-color: #9dc3ea !important;
+    border-color: var(--vf-primary-500) !important;
     background: #ffffff !important;
-}
-
-.modernInput .sapMInputBaseInner:focus {
-    border-color: #0a6ed1 !important;
-    box-shadow: 0 0 0 0.14rem rgba(10, 110, 209, 0.17) !important;
-    background: #ffffff !important;
+    box-shadow:
+        0 0 0 0.12rem rgba(10, 110, 209, 0.16) !important;
 }
 
 /* =========================
    BOTONES
    ========================= */
 
-.actionToolbar {
-    margin-top: 1rem;
-    background: transparent !important;
-    border: none !important;
-    padding: 0;
-}
-
-.sapMBtn {
-    border-radius: 0.85rem !important;
+.sapMBtn,
+.sapMBtnInner {
+    border-radius: 0.78rem !important;
 }
 
 .sapMBtnInner {
-    border-radius: 0.85rem !important;
-    font-weight: 800 !important;
-    letter-spacing: 0.01rem;
-}
-
-.btnPrimary,
-.btnDanger,
-.btnLight {
-    margin-left: 0.45rem;
+    min-height: 2.55rem;
+    font-weight: 850 !important;
+    letter-spacing: 0.005rem;
 }
 
 .btnPrimary .sapMBtnInner {
-    box-shadow: 0 0.35rem 0.75rem rgba(10, 110, 209, 0.18);
+    box-shadow: 0 0.35rem 0.85rem rgba(10, 110, 209, 0.18);
 }
 
 .btnDanger .sapMBtnInner {
-    box-shadow: 0 0.35rem 0.75rem rgba(187, 0, 0, 0.14);
+    box-shadow: 0 0.35rem 0.85rem rgba(187, 0, 0, 0.13);
 }
 
 .btnLight .sapMBtnInner {
     background: #ffffff !important;
-    border-color: #d7e2ee !important;
+    border-color: #d4e0eb !important;
 }
 
 /* =========================
-   RESULTADO GENERAL
+   RESULTADO Y RESUMEN
    ========================= */
 
 .sectionTitle {
-    color: #12324a !important;
+    color: var(--vf-text-900) !important;
     font-weight: 900 !important;
-    letter-spacing: -0.01rem;
+    letter-spacing: -0.015rem;
 }
 
 .sectionSubtitle {
-    color: #64748b;
-    margin-top: 0.22rem;
-    line-height: 1.35;
+    margin-top: 0.2rem;
+    color: var(--vf-text-500) !important;
+    line-height: 1.4;
 }
 
 .resultStatus {
     font-weight: 900;
-    margin-top: 0.4rem;
 }
 
 .resultMessageStrip {
-    margin-top: 1rem;
-    border-radius: 0.95rem;
+    margin-top: 0.9rem;
+    border-radius: 0.85rem !important;
     border: 1px solid rgba(213, 226, 238, 0.9);
-    box-shadow: 0 0.25rem 0.65rem rgba(15, 23, 42, 0.045);
+    box-shadow: var(--vf-shadow-sm);
 }
 
-/* =========================
-   CARDS DE RESUMEN
-   ========================= */
-
 .summaryGrid {
+    width: 100%;
     gap: 0.85rem;
-    margin-top: 1.1rem;
+    margin-top: 1rem;
 }
 
 .summaryCard {
+    flex: 1 1 13rem;
     min-width: 12rem;
-    padding: 1rem 1.1rem;
-    border-radius: 1.15rem;
+    max-width: 22rem;
+    padding: 0.95rem 1rem;
+    border-radius: 1rem;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
     background:
-        linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
-    border: 1px solid #e2ebf5;
-    box-shadow:
-        0 0.35rem 1rem rgba(15, 23, 42, 0.055),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        linear-gradient(180deg, #ffffff 0%, #f8fbfe 100%);
+    border: 1px solid var(--vf-border);
+    box-shadow: var(--vf-shadow-sm);
+    transition:
+        transform 0.18s ease,
+        box-shadow 0.18s ease,
+        border-color 0.18s ease;
+}
+
+.summaryCard::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0.28rem;
+    height: 100%;
+    background: var(--vf-primary-500);
 }
 
 .summaryCard:hover {
     transform: translateY(-2px);
-    border-color: #c9ddf1;
-    box-shadow:
-        0 0.65rem 1.35rem rgba(15, 23, 42, 0.085),
-        inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    border-color: #bdd5e9;
+    box-shadow: var(--vf-shadow-md);
+}
+
+.summaryCardHu::before {
+    background: var(--vf-warning-700);
+}
+
+.summaryCardMaterial::before {
+    background: var(--vf-success-700);
+}
+
+.summaryCardOther::before {
+    background: #7c3aed;
 }
 
 .summaryLabel {
-    color: #64748b;
-    font-size: 0.78rem;
-    font-weight: 800;
+    color: var(--vf-text-500) !important;
+    font-size: 0.75rem;
+    font-weight: 900;
     text-transform: uppercase;
-    letter-spacing: 0.035rem;
+    letter-spacing: 0.04rem;
 }
 
 .summaryValue {
-    color: #0f2d45 !important;
+    margin-top: 0.2rem;
+    color: var(--vf-text-900) !important;
+    font-size: 1.45rem !important;
     font-weight: 900 !important;
-    font-size: 1.42rem !important;
+}
+
+.summaryValueRow {
+    gap: 0.45rem;
+}
+
+.summaryWarningIcon {
+    color: var(--vf-warning-700);
+    font-size: 1rem;
     margin-top: 0.25rem;
 }
 
 /* =========================
-   ICON TAB BAR
+   TABS
    ========================= */
 
 .modernTabs {
-    margin-top: 0.45rem;
+    width: 100% !important;
+    margin-top: 0.2rem;
 }
 
 .modernTabs .sapMITBHead {
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid #e3ebf3;
-    border-radius: 1.15rem 1.15rem 0 0;
-    padding: 0.55rem 0.75rem 0;
-    box-shadow: 0 0.3rem 0.9rem rgba(15, 23, 42, 0.05);
-}
-
-.modernTabs .sapMITBFilterDefault {
-    border-radius: 0.95rem;
+    padding: 0.45rem 0.7rem 0;
+    border: 1px solid var(--vf-border);
+    border-radius: 1.05rem 1.05rem 0 0;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: var(--vf-shadow-sm);
 }
 
 .modernTabs .sapMITBFilter .sapMITBText {
-    font-weight: 800;
-    color: #314a60;
+    color: var(--vf-text-700);
+    font-weight: 850;
 }
 
 .modernTabs .sapMITBSelected .sapMITBText {
-    color: #0a6ed1 !important;
+    color: var(--vf-primary-500) !important;
 }
 
 .modernTabs .sapMITBContent {
-    background: #ffffff;
-    border-radius: 0 0 1.25rem 1.25rem;
-    border: 1px solid #e3ebf3;
-    border-top: none;
-    box-shadow: 0 0.55rem 1.45rem rgba(15, 23, 42, 0.075);
+    width: 100% !important;
     padding: 0.75rem;
+    box-sizing: border-box;
+    border: 1px solid var(--vf-border);
+    border-top: none;
+    border-radius: 0 0 1.05rem 1.05rem;
+    background: #ffffff;
+    box-shadow: var(--vf-shadow-md);
 }
 
 .tabContentBox {
-    padding: 0.35rem;
+    width: 100%;
+    padding: 0.2rem;
+    box-sizing: border-box;
 }
 
 /* =========================
-   TOOLBAR DE TABLAS
+   TOOLBAR Y TABLAS
    ========================= */
 
 .tableToolbar {
-    background: transparent !important;
-    border-bottom: 1px solid #e7eef6;
+    width: 100%;
     margin-bottom: 0.55rem;
-    padding: 0.3rem 0.2rem 0.65rem 0.2rem;
+    padding: 0.25rem 0.25rem 0.65rem;
+    background: transparent !important;
+    border-bottom: 1px solid var(--vf-border-soft);
 }
 
 .tableTitle {
-    color: #12324a !important;
+    color: var(--vf-text-900) !important;
     font-weight: 900 !important;
-    letter-spacing: -0.01rem;
 }
 
-/* =========================
-   TABLAS MODERNAS
-   ========================= */
+.pendingHuStatus {
+    font-weight: 900;
+}
 
-.modernTable {
-    border-radius: 1.05rem;
+.modernTable,
+.previewTable {
+    width: 100% !important;
     overflow: hidden;
-    border: 1px solid #e3ebf3;
+    border: 1px solid var(--vf-border);
+    border-radius: 0.95rem;
     background: #ffffff;
 }
 
 .modernTable .sapMListTbl {
+    width: 100% !important;
     border-collapse: separate;
     border-spacing: 0;
 }
 
 .modernTable .sapMListTblHeaderCell {
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
     background:
-        linear-gradient(180deg, #f7fbff 0%, #eef5fb 100%);
-    border-bottom: 1px solid #dce8f3;
-    padding-top: 0.9rem;
-    padding-bottom: 0.9rem;
+        linear-gradient(180deg, #f8fbfe 0%, #eef5fa 100%);
+    border-bottom: 1px solid #d7e4ef;
 }
 
-.modernTable .sapMColumnHeader .sapMLabel,
-.modernTable .sapMListTblHeaderCell .sapMText {
-    color: #344f67 !important;
+.modernTable .sapMListTblHeaderCell .sapMText,
+.modernTable .sapMColumnHeader .sapMLabel {
+    color: #36566f !important;
+    font-size: 0.74rem;
     font-weight: 900 !important;
     text-transform: uppercase;
-    letter-spacing: 0.035rem;
-    font-size: 0.78rem;
+    letter-spacing: 0.04rem;
 }
 
 .modernTable .sapMListTblCell {
-    border-bottom: 1px solid #edf2f7;
-    padding-top: 0.75rem;
-    padding-bottom: 0.75rem;
+    padding-top: 0.78rem;
+    padding-bottom: 0.78rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--vf-border-soft);
 }
 
 .modernTable .sapMListTblRow {
-    transition: background-color 0.18s ease, box-shadow 0.18s ease;
+    transition:
+        background 0.16s ease,
+        transform 0.16s ease;
 }
 
 .modernTable .sapMListTblRow:hover {
-    background-color: #f7fbff !important;
-}
-
-.modernTable .sapMListTblRow:hover .sapMListTblCell {
-    border-bottom-color: #dce8f3;
+    background: #f7fbff !important;
 }
 
 .tableRowCustom .sapMText {
-    color: #243746;
-    font-weight: 500;
+    color: #243b53;
+    font-weight: 520;
 }
 
-.matDocId .sapMObjectIdentifierTitle {
-    color: #0a6ed1 !important;
+.objectTypeCell {
+    gap: 0.62rem;
+    min-width: 0;
+}
+
+.objectTypeIcon {
+    min-width: 1.35rem;
+    color: var(--vf-primary-500);
+    font-size: 1.16rem;
+}
+
+.objectTypeText {
+    color: var(--vf-text-900) !important;
+    font-weight: 800 !important;
+}
+
+.referenceText {
+    color: #29465d !important;
+    font-weight: 650 !important;
+    word-break: break-word;
+}
+
+/* =========================
+   PROVEEDOR
+   ========================= */
+
+.providerCell {
+    width: 100%;
+    min-width: 0;
+}
+
+.selectedProviderName {
+    color: var(--vf-text-900) !important;
+    font-weight: 850 !important;
+}
+
+.selectedProviderId {
+    margin-top: 0.1rem;
+    color: var(--vf-text-500) !important;
+    font-size: 0.74rem;
+}
+
+.providerCounterBox {
+    gap: 0.35rem;
+}
+
+.providerCounterIcon {
+    color: var(--vf-primary-500);
+}
+
+.providerCountText {
+    color: #355a75 !important;
+    font-weight: 850 !important;
+}
+
+.purchaseOrderText {
+    color: var(--vf-text-900) !important;
+    font-weight: 750 !important;
+}
+
+.emptyCellText {
+    color: var(--vf-text-300) !important;
+}
+
+/* =========================
+   ESTATUS Y ACCIONES
+   ========================= */
+
+.statusActionCell {
+    gap: 0.4rem;
+}
+
+.rowStatusBadge {
+    padding: 0.17rem 0.52rem;
+    border-radius: 999px;
+}
+
+.selectProviderButton .sapMBtnInner {
+    color: var(--vf-primary-500) !important;
+    background: var(--vf-primary-050) !important;
+    border: 1px solid #9cc8ee !important;
+    box-shadow: 0 0.2rem 0.5rem rgba(10, 110, 209, 0.08);
+}
+
+.selectProviderButton .sapMBtnInner:hover {
+    background: #e4f3ff !important;
+    border-color: var(--vf-primary-500) !important;
+}
+
+.providerInfoStrip {
+    margin-top: 0.85rem;
+}
+
+/* =========================
+   POPUP PROVEEDORES
+   ========================= */
+
+.providerDialog {
+    border-radius: 1rem !important;
+}
+
+.providerDialog .sapMDialogTitleGroup {
+    background:
+        linear-gradient(180deg, #ffffff 0%, #f5faff 100%);
+    border-bottom: 1px solid var(--vf-border);
+}
+
+.providerDialog .sapMDialogSection {
+    background: #f7fafc;
+}
+
+.providerDialogContent {
+    padding: 1rem;
+    gap: 0.95rem;
+}
+
+.providerDialogHero {
+    gap: 0.8rem;
+    padding: 0.9rem;
+    border-radius: 0.9rem;
+    background:
+        linear-gradient(135deg, #eef8ff 0%, #f8fcff 100%);
+    border: 1px solid #d4e8f8;
+}
+
+.providerDialogHeroIcon {
+    color: var(--vf-primary-500);
+    font-size: 1.65rem;
+}
+
+.providerDialogHuTitle {
+    color: var(--vf-text-900) !important;
     font-weight: 900 !important;
 }
 
-.matDocId .sapMObjectIdentifierTitle:hover {
-    text-decoration: underline;
+.providerDialogHuSubtitle {
+    margin-top: 0.15rem;
+    color: var(--vf-text-500) !important;
+    font-size: 0.8rem;
 }
 
-.sapMObjStatus {
-    font-weight: 900;
+.providerDialogInfo {
+    border-radius: 0.8rem !important;
+}
+
+.providerTable {
+    overflow: hidden;
+    border: 1px solid var(--vf-border);
+    border-radius: 0.9rem;
+    background: #ffffff;
+}
+
+.providerTable .sapMListTblHeaderCell {
+    background: #f1f7fc;
+}
+
+.providerTable .sapMListTblHeaderCell .sapMText {
+    color: #36566f !important;
+    font-size: 0.74rem;
+    font-weight: 900 !important;
+    text-transform: uppercase;
+}
+
+.providerTable .sapMLIBSelected {
+    background: #eaf5ff !important;
+}
+
+.providerTable .sapMLIB:hover {
+    background: #f6fbff !important;
+}
+
+.providerIdCell {
+    color: var(--vf-primary-700) !important;
+    font-weight: 850 !important;
+}
+
+.providerNameCell {
+    color: var(--vf-text-900) !important;
+    font-weight: 750 !important;
+}
+
+.providerOrderCell {
+    color: var(--vf-text-700) !important;
+    font-weight: 750 !important;
 }
 
 /* =========================
-   BADGES / INFO
-   ========================= */
-
-.badgeInfo {
-    padding: 0.22rem 0.6rem;
-    border-radius: 999px;
-    background: #eaf4ff;
-    color: #0a6ed1 !important;
-    font-weight: 800;
-    border: 1px solid #cfe6ff;
-}
-
-/* =========================
-   AJUSTES FINOS SAPUI5
+   AJUSTES SAPUI5
    ========================= */
 
 .sapMPageHeader::after {
@@ -469,93 +721,4182 @@
     border-bottom: none !important;
 }
 
-.sapMPanelContent {
-    padding: 0 !important;
-}
-
 .sapMMessageStrip {
-    border-radius: 0.95rem !important;
+    border-radius: 0.85rem !important;
 }
 
 .sapMITBContent {
     border-bottom: none !important;
 }
 
+.matDocId .sapMObjectIdentifierTitle {
+    color: var(--vf-primary-500) !important;
+    font-weight: 900 !important;
+}
+
+.sapMObjStatus {
+    font-weight: 850;
+}
+
 /* =========================
-   RESPONSIVE TABLET
+   PANTALLAS GRANDES
    ========================= */
 
-@media (max-width: 1024px) {
+@media (min-width: 1600px) {
     .mainWrapper {
-        padding: 1rem;
-    }
-
-    .heroTitle {
-        font-size: 1.7rem !important;
+        padding-left: 1.6rem;
+        padding-right: 1.6rem;
     }
 
     .summaryCard {
-        min-width: 10.8rem;
+        max-width: 24rem;
+    }
+}
+
+@media (min-width: 2000px) {
+    .mainWrapper {
+        padding-left: 2rem;
+        padding-right: 2rem;
     }
 }
 
 /* =========================
-   RESPONSIVE MÓVIL
+   TABLET
+   ========================= */
+
+@media (max-width: 1024px) {
+    .mainWrapper {
+        padding: 0.95rem;
+    }
+
+    .heroTextContainer {
+        max-width: 100%;
+    }
+
+    .heroTitle {
+        font-size: 1.72rem !important;
+    }
+
+    .summaryCard {
+        max-width: none;
+    }
+
+    .searchActions {
+        width: 100%;
+    }
+}
+
+/* =========================
+   MÓVIL
    ========================= */
 
 @media (max-width: 768px) {
     .mainWrapper {
-        padding: 0.75rem;
+        padding: 0.7rem;
     }
 
     .heroSection {
-        padding: 1.1rem;
+        padding: 1.05rem;
         border-radius: 1rem;
     }
 
+    .heroTextContainer {
+        width: 100%;
+        max-width: 100%;
+    }
+
     .heroTitle {
-        font-size: 1.45rem !important;
+        font-size: 1.42rem !important;
     }
 
     .heroSubtitle {
-        font-size: 0.9rem;
+        font-size: 0.88rem;
     }
 
     .heroBadgeBox {
         width: 100%;
-        margin-top: 1rem;
+        min-width: unset;
+        margin-top: 0.9rem;
+        box-sizing: border-box;
     }
 
     .panelInner {
-        padding: 1rem;
+        padding: 0.9rem;
     }
 
-    .btnPrimary,
-    .btnDanger,
-    .btnLight {
-        margin-left: 0;
-        margin-top: 0.45rem;
+    .searchInputArea {
+        min-width: 100%;
+    }
+
+    .searchActions {
         width: 100%;
     }
 
-    .actionToolbar .sapMBtn {
+    .searchActions .sapMBtn {
         width: 100%;
     }
 
     .summaryCard {
         width: 100%;
         min-width: unset;
-    }
-
-    .modernTabs .sapMITBHead {
-        border-radius: 1rem 1rem 0 0;
+        max-width: none;
     }
 
     .modernTabs .sapMITBContent {
-        border-radius: 0 0 1rem 1rem;
+        padding: 0.45rem;
     }
 
-    .modernTable {
-        border-radius: 0.9rem;
+    .statusActionCell {
+        justify-content: flex-start !important;
+    }
+
+    .selectProviderButton {
+        margin-top: 0.3rem;
+    }
+
+    .providerDialogContent {
+        padding: 0.7rem;
+    }
+}
+/* =========================================================
+   OCUPAR TODO EL ANCHO DISPONIBLE
+   ========================================================= */
+
+html,
+body,
+.sapUiBody,
+#content {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Contenedor principal de la aplicación UI5 */
+.sapUiComponentContainer,
+.sapUiComponentContainer > div,
+.sapMApp,
+.sapMApp > div,
+.sapMNav,
+.sapMNavItem,
+.sapMPage,
+.sapMPage > section,
+.sapMPageScroll,
+.sapMPageEnableScrolling,
+.sapMPageCont {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* Página de la aplicación */
+.customPageBg {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+}
+
+/* Contenido interno */
+.mainWrapper {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 1rem 1.25rem 2rem !important;
+    box-sizing: border-box !important;
+}
+
+/* Paneles, tabs y tablas */
+.heroSection,
+.modernPanel,
+.modernTabs,
+.modernTabs .sapMITBContainerContent,
+.modernTabs .sapMITBContent,
+.tabContentBox,
+.modernTable,
+.previewTable {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* Evita que SAPUI5 centre el contenido mediante márgenes automáticos */
+.customPageBg *,
+.mainWrapper * {
+    box-sizing: border-box;
+}
+/* =========================================================
+   BOTONES DE ACCIÓN MEJORADOS
+   ========================================================= */
+
+.searchActions {
+    gap: 0.65rem;
+}
+
+.searchActions .sapMBtn {
+    min-width: 7.2rem;
+}
+
+.searchActions .sapMBtnInner {
+    min-height: 2.75rem !important;
+    height: 2.75rem !important;
+    padding: 0 1.1rem !important;
+    border-radius: 0.9rem !important;
+
+    font-size: 0.9rem !important;
+    font-weight: 850 !important;
+    letter-spacing: 0.01rem;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    transition:
+        transform 0.16s ease,
+        box-shadow 0.16s ease,
+        background-color 0.16s ease,
+        border-color 0.16s ease !important;
+}
+
+.searchActions .sapMBtnIcon {
+    font-size: 0.95rem !important;
+    margin-right: 0.42rem !important;
+}
+
+/* =========================
+   BOTÓN BUSCAR
+   ========================= */
+
+.btnPrimary .sapMBtnInner {
+    color: #ffffff !important;
+    background:
+        linear-gradient(
+            135deg,
+            #0a6ed1 0%,
+            #0875de 55%,
+            #0b84ec 100%
+        ) !important;
+
+    border: 1px solid #0a6ed1 !important;
+
+    box-shadow:
+        0 0.35rem 0.8rem rgba(10, 110, 209, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+.btnPrimary .sapMBtnInner:hover {
+    background:
+        linear-gradient(
+            135deg,
+            #085caf 0%,
+            #0a6ed1 55%,
+            #087bdc 100%
+        ) !important;
+
+    border-color: #085caf !important;
+
+    box-shadow:
+        0 0.5rem 1rem rgba(10, 110, 209, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+
+    transform: translateY(-1px);
+}
+
+.btnPrimary .sapMBtnInner:active {
+    transform: translateY(0);
+    box-shadow:
+        0 0.2rem 0.45rem rgba(10, 110, 209, 0.2) !important;
+}
+
+/* =========================
+   BOTÓN ANULAR
+   ========================= */
+
+.btnDanger .sapMBtnInner {
+    color: #bb0000 !important;
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #fff7f7 100%
+        ) !important;
+
+    border: 1px solid #e89b9b !important;
+
+    box-shadow:
+        0 0.28rem 0.65rem rgba(187, 0, 0, 0.09),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+}
+
+.btnDanger .sapMBtnInner:hover {
+    color: #ffffff !important;
+    background:
+        linear-gradient(
+            135deg,
+            #bb0000 0%,
+            #d20a0a 100%
+        ) !important;
+
+    border-color: #bb0000 !important;
+
+    box-shadow:
+        0 0.45rem 0.95rem rgba(187, 0, 0, 0.22) !important;
+
+    transform: translateY(-1px);
+}
+
+.btnDanger .sapMBtnInner:active {
+    transform: translateY(0);
+}
+
+.btnDanger.sapMBtnDisabled .sapMBtnInner,
+.btnDanger .sapMBtnInner.sapMBtnDisabled {
+    color: #b9c3cc !important;
+    background: #f5f7f9 !important;
+    border-color: #dce3e9 !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+}
+
+/* =========================
+   BOTÓN LIMPIAR
+   ========================= */
+
+.btnLight .sapMBtnInner {
+    color: #0a5ea8 !important;
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f7fbff 100%
+        ) !important;
+
+    border: 1px solid #b9d5eb !important;
+
+    box-shadow:
+        0 0.28rem 0.65rem rgba(10, 110, 209, 0.07),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+}
+
+.btnLight .sapMBtnInner:hover {
+    color: #074f91 !important;
+    background:
+        linear-gradient(
+            180deg,
+            #eef8ff 0%,
+            #e4f3ff 100%
+        ) !important;
+
+    border-color: #7fb6df !important;
+
+    box-shadow:
+        0 0.42rem 0.9rem rgba(10, 110, 209, 0.14) !important;
+
+    transform: translateY(-1px);
+}
+
+.btnLight .sapMBtnInner:active {
+    transform: translateY(0);
+}
+
+/* =========================
+   FOCO ACCESIBLE
+   ========================= */
+
+.searchActions .sapMBtn:focus .sapMBtnInner {
+    outline: none !important;
+    box-shadow:
+        0 0 0 0.16rem rgba(10, 110, 209, 0.2),
+        0 0.35rem 0.8rem rgba(10, 110, 209, 0.16) !important;
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 768px) {
+    .searchActions {
+        width: 100%;
+        gap: 0.5rem;
+    }
+
+    .searchActions .sapMBtn {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .searchActions .sapMBtnInner {
+        width: 100%;
+    }
+}
+/* =========================================================
+   MÁS ESPACIO EN LA CARD DE BÚSQUEDA
+   ========================================================= */
+
+.searchPanel .panelInner {
+    padding-top: 1.25rem !important;
+    padding-right: 1.25rem !important;
+    padding-bottom: 1.5rem !important;
+    padding-left: 1.25rem !important;
+}
+
+.searchContentRow {
+    min-height: 5.2rem;
+    align-items: flex-end !important;
+    padding-bottom: 0.15rem;
+}
+
+.searchInputArea {
+    padding-bottom: 0.1rem;
+}
+
+.searchActions {
+    padding-bottom: 0.1rem;
+}
+
+/* Más aire entre el título del campo y el input */
+.searchPanel .fieldLabel {
+    margin-bottom: 0.6rem !important;
+}
+
+/* Evita que los botones queden pegados al borde inferior */
+.searchPanel .sapMPanelContent {
+    padding-bottom: 0.2rem !important;
+}
+
+/* Un poco más de altura visual para el panel completo */
+.searchPanel {
+    min-height: 8.6rem;
+}
+/* =========================================================
+   MEJORA VISUAL DEL ICON TAB BAR
+   ========================================================= */
+
+.modernTabs {
+    margin-top: 0.75rem !important;
+}
+
+/* Contenedor superior de las pestañas */
+.modernTabs .sapMITBHead {
+    min-height: 5.4rem !important;
+    padding: 0.8rem 1rem 0 !important;
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f7fbff 100%
+        ) !important;
+
+    border: 1px solid #d9e5f0 !important;
+    border-bottom: none !important;
+    border-radius: 1.15rem 1.15rem 0 0 !important;
+
+    box-shadow:
+        0 0.35rem 0.95rem rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Cada pestaña */
+.modernTabs .sapMITBItem {
+    min-width: 9.5rem !important;
+    margin-right: 0.5rem !important;
+}
+
+/* Área clicable */
+.modernTabs .sapMITBFilter {
+    min-height: 4.45rem !important;
+    padding: 0.35rem 0.8rem 0.55rem !important;
+
+    border-radius: 1rem 1rem 0 0 !important;
+
+    transition:
+        background-color 0.18s ease,
+        transform 0.18s ease,
+        box-shadow 0.18s ease !important;
+}
+
+/* Hover */
+.modernTabs .sapMITBFilter:hover {
+    background: #eef7ff !important;
+    transform: translateY(-1px);
+}
+
+/* Ícono circular */
+.modernTabs .sapMITBFilterIcon {
+    width: 2.85rem !important;
+    height: 2.85rem !important;
+    min-width: 2.85rem !important;
+
+    border-radius: 50% !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    background: #ffffff !important;
+    border: 1px solid #8fc1ea !important;
+
+    color: #0a6ed1 !important;
+    font-size: 1.28rem !important;
+
+    box-shadow:
+        0 0.28rem 0.65rem rgba(10, 110, 209, 0.1) !important;
+
+    transition:
+        background-color 0.18s ease,
+        color 0.18s ease,
+        border-color 0.18s ease,
+        transform 0.18s ease,
+        box-shadow 0.18s ease !important;
+}
+
+/* Ícono de pestaña activa */
+.modernTabs .sapMITBSelected .sapMITBFilterIcon {
+    color: #ffffff !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            #0a6ed1 0%,
+            #0878df 55%,
+            #1498eb 100%
+        ) !important;
+
+    border-color: #0a6ed1 !important;
+
+    box-shadow:
+        0 0.45rem 0.95rem rgba(10, 110, 209, 0.25) !important;
+
+    transform: scale(1.03);
+}
+
+/* Texto */
+.modernTabs .sapMITBText {
+    margin-top: 0.38rem !important;
+
+    color: #3d566d !important;
+    font-size: 0.82rem !important;
+    font-weight: 800 !important;
+
+    line-height: 1.1 !important;
+}
+
+/* Texto activo */
+.modernTabs .sapMITBSelected .sapMITBText {
+    color: #0a6ed1 !important;
+    font-weight: 900 !important;
+}
+
+/* Contador */
+.modernTabs .sapMITBCount {
+    min-width: 1.45rem !important;
+    height: 1.45rem !important;
+    padding: 0 0.35rem !important;
+
+    border-radius: 999px !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    background: #edf4fa !important;
+    color: #587084 !important;
+
+    font-size: 0.7rem !important;
+    font-weight: 900 !important;
+
+    border: 1px solid #d6e4ef !important;
+}
+
+/* Contador activo */
+.modernTabs .sapMITBSelected .sapMITBCount {
+    background: #e5f2ff !important;
+    color: #0a6ed1 !important;
+    border-color: #b8d9f5 !important;
+}
+
+/* Línea activa inferior */
+.modernTabs .sapMITBSelected {
+    position: relative;
+}
+
+.modernTabs .sapMITBSelected::after {
+    content: "";
+
+    position: absolute;
+    left: 18%;
+    right: 18%;
+    bottom: 0;
+
+    height: 0.22rem;
+
+    border-radius: 999px 999px 0 0;
+
+    background:
+        linear-gradient(
+            90deg,
+            #0a6ed1 0%,
+            #1498eb 100%
+        );
+
+    box-shadow:
+        0 -0.12rem 0.35rem rgba(10, 110, 209, 0.18);
+}
+
+/* Contenido inferior */
+.modernTabs .sapMITBContent {
+    padding-top: 0.95rem !important;
+}
+
+/* Quita líneas antiguas duplicadas */
+.modernTabs .sapMITBSelected .sapMITBContentArrow {
+    display: none !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .modernTabs .sapMITBHead {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+
+    .modernTabs .sapMITBItem {
+        min-width: 8rem !important;
+        margin-right: 0.2rem !important;
+    }
+
+    .modernTabs .sapMITBFilter {
+        padding-left: 0.45rem !important;
+        padding-right: 0.45rem !important;
+    }
+
+    .modernTabs .sapMITBFilterIcon {
+        width: 2.55rem !important;
+        height: 2.55rem !important;
+        min-width: 2.55rem !important;
+        font-size: 1.15rem !important;
+    }
+
+    .modernTabs .sapMITBText {
+        font-size: 0.76rem !important;
+    }
+}
+/* =========================================================
+   CORRECCIÓN: TABS TAPANDO EL CONTENIDO INFERIOR
+   ========================================================= */
+
+/* Contenedor completo */
+.modernTabs {
+    width: 100% !important;
+    overflow: visible !important;
+}
+
+/* Contenedor de la cabecera */
+.modernTabs .sapMITBHeadContainer {
+    min-height: 5.8rem !important;
+    height: auto !important;
+    overflow: visible !important;
+}
+
+/* Lista donde están las pestañas */
+.modernTabs .sapMITBHead {
+    min-height: 5.6rem !important;
+    height: auto !important;
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.55rem !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+}
+
+/* Cada opción de pestaña */
+.modernTabs .sapMITBItem {
+    min-height: 4.7rem !important;
+    height: auto !important;
+}
+
+/* Área clicable */
+.modernTabs .sapMITBFilter {
+    min-height: 4.7rem !important;
+    height: auto !important;
+    padding-bottom: 0.65rem !important;
+    box-sizing: border-box !important;
+}
+
+/* Evita que el texto quede fuera del área */
+.modernTabs .sapMITBText {
+    position: relative !important;
+    z-index: 2 !important;
+    margin-top: 0.42rem !important;
+    padding-bottom: 0.15rem !important;
+    overflow: visible !important;
+}
+
+/* Ajusta el contador */
+.modernTabs .sapMITBCount {
+    position: relative !important;
+    z-index: 3 !important;
+}
+
+/* Contenedor del contenido inferior */
+.modernTabs .sapMITBContainerContent {
+    position: relative !important;
+    z-index: 1 !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    overflow: visible !important;
+}
+
+/* Contenido real de la pestaña */
+.modernTabs .sapMITBContent {
+    position: relative !important;
+    z-index: 1 !important;
+    margin-top: 0 !important;
+    padding-top: 1.25rem !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+}
+
+/* Caja interna de la pestaña */
+.tabContentBox {
+    position: relative !important;
+    z-index: 1 !important;
+    padding-top: 0.45rem !important;
+}
+
+/* Título de la tabla */
+.tableToolbar {
+    position: relative !important;
+    z-index: 2 !important;
+    min-height: 3rem !important;
+    margin-top: 0 !important;
+    margin-bottom: 0.65rem !important;
+    padding-top: 0.3rem !important;
+}
+
+/* Quita la flecha inferior de UI5 que puede montarse */
+.modernTabs .sapMITBContentArrow {
+    display: none !important;
+}
+
+/* Línea activa sin invadir el contenido */
+.modernTabs .sapMITBSelected::after {
+    bottom: 0 !important;
+    z-index: 4 !important;
+}
+/* =========================================================
+   ICON TAB BAR COMPACTO
+   ========================================================= */
+
+.modernTabs .sapMITBHeadContainer {
+    min-height: 4.35rem !important;
+    height: 4.35rem !important;
+}
+
+.modernTabs .sapMITBHead {
+    min-height: 4.35rem !important;
+    height: 4.35rem !important;
+    padding: 0.35rem 0.8rem 0 !important;
+    box-sizing: border-box !important;
+}
+
+.modernTabs .sapMITBItem {
+    min-width: 8.2rem !important;
+    min-height: 4rem !important;
+    height: 4rem !important;
+    margin-right: 0.35rem !important;
+}
+
+.modernTabs .sapMITBFilter {
+    min-height: 4rem !important;
+    height: 4rem !important;
+    padding: 0.15rem 0.65rem 0.35rem !important;
+    box-sizing: border-box !important;
+}
+
+/* Icono más pequeño */
+.modernTabs .sapMITBFilterIcon {
+    width: 2.35rem !important;
+    height: 2.35rem !important;
+    min-width: 2.35rem !important;
+    font-size: 1.05rem !important;
+}
+
+/* Texto más compacto */
+.modernTabs .sapMITBText {
+    margin-top: 0.18rem !important;
+    padding-bottom: 0 !important;
+    font-size: 0.77rem !important;
+    line-height: 1rem !important;
+}
+
+/* Contador más pequeño y mejor colocado */
+.modernTabs .sapMITBCount {
+    min-width: 1.15rem !important;
+    height: 1.15rem !important;
+    padding: 0 0.25rem !important;
+    font-size: 0.62rem !important;
+    line-height: 1.15rem !important;
+}
+
+/* Línea activa más discreta */
+.modernTabs .sapMITBSelected::after {
+    left: 24% !important;
+    right: 24% !important;
+    height: 0.16rem !important;
+}
+
+/* Menos espacio antes del contenido */
+.modernTabs .sapMITBContent {
+    padding-top: 0.75rem !important;
+}
+
+.tabContentBox {
+    padding-top: 0.2rem !important;
+}
+
+.tableToolbar {
+    min-height: 2.55rem !important;
+    margin-bottom: 0.45rem !important;
+    padding-top: 0.15rem !important;
+    padding-bottom: 0.45rem !important;
+}
+/* =========================================================
+   ICON TAB BAR FINAL - COMPACTO Y ALINEADO
+   ========================================================= */
+
+.modernTabs {
+    width: 100% !important;
+    margin-top: 0.75rem !important;
+    background: transparent !important;
+}
+
+/* Cabecera completa */
+.modernTabs .sapMITBHeadContainer {
+    height: auto !important;
+    min-height: 4.8rem !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    border: 1px solid #d9e5f0 !important;
+    border-bottom: none !important;
+    border-radius: 1rem 1rem 0 0 !important;
+}
+
+/* Lista de pestañas */
+.modernTabs .sapMITBHead {
+    height: auto !important;
+    min-height: 4.8rem !important;
+    padding: 0.45rem 1rem 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+}
+
+/* Cada pestaña */
+.modernTabs .sapMITBItem {
+    width: 9rem !important;
+    min-width: 9rem !important;
+    height: 4.35rem !important;
+    min-height: 4.35rem !important;
+    margin-right: 0.65rem !important;
+    overflow: visible !important;
+}
+
+/* Área clicable */
+.modernTabs .sapMITBFilter {
+    width: 100% !important;
+    height: 4.35rem !important;
+    min-height: 4.35rem !important;
+    padding: 0.1rem 0.45rem 0.4rem !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    border-radius: 0.8rem 0.8rem 0 0 !important;
+    position: relative !important;
+    overflow: visible !important;
+    transition:
+        background-color 0.18s ease,
+        transform 0.18s ease !important;
+}
+
+.modernTabs .sapMITBFilter:hover {
+    background: #f1f8fe !important;
+}
+
+/* Contenedor interno del icono */
+.modernTabs .sapMITBTab {
+    height: auto !important;
+    min-height: 2.4rem !important;
+    overflow: visible !important;
+}
+
+/* Icono circular */
+.modernTabs .sapMITBFilterIcon {
+    width: 2.35rem !important;
+    height: 2.35rem !important;
+    min-width: 2.35rem !important;
+    min-height: 2.35rem !important;
+
+    margin: 0 auto !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border-radius: 50% !important;
+    border: 1px solid #7eb9e8 !important;
+    background: #ffffff !important;
+
+    color: #0a6ed1 !important;
+    font-size: 1.05rem !important;
+
+    box-shadow:
+        0 0.2rem 0.55rem rgba(10, 110, 209, 0.1) !important;
+}
+
+/* Icono activo */
+.modernTabs .sapMITBSelected .sapMITBFilterIcon {
+    color: #ffffff !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            #0a6ed1 0%,
+            #138ee5 100%
+        ) !important;
+
+    border-color: #0a6ed1 !important;
+
+    box-shadow:
+        0 0.35rem 0.8rem rgba(10, 110, 209, 0.24) !important;
+}
+
+/* Texto de la pestaña */
+.modernTabs .sapMITBText {
+    display: block !important;
+    width: 100% !important;
+
+    margin-top: 0.25rem !important;
+    padding: 0 !important;
+
+    color: #40566b !important;
+    font-size: 0.78rem !important;
+    font-weight: 800 !important;
+    line-height: 1rem !important;
+
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+}
+
+/* Texto activo */
+.modernTabs .sapMITBSelected .sapMITBText {
+    color: #0a6ed1 !important;
+    font-weight: 900 !important;
+}
+
+/* Contador */
+.modernTabs .sapMITBCount {
+    position: absolute !important;
+    top: 0.1rem !important;
+    right: 1.55rem !important;
+
+    min-width: 1.1rem !important;
+    height: 1.1rem !important;
+    padding: 0 0.2rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border-radius: 999px !important;
+    border: 1px solid #c9ddec !important;
+
+    background: #edf5fb !important;
+    color: #4a667c !important;
+
+    font-size: 0.62rem !important;
+    font-weight: 900 !important;
+    line-height: 1.1rem !important;
+
+    z-index: 5 !important;
+}
+
+/* Contador activo */
+.modernTabs .sapMITBSelected .sapMITBCount {
+    background: #e3f2ff !important;
+    border-color: #9bc9ec !important;
+    color: #0a6ed1 !important;
+}
+
+/* Línea activa */
+.modernTabs .sapMITBSelected::after {
+    content: "" !important;
+
+    position: absolute !important;
+    left: 20% !important;
+    right: 20% !important;
+    bottom: 0 !important;
+
+    height: 0.18rem !important;
+
+    border-radius: 999px 999px 0 0 !important;
+
+    background:
+        linear-gradient(
+            90deg,
+            #0a6ed1 0%,
+            #18a0e8 100%
+        ) !important;
+}
+
+/* Elimina la flecha estándar de UI5 */
+.modernTabs .sapMITBContentArrow {
+    display: none !important;
+}
+
+/* Contenedor del contenido */
+.modernTabs .sapMITBContainerContent {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    overflow: visible !important;
+}
+
+/* Contenido inferior */
+.modernTabs .sapMITBContent {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 1rem 1rem 1.1rem !important;
+
+    box-sizing: border-box !important;
+
+    background: #ffffff !important;
+    border: 1px solid #d9e5f0 !important;
+    border-top: none !important;
+    border-radius: 0 0 1rem 1rem !important;
+
+    overflow: visible !important;
+}
+
+/* Título interior */
+.modernTabs .tableToolbar {
+    min-height: 2.7rem !important;
+    margin: 0 0 0.65rem !important;
+    padding: 0.15rem 0.25rem 0.55rem !important;
+
+    background: transparent !important;
+    border-bottom: 1px solid #e5edf4 !important;
+}
+
+/* Caja interna */
+.modernTabs .tabContentBox {
+    width: 100% !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+
+    .modernTabs .sapMITBHead {
+        padding-left: 0.4rem !important;
+        padding-right: 0.4rem !important;
+    }
+
+    .modernTabs .sapMITBItem {
+        width: 7.5rem !important;
+        min-width: 7.5rem !important;
+        margin-right: 0.2rem !important;
+    }
+
+    .modernTabs .sapMITBFilterIcon {
+        width: 2.15rem !important;
+        height: 2.15rem !important;
+        min-width: 2.15rem !important;
+        min-height: 2.15rem !important;
+        font-size: 0.95rem !important;
+    }
+
+    .modernTabs .sapMITBText {
+        font-size: 0.72rem !important;
+    }
+
+    .modernTabs .sapMITBCount {
+        right: 1rem !important;
+    }
+
+    .modernTabs .sapMITBContent {
+        padding: 0.7rem !important;
+    }
+}
+/* =========================================================
+   NAVEGACIÓN DE SECCIONES
+   ========================================================= */
+
+.sectionNavigationCard {
+    width: 100%;
+    margin-top: 0.4rem;
+    padding: 0.7rem;
+    box-sizing: border-box;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f8fbfe 100%
+        );
+
+    border: 1px solid #d9e5f0;
+    border-radius: 1rem;
+
+    box-shadow:
+        0 0.35rem 0.9rem rgba(15, 23, 42, 0.055);
+}
+
+.sectionNavigationInner {
+    gap: 0.8rem;
+}
+
+.sectionNavigationButtons {
+    gap: 0.65rem;
+}
+
+.sectionNavButton {
+    min-width: 15rem;
+}
+
+.sectionNavButton .sapMBtnInner {
+    width: 100%;
+    min-height: 4rem !important;
+    height: auto !important;
+
+    padding: 0.55rem 0.75rem !important;
+
+    border-radius: 0.85rem !important;
+    border: 1px solid transparent !important;
+
+    background: transparent !important;
+
+    box-shadow: none !important;
+
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease,
+        transform 0.18s ease !important;
+}
+
+.sectionNavButton:hover .sapMBtnInner {
+    background: #f0f8ff !important;
+    border-color: #cce3f5 !important;
+    transform: translateY(-1px);
+}
+
+.sectionNavButtonActive .sapMBtnInner {
+    background:
+        linear-gradient(
+            135deg,
+            #eaf6ff 0%,
+            #f7fbff 100%
+        ) !important;
+
+    border-color: #83bee9 !important;
+
+    box-shadow:
+        0 0.35rem 0.85rem rgba(10, 110, 209, 0.12) !important;
+}
+
+.sectionNavButtonContent {
+    width: 100%;
+    gap: 0.7rem;
+}
+
+.sectionNavIconBox {
+    width: 2.75rem;
+    height: 2.75rem;
+    min-width: 2.75rem;
+
+    border-radius: 0.8rem;
+
+    background: #edf7ff;
+    border: 1px solid #b9dcf4;
+}
+
+.sectionNavButtonActive .sectionNavIconBox {
+    background:
+        linear-gradient(
+            135deg,
+            #0a6ed1 0%,
+            #1598e7 100%
+        );
+
+    border-color: #0a6ed1;
+
+    box-shadow:
+        0 0.3rem 0.7rem rgba(10, 110, 209, 0.22);
+}
+
+.sectionNavIcon {
+    color: #0a6ed1;
+    font-size: 1.15rem;
+}
+
+.sectionNavButtonActive .sectionNavIcon {
+    color: #ffffff;
+}
+
+.sectionNavTextBox {
+    min-width: 9rem;
+}
+
+.sectionNavTitle {
+    color: #1d3b53 !important;
+    font-size: 0.9rem;
+    font-weight: 900 !important;
+}
+
+.sectionNavButtonActive .sectionNavTitle {
+    color: #0a6ed1 !important;
+}
+
+.sectionNavSubtitle {
+    margin-top: 0.1rem;
+
+    color: #75899b !important;
+    font-size: 0.72rem;
+}
+
+.sectionNavCounter {
+    margin-left: auto;
+}
+
+.sectionNavCounter .sapMObjectNumberText {
+    min-width: 1.7rem;
+    height: 1.7rem;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 0.35rem;
+
+    color: #38566e !important;
+    font-size: 0.76rem;
+    font-weight: 900 !important;
+
+    background: #edf4f9;
+    border: 1px solid #d4e2ec;
+    border-radius: 999px;
+}
+
+.sectionNavButtonActive
+.sectionNavCounter
+.sapMObjectNumberText {
+    color: #0a6ed1 !important;
+    background: #ffffff;
+    border-color: #a9d3f1;
+}
+
+.navigationPendingStatus {
+    margin-right: 0.5rem;
+    font-weight: 900;
+}
+
+/* =========================================================
+   TARJETA INDEPENDIENTE DE DATOS
+   ========================================================= */
+
+.dataSectionCard {
+    width: 100%;
+
+    margin-top: 0.85rem;
+    padding: 1rem;
+
+    box-sizing: border-box;
+
+    background: #ffffff;
+
+    border: 1px solid #d9e5f0;
+    border-radius: 1rem;
+
+    box-shadow:
+        0 0.55rem 1.35rem rgba(15, 23, 42, 0.065);
+}
+
+.dataSectionToolbar {
+    min-height: 3.6rem !important;
+
+    margin-bottom: 0.7rem;
+    padding: 0.15rem 0.3rem 0.75rem;
+
+    background: transparent !important;
+    border-bottom: 1px solid #e6eef5;
+}
+
+.dataSectionTitle {
+    color: #17354d !important;
+    font-weight: 900 !important;
+}
+
+.dataSectionSubtitle {
+    margin-top: 0.15rem;
+
+    color: #73879a !important;
+    font-size: 0.78rem;
+}
+
+.dataCountStatus {
+    padding: 0.2rem 0.55rem;
+
+    background: #eef7ff;
+    border: 1px solid #d2e8f8;
+    border-radius: 999px;
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+    .sectionNavigationCard {
+        padding: 0.55rem;
+    }
+
+    .sectionNavigationButtons {
+        width: 100%;
+    }
+
+    .sectionNavButton {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .sectionNavButton .sapMBtnInner {
+        width: 100%;
+    }
+
+    .sectionNavTextBox {
+        flex: 1;
+    }
+
+    .navigationPendingStatus {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+
+    .dataSectionCard {
+        padding: 0.7rem;
+    }
+
+    .dataSectionToolbar {
+        min-height: 3.2rem !important;
+    }
+}
+/* =========================================================
+   ALINEAR ESTATUS Y BOTÓN SELECCIONAR
+   ========================================================= */
+
+.statusActionCell {
+    width: 100%;
+    min-height: 2.7rem;
+    gap: 0.65rem;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-wrap: nowrap !important;
+}
+
+.statusActionCell .sapMObjStatus {
+    margin: 0 !important;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.selectProviderButton {
+    margin: 0 !important;
+    flex: 0 0 auto;
+}
+
+.selectProviderButton .sapMBtnInner {
+    min-height: 2.25rem !important;
+    height: 2.25rem !important;
+    padding: 0 0.75rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border-radius: 0.7rem !important;
+}
+
+.selectProviderButton .sapMBtnIcon {
+    margin-right: 0.35rem !important;
+}
+
+/* Evita que la celda de estatus crezca de forma innecesaria */
+.previewTable .sapMListTblCell:last-child {
+    vertical-align: middle !important;
+    padding-top: 0.55rem !important;
+    padding-bottom: 0.55rem !important;
+}
+
+/* Ajuste móvil */
+@media (max-width: 768px) {
+    .statusActionCell {
+        justify-content: flex-start !important;
+        flex-wrap: wrap !important;
+    }
+}
+/* =========================================================
+   SELECTOR INTEGRADO FINAL
+   ========================================================= */
+
+.embeddedSectionNavigation {
+    width: 100%;
+    min-height: 3.6rem;
+    margin: 0 0 0.85rem;
+    padding: 0.55rem 0.7rem;
+
+    box-sizing: border-box;
+
+    background:
+        linear-gradient(
+            180deg,
+            #f8fbfe 0%,
+            #f1f7fc 100%
+        );
+
+    border: 1px solid #d8e5ef;
+    border-radius: 0.85rem;
+}
+
+.embeddedSegmentedButton {
+    min-width: 23rem;
+}
+
+.embeddedSegmentedButton .sapMSegBBtn {
+    min-width: 11.5rem;
+    height: 2.55rem !important;
+}
+
+.embeddedSegmentedButton .sapMSegBBtnInner {
+    height: 2.55rem !important;
+    min-height: 2.55rem !important;
+
+    padding: 0 0.9rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    font-size: 0.84rem !important;
+    font-weight: 850 !important;
+
+    border-radius: 0.55rem !important;
+}
+
+.embeddedSegmentedButton .sapMSegBBtnIcon {
+    margin-right: 0.38rem !important;
+    font-size: 0.95rem !important;
+}
+
+.embeddedSegmentedButton
+.sapMSegBBtn:not(.sapMSegBBtnSel)
+.sapMSegBBtnInner {
+    color: #0a5ea8 !important;
+    background: #ffffff !important;
+    border-color: #b9d5eb !important;
+}
+
+.embeddedSegmentedButton
+.sapMSegBBtnSel
+.sapMSegBBtnInner {
+    color: #ffffff !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            #0a6ed1 0%,
+            #168fe4 100%
+        ) !important;
+
+    border-color: #0a6ed1 !important;
+
+    box-shadow:
+        0 0.3rem 0.7rem rgba(10, 110, 209, 0.2) !important;
+}
+
+.navigationPendingStatus {
+    margin-left: auto;
+    padding: 0.22rem 0.65rem;
+
+    background: #fff7e8;
+    border: 1px solid #f2d092;
+    border-radius: 999px;
+
+    font-weight: 900;
+}
+
+.dataSectionToolbar {
+    margin-top: 0 !important;
+}
+
+@media (max-width: 768px) {
+    .embeddedSectionNavigation {
+        gap: 0.55rem;
+    }
+
+    .embeddedSegmentedButton {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .embeddedSegmentedButton .sapMSegBBtn {
+        min-width: 50%;
+    }
+
+    .navigationPendingStatus {
+        width: 100%;
+        margin-left: 0;
+    }
+}
+/* =========================================================
+   SUBIR LOS BOTONES DE NAVEGACIÓN
+   ========================================================= */
+
+.embeddedSectionNavigation {
+    min-height: 3.15rem !important;
+    margin-top: 0 !important;
+    margin-bottom: 0.65rem !important;
+
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+    padding-left: 0.7rem !important;
+    padding-right: 0.7rem !important;
+
+    align-items: center !important;
+}
+
+.embeddedSegmentedButton {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.embeddedSegmentedButton .sapMSegBBtn {
+    height: 2.45rem !important;
+}
+
+.embeddedSegmentedButton .sapMSegBBtnInner {
+    height: 2.45rem !important;
+    min-height: 2.45rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+/* =========================================================
+   CENTRAR VERTICALMENTE LOS BOTONES DENTRO DE LA CARD
+   ========================================================= */
+
+.embeddedSectionNavigation {
+    min-height: 4.6rem !important;
+
+    padding-top: 0.55rem !important;
+    padding-bottom: 0.55rem !important;
+    padding-left: 0.85rem !important;
+    padding-right: 0.85rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+
+    box-sizing: border-box !important;
+}
+
+.embeddedSegmentedButton {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+
+    align-self: center !important;
+}
+
+.embeddedSegmentedButton .sapMSegBBtn {
+    height: 3rem !important;
+}
+
+.embeddedSegmentedButton .sapMSegBBtnInner {
+    height: 3rem !important;
+    min-height: 3rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+/* =========================================================
+   CENTRADO REAL DEL SEGMENTED BUTTON
+   ========================================================= */
+
+.embeddedSectionNavigation {
+    min-height: 5.6rem !important;
+    padding: 0 1rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+
+    box-sizing: border-box !important;
+}
+
+/* Contenedor exterior generado por UI5 */
+.embeddedSegmentedButton.sapMSegB {
+    height: 3.25rem !important;
+    min-height: 3.25rem !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    align-self: center !important;
+
+    vertical-align: middle !important;
+}
+
+/* Lista interna */
+.embeddedSegmentedButton .sapMSegBBtns {
+    height: 3.25rem !important;
+    min-height: 3.25rem !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* Cada botón */
+.embeddedSegmentedButton .sapMSegBBtn {
+    height: 3.25rem !important;
+    min-height: 3.25rem !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* Parte interior visible */
+.embeddedSegmentedButton .sapMSegBBtnInner {
+    height: 3.25rem !important;
+    min-height: 3.25rem !important;
+
+    margin: 0 !important;
+    padding: 0 1rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    box-sizing: border-box !important;
+    line-height: normal !important;
+}
+
+/* Icono y texto centrados */
+.embeddedSegmentedButton .sapMSegBBtnIcon,
+.embeddedSegmentedButton .sapMSegBBtnInner span {
+    align-self: center !important;
+    line-height: normal !important;
+}
+
+/* Aviso HU centrado también */
+.navigationPendingStatus {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    align-self: center !important;
+}
+/* =========================================================
+   VARIABLES DEL ENCABEZADO
+   ========================================================= */
+
+:root {
+    --hero-gris-oscuro: #20272f;
+    --hero-gris-profundo: #28313a;
+    --hero-gris-medio: #4a535d;
+    --hero-gris-claro: #d9dee3;
+    --hero-blanco: #ffffff;
+    --hero-rojo-vino: #a8323f;
+    --hero-rojo-suave: #bd4a55;
+}
+
+/* =========================================================
+   CONTENEDOR PRINCIPAL
+   ========================================================= */
+
+.heroSection {
+    position: relative !important;
+
+    width: 100% !important;
+    min-height: 12.5rem !important;
+
+    margin: 0 0 1.1rem !important;
+    padding: 2.15rem 2.3rem !important;
+
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+
+    display: flex !important;
+    justify-content: center !important;
+
+    background:
+        linear-gradient(
+            115deg,
+            var(--hero-gris-oscuro) 0%,
+            #303841 55%,
+            var(--hero-gris-medio) 100%
+        ) !important;
+
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 1.75rem !important;
+
+    box-shadow:
+        0 0.75rem 1.9rem rgba(31, 39, 47, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+
+    isolation: isolate;
+}
+
+/* Círculo decorativo inferior izquierdo */
+
+.heroSection::before {
+    content: "";
+
+    position: absolute;
+    z-index: 0;
+
+    width: 19.5rem;
+    height: 19.5rem;
+
+    left: -9.5rem;
+    bottom: -14.5rem;
+
+    border-radius: 50%;
+
+    background:
+        rgba(255, 255, 255, 0.1);
+
+    pointer-events: none;
+}
+
+/* Línea diagonal roja */
+
+.heroSection::after {
+    content: "";
+
+    position: absolute;
+    z-index: 0;
+
+    width: 1px;
+    height: 24rem;
+
+    right: 24%;
+    top: -7rem;
+
+    background:
+        linear-gradient(
+            180deg,
+            transparent 0%,
+            rgba(189, 74, 85, 0.62) 28%,
+            rgba(189, 74, 85, 0.62) 72%,
+            transparent 100%
+        );
+
+    transform: rotate(42deg);
+
+    box-shadow:
+        0 0 0.45rem rgba(189, 74, 85, 0.18);
+
+    pointer-events: none;
+}
+
+/* Fila principal */
+
+.heroMainRow {
+    position: relative !important;
+    z-index: 2 !important;
+
+    width: 100% !important;
+    min-height: 8rem !important;
+
+    gap: 2rem !important;
+
+    box-sizing: border-box !important;
+}
+
+/* =========================================================
+   INFORMACIÓN DEL ENCABEZADO
+   ========================================================= */
+
+.heroTextContainer {
+    position: relative !important;
+    z-index: 2 !important;
+
+    flex: 1 1 45rem !important;
+    min-width: 0 !important;
+    max-width: 68rem !important;
+}
+
+.heroBrandRow {
+    gap: 0.45rem !important;
+    margin-bottom: 0.7rem !important;
+}
+
+.heroBrandText {
+    color: #e1e5e9 !important;
+
+    font-size: 0.88rem !important;
+    font-weight: 800 !important;
+
+    letter-spacing: 0.105rem !important;
+    line-height: 1.2 !important;
+
+    text-transform: uppercase !important;
+}
+
+.heroBrandDot {
+    color: var(--hero-rojo-suave) !important;
+
+    font-size: 1.05rem !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+
+    text-shadow:
+        0 0 0.45rem rgba(189, 74, 85, 0.4);
+}
+
+.heroTitle {
+    margin: 0 0 0.7rem !important;
+
+    color: var(--hero-blanco) !important;
+
+    font-size: clamp(2rem, 3.1vw, 3rem) !important;
+    font-weight: 800 !important;
+
+    line-height: 1.08 !important;
+    letter-spacing: -0.04rem !important;
+
+    text-shadow:
+        0 0.12rem 0.3rem rgba(0, 0, 0, 0.14);
+}
+
+.heroSubtitle {
+    max-width: 66rem !important;
+
+    margin: 0 !important;
+
+    color: #e1e5e9 !important;
+
+    font-size: clamp(0.94rem, 1.25vw, 1.1rem) !important;
+    font-weight: 400 !important;
+
+    line-height: 1.55 !important;
+}
+
+/* =========================================================
+   TARJETA DEL ESTADO
+   ========================================================= */
+
+.heroBadgeBox {
+    position: relative !important;
+    z-index: 3 !important;
+
+    flex: 0 0 auto !important;
+    min-width: 17.5rem !important;
+
+    gap: 0.9rem !important;
+
+    padding: 1.25rem 1.35rem !important;
+
+    box-sizing: border-box !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(245, 247, 249, 0.95) 0%,
+            rgba(226, 231, 236, 0.88) 100%
+        ) !important;
+
+    border:
+        1px solid rgba(255, 255, 255, 0.65) !important;
+
+    border-radius: 1.25rem !important;
+
+    box-shadow:
+        0 0.65rem 1.5rem rgba(18, 24, 30, 0.17),
+        inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+
+    backdrop-filter: blur(0.5rem);
+    -webkit-backdrop-filter: blur(0.5rem);
+}
+
+.heroStatusIconBox {
+    width: 3.25rem !important;
+    height: 3.25rem !important;
+    min-width: 3.25rem !important;
+
+    border-radius: 1rem !important;
+
+    background:
+        rgba(168, 50, 63, 0.08) !important;
+
+    border:
+        1px solid rgba(168, 50, 63, 0.2) !important;
+}
+
+.heroStatusIcon {
+    color: var(--hero-rojo-suave) !important;
+
+    font-size: 1.65rem !important;
+
+    text-shadow:
+        0 0.2rem 0.55rem rgba(168, 50, 63, 0.16);
+}
+
+.heroStatusTextBox {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+
+.heroBadgeLabel {
+    display: block !important;
+
+    margin-bottom: 0.3rem !important;
+
+    color: #555d66 !important;
+
+    font-size: 0.77rem !important;
+    font-weight: 800 !important;
+
+    letter-spacing: 0.07rem !important;
+    line-height: 1.2 !important;
+
+    text-transform: uppercase !important;
+}
+
+.heroStatus {
+    display: block !important;
+}
+
+.heroStatus .sapMObjStatusText {
+    color: var(--hero-rojo-vino) !important;
+
+    font-size: 1.18rem !important;
+    font-weight: 800 !important;
+
+    line-height: 1.3 !important;
+}
+
+/* El color principal se mantiene vino aun cuando cambia el estado */
+
+.heroStatus.sapMObjStatusSuccess .sapMObjStatusText {
+    color: #107e3e !important;
+}
+
+.heroStatus.sapMObjStatusWarning .sapMObjStatusText {
+    color: var(--hero-rojo-vino) !important;
+}
+
+.heroStatus.sapMObjStatusError .sapMObjStatusText {
+    color: #bb0000 !important;
+}
+
+.heroStatus.sapMObjStatusInformation .sapMObjStatusText {
+    color: #0a6ed1 !important;
+}
+
+.heroStatus.sapMObjStatusNone .sapMObjStatusText {
+    color: #66717c !important;
+}
+
+/* =========================================================
+   PATRÓN DECORATIVO DE PUNTOS
+   ========================================================= */
+
+.heroDotPattern {
+    position: absolute !important;
+    z-index: 1 !important;
+
+    right: 15.5rem !important;
+    bottom: 1rem !important;
+
+    width: 9.5rem !important;
+    height: 4.4rem !important;
+
+    opacity: 0.13 !important;
+
+    background-image:
+        radial-gradient(
+            rgba(255, 255, 255, 0.92) 1px,
+            transparent 1px
+        ) !important;
+
+    background-size:
+        0.62rem 0.62rem !important;
+
+    pointer-events: none !important;
+}
+
+/* =========================================================
+   EFECTOS SUTILES
+   ========================================================= */
+
+.heroSection:hover {
+    box-shadow:
+        0 0.9rem 2.15rem rgba(31, 39, 47, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.heroBadgeBox {
+    transition:
+        transform 0.18s ease,
+        box-shadow 0.18s ease !important;
+}
+
+.heroBadgeBox:hover {
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 0.8rem 1.7rem rgba(18, 24, 30, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.88) !important;
+}
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 850px) {
+
+    .heroSection {
+        min-height: auto !important;
+
+        padding:
+            1.75rem !important;
+
+        border-radius:
+            1.45rem !important;
+    }
+
+    .heroMainRow {
+        align-items: flex-start !important;
+    }
+
+    .heroTextContainer {
+        flex: 1 1 100% !important;
+        max-width: none !important;
+    }
+
+    .heroBadgeBox {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .heroSection::after {
+        right: 15%;
+        opacity: 0.45;
+    }
+
+    .heroDotPattern {
+        display: none !important;
+    }
+}
+
+/* =========================================================
+   CELULAR
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+    .heroSection {
+        padding:
+            1.45rem 1.25rem !important;
+
+        border-radius:
+            1.25rem !important;
+    }
+
+    .heroBrandText {
+        font-size:
+            0.73rem !important;
+
+        letter-spacing:
+            0.08rem !important;
+    }
+
+    .heroBrandDot {
+        font-size:
+            0.9rem !important;
+    }
+
+    .heroTitle {
+        font-size:
+            1.9rem !important;
+    }
+
+    .heroSubtitle {
+        font-size:
+            0.92rem !important;
+
+        line-height:
+            1.48 !important;
+    }
+
+    .heroBadgeBox {
+        padding:
+            1rem !important;
+
+        border-radius:
+            1rem !important;
+    }
+
+    .heroStatusIconBox {
+        width:
+            2.8rem !important;
+
+        height:
+            2.8rem !important;
+
+        min-width:
+            2.8rem !important;
+    }
+
+    .heroStatusIcon {
+        font-size:
+            1.4rem !important;
+    }
+
+    .heroStatus .sapMObjStatusText {
+        font-size:
+            1.05rem !important;
+    }
+}
+/* =========================================================
+   HERO MÁS COMPACTO
+   ========================================================= */
+
+.heroSection {
+    min-height: 9.5rem !important;
+    padding: 1.45rem 1.8rem !important;
+    margin-bottom: 0.9rem !important;
+    border-radius: 1.45rem !important;
+}
+
+.heroMainRow {
+    min-height: 6.3rem !important;
+    gap: 1.4rem !important;
+}
+
+.heroBrandRow {
+    margin-bottom: 0.45rem !important;
+}
+
+.heroBrandText {
+    font-size: 0.76rem !important;
+    letter-spacing: 0.09rem !important;
+}
+
+.heroBrandDot {
+    font-size: 0.9rem !important;
+}
+
+.heroTitle {
+    margin-bottom: 0.45rem !important;
+    font-size: clamp(1.8rem, 2.6vw, 2.45rem) !important;
+    line-height: 1.05 !important;
+}
+
+.heroSubtitle {
+    max-width: 58rem !important;
+    font-size: clamp(0.88rem, 1.05vw, 1rem) !important;
+    line-height: 1.4 !important;
+}
+
+/* Tarjeta de estado más pequeña */
+.heroBadgeBox {
+    min-width: 15.5rem !important;
+    padding: 0.95rem 1.1rem !important;
+    gap: 0.7rem !important;
+    border-radius: 1rem !important;
+}
+
+.heroStatusIconBox {
+    width: 2.75rem !important;
+    height: 2.75rem !important;
+    min-width: 2.75rem !important;
+    border-radius: 0.85rem !important;
+}
+
+.heroStatusIcon {
+    font-size: 1.35rem !important;
+}
+
+.heroBadgeLabel {
+    margin-bottom: 0.2rem !important;
+    font-size: 0.7rem !important;
+}
+
+.heroStatus .sapMObjStatusText {
+    font-size: 1rem !important;
+}
+
+/* Decoración más contenida */
+.heroSection::before {
+    width: 16rem !important;
+    height: 16rem !important;
+    left: -8rem !important;
+    bottom: -12rem !important;
+}
+
+.heroSection::after {
+    height: 19rem !important;
+    top: -5rem !important;
+}
+
+.heroDotPattern {
+    width: 8rem !important;
+    height: 3.6rem !important;
+    right: 14rem !important;
+    bottom: 0.7rem !important;
+}
+/* =========================================================
+   BOTONES DEL POPUP DE PROVEEDORES
+   ========================================================= */
+
+/* Barra inferior del diálogo */
+.providerDialogFooter,
+.sapMDialogFooter .sapMBar,
+.sapMDialogFooter .sapMBarRight,
+.sapMDialogFooter .sapMBarPH {
+    min-height: 4.4rem !important;
+    height: auto !important;
+
+    padding: 0.65rem 1rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+
+    box-sizing: border-box !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f8fbfe 100%
+        ) !important;
+
+    border-top: 1px solid #dce6ef !important;
+}
+
+/* Separación entre botones */
+.providerDialogFooter .sapMBtn,
+.sapMDialogFooter .sapMBtn {
+    margin-left: 0.65rem !important;
+}
+
+/* Estilo general */
+.providerDialogFooter .sapMBtnInner,
+.sapMDialogFooter .sapMBtnInner {
+    min-height: 2.75rem !important;
+    height: 2.75rem !important;
+
+    padding: 0 1.15rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border-radius: 0.85rem !important;
+
+    font-size: 0.9rem !important;
+    font-weight: 850 !important;
+
+    transition:
+        transform 0.16s ease,
+        box-shadow 0.16s ease,
+        background-color 0.16s ease,
+        border-color 0.16s ease !important;
+}
+
+/* =========================================================
+   CANCELAR
+   ========================================================= */
+
+.providerDialogCancel .sapMBtnInner {
+    color: #36566f !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f4f8fb 100%
+        ) !important;
+
+    border: 1px solid #c6d8e7 !important;
+
+    box-shadow:
+        0 0.22rem 0.55rem rgba(15, 23, 42, 0.06) !important;
+}
+
+.providerDialogCancel .sapMBtnInner:hover {
+    color: #0a5ea8 !important;
+    background: #edf7ff !important;
+    border-color: #8fc3e8 !important;
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 0.35rem 0.8rem rgba(10, 110, 209, 0.12) !important;
+}
+
+/* =========================================================
+   CONFIRMAR SELECCIÓN
+   ========================================================= */
+
+.providerDialogConfirm .sapMBtnInner {
+    color: #ffffff !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            #0a6ed1 0%,
+            #168fe4 100%
+        ) !important;
+
+    border: 1px solid #0a6ed1 !important;
+
+    box-shadow:
+        0 0.4rem 0.9rem rgba(10, 110, 209, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+.providerDialogConfirm .sapMBtnInner:hover {
+    background:
+        linear-gradient(
+            135deg,
+            #085caf 0%,
+            #0a78d7 100%
+        ) !important;
+
+    border-color: #085caf !important;
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 0.55rem 1rem rgba(10, 110, 209, 0.28) !important;
+}
+
+.providerDialogConfirm .sapMBtnInner:active,
+.providerDialogCancel .sapMBtnInner:active {
+    transform: translateY(0);
+}
+
+/* Icono del botón confirmar */
+.providerDialogConfirm .sapMBtnIcon {
+    margin-right: 0.45rem !important;
+    font-size: 1rem !important;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 600px) {
+    .providerDialogFooter,
+    .sapMDialogFooter .sapMBar,
+    .sapMDialogFooter .sapMBarRight {
+        width: 100% !important;
+        padding: 0.65rem !important;
+        gap: 0.5rem !important;
+    }
+
+    .providerDialogFooter .sapMBtn,
+    .sapMDialogFooter .sapMBtn {
+        width: 100% !important;
+        margin-left: 0 !important;
+    }
+
+    .providerDialogFooter .sapMBtnInner,
+    .sapMDialogFooter .sapMBtnInner {
+        width: 100% !important;
+    }
+}
+/* =========================================================
+   DIÁLOGO DE SELECCIÓN DE PROVEEDOR
+   ========================================================= */
+
+.providerDialog.sapMDialog {
+    border-radius: 1.25rem !important;
+    overflow: hidden !important;
+
+    box-shadow:
+        0 1.1rem 3rem rgba(15, 23, 42, 0.24) !important;
+}
+
+/* =========================================================
+   CABECERA DEL DIÁLOGO
+   ========================================================= */
+
+.providerDialog .sapMDialogTitleGroup {
+    min-height: 3.8rem !important;
+}
+
+.providerDialog .sapMDialogTitle {
+    min-height: 3.8rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+
+    padding: 0 1.25rem !important;
+
+    color: #1d3448 !important;
+
+    font-size: 1.15rem !important;
+    font-weight: 800 !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f8fbfd 100%
+        ) !important;
+
+    border-bottom:
+        1px solid #dce6ef !important;
+}
+
+/* =========================================================
+   CONTENIDO GENERAL
+   ========================================================= */
+
+.providerDialog .sapMDialogSection {
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f7fafc 100%
+        ) !important;
+}
+
+.providerDialogContent {
+    width: 100% !important;
+
+    padding:
+        1.15rem 1.2rem 1rem !important;
+
+    box-sizing:
+        border-box !important;
+}
+
+/* =========================================================
+   TARJETA DE INFORMACIÓN DE LA HU
+   ========================================================= */
+
+.providerDialogHero {
+    width: 100% !important;
+
+    gap: 0.9rem !important;
+
+    margin-bottom:
+        0.9rem !important;
+
+    padding:
+        1rem 1.1rem !important;
+
+    box-sizing:
+        border-box !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            #eef8ff 0%,
+            #f8fcff 100%
+        ) !important;
+
+    border:
+        1px solid #cfe4f5 !important;
+
+    border-radius:
+        1rem !important;
+}
+
+.providerDialogHeroIconBox {
+    width:
+        3.15rem !important;
+
+    height:
+        3.15rem !important;
+
+    min-width:
+        3.15rem !important;
+
+    border-radius:
+        0.9rem !important;
+
+    background:
+        #e3f2ff !important;
+
+    border:
+        1px solid #b9d9f0 !important;
+}
+
+.providerDialogHeroIcon {
+    color:
+        #0a6ed1 !important;
+
+    font-size:
+        1.45rem !important;
+}
+
+.providerDialogHeroText {
+    min-width:
+        0 !important;
+}
+
+.providerDialogHuTitle {
+    color:
+        #17354d !important;
+
+    font-size:
+        1.05rem !important;
+
+    font-weight:
+        900 !important;
+}
+
+.providerDialogHuSubtitle {
+    margin-top:
+        0.15rem !important;
+
+    color:
+        #607b91 !important;
+
+    font-size:
+        0.82rem !important;
+}
+
+/* =========================================================
+   MENSAJE INFORMATIVO
+   ========================================================= */
+
+.providerDialogInfo {
+    margin-bottom:
+        0.9rem !important;
+
+    border:
+        1px solid #98c9ef !important;
+
+    border-radius:
+        0.8rem !important;
+}
+
+.providerDialogInfo .sapMMsgStripMessage {
+    font-size:
+        0.85rem !important;
+
+    line-height:
+        1.4 !important;
+}
+
+/* =========================================================
+   TABLA
+   ========================================================= */
+
+.providerTable {
+    width:
+        100% !important;
+
+    overflow:
+        hidden !important;
+
+    border:
+        1px solid #d7e3ed !important;
+
+    border-radius:
+        0.95rem !important;
+
+    background:
+        #ffffff !important;
+}
+
+.providerTable .sapMListTblHeaderCell {
+    padding-top:
+        0.7rem !important;
+
+    padding-bottom:
+        0.7rem !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #f2f7fb 0%,
+            #eaf2f8 100%
+        ) !important;
+
+    border-bottom:
+        1px solid #d6e2ec !important;
+}
+
+.providerTableHeader {
+    color:
+        #36566f !important;
+
+    font-size:
+        0.76rem !important;
+
+    font-weight:
+        900 !important;
+
+    text-transform:
+        uppercase !important;
+}
+
+.providerTable .sapMListTblCell {
+    padding-top:
+        0.68rem !important;
+
+    padding-bottom:
+        0.68rem !important;
+
+    vertical-align:
+        middle !important;
+}
+
+.providerTableRow {
+    transition:
+        background-color 0.16s ease,
+        box-shadow 0.16s ease !important;
+}
+
+.providerTableRow:hover {
+    background:
+        #f6fbff !important;
+}
+
+.providerTableRow.sapMLIBSelected {
+    background:
+        linear-gradient(
+            90deg,
+            #e7f4ff 0%,
+            #f6fbff 100%
+        ) !important;
+
+    box-shadow:
+        inset 0 -2px 0 #0a6ed1 !important;
+}
+
+.providerIdCell .sapMObjectIdentifierTitle {
+    color:
+        #0a5ea8 !important;
+
+    font-weight:
+        900 !important;
+}
+
+.providerNameCell {
+    color:
+        #1f3b52 !important;
+
+    font-weight:
+        800 !important;
+}
+
+.providerOrderCell {
+    color:
+        #36566f !important;
+
+    font-weight:
+        800 !important;
+}
+
+/* =========================================================
+   BARRA INFERIOR
+   ========================================================= */
+
+.providerDialog .sapMDialogFooter,
+.providerDialog .sapMDialogFooter .sapMBar,
+.providerDialog .sapMDialogFooter .sapMBarRight,
+.providerDialog .sapMDialogFooter .sapMBarPH {
+    min-height:
+        4.5rem !important;
+
+    height:
+        auto !important;
+
+    padding:
+        0.65rem 1rem !important;
+
+    display:
+        flex !important;
+
+    align-items:
+        center !important;
+
+    justify-content:
+        flex-end !important;
+
+    box-sizing:
+        border-box !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f7fafc 100%
+        ) !important;
+
+    border-top:
+        1px solid #dce6ef !important;
+}
+
+.providerDialog .sapMDialogFooter .sapMBtn {
+    margin-left:
+        0.65rem !important;
+}
+
+/* =========================================================
+   ESTILO GENERAL DE LOS BOTONES
+   ========================================================= */
+
+.providerDialogCancel .sapMBtnInner,
+.providerDialogConfirm .sapMBtnInner {
+    min-height:
+        2.8rem !important;
+
+    height:
+        2.8rem !important;
+
+    padding:
+        0 1.15rem !important;
+
+    display:
+        flex !important;
+
+    align-items:
+        center !important;
+
+    justify-content:
+        center !important;
+
+    border-radius:
+        0.82rem !important;
+
+    font-size:
+        0.9rem !important;
+
+    font-weight:
+        850 !important;
+
+    transition:
+        transform 0.16s ease,
+        box-shadow 0.16s ease,
+        background-color 0.16s ease,
+        border-color 0.16s ease !important;
+}
+
+/* =========================================================
+   BOTÓN CANCELAR
+   ========================================================= */
+
+.providerDialogCancel .sapMBtnInner {
+    color:
+        #36566f !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f4f8fb 100%
+        ) !important;
+
+    border:
+        1px solid #c6d8e7 !important;
+
+    box-shadow:
+        0 0.22rem 0.55rem rgba(15, 23, 42, 0.06) !important;
+}
+
+.providerDialogCancel .sapMBtnIcon {
+    color:
+        #607b91 !important;
+
+    margin-right:
+        0.4rem !important;
+}
+
+.providerDialogCancel .sapMBtnInner:hover {
+    color:
+        #0a5ea8 !important;
+
+    background:
+        #edf7ff !important;
+
+    border-color:
+        #8fc3e8 !important;
+
+    transform:
+        translateY(-1px);
+
+    box-shadow:
+        0 0.35rem 0.8rem rgba(10, 110, 209, 0.12) !important;
+}
+
+/* =========================================================
+   BOTÓN CONFIRMAR
+   ========================================================= */
+
+.providerDialogConfirm .sapMBtnInner {
+    color:
+        #ffffff !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            #0a6ed1 0%,
+            #168fe4 100%
+        ) !important;
+
+    border:
+        1px solid #0a6ed1 !important;
+
+    box-shadow:
+        0 0.42rem 0.95rem rgba(10, 110, 209, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+.providerDialogConfirm .sapMBtnIcon {
+    color:
+        #ffffff !important;
+
+    margin-right:
+        0.45rem !important;
+
+    font-size:
+        1rem !important;
+}
+
+.providerDialogConfirm .sapMBtnInner:hover {
+    background:
+        linear-gradient(
+            135deg,
+            #085caf 0%,
+            #0a78d7 100%
+        ) !important;
+
+    border-color:
+        #085caf !important;
+
+    transform:
+        translateY(-1px);
+
+    box-shadow:
+        0 0.55rem 1.05rem rgba(10, 110, 209, 0.28) !important;
+}
+
+.providerDialogConfirm .sapMBtnInner:active,
+.providerDialogCancel .sapMBtnInner:active {
+    transform:
+        translateY(0);
+}
+
+/* =========================================================
+   BOTÓN CONFIRMAR DESHABILITADO
+   ========================================================= */
+
+.providerDialogConfirm.sapMBtnDisabled .sapMBtnInner,
+.providerDialogConfirm .sapMBtnInner.sapMBtnDisabled {
+    color:
+        #a7b5c1 !important;
+
+    background:
+        #eef2f5 !important;
+
+    border-color:
+        #d5dde4 !important;
+
+    box-shadow:
+        none !important;
+
+    opacity:
+        1 !important;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .providerDialogContent {
+        padding:
+            0.85rem !important;
+    }
+
+    .providerDialogHero {
+        padding:
+            0.85rem !important;
+    }
+
+    .providerDialog .sapMDialogFooter,
+    .providerDialog .sapMDialogFooter .sapMBar,
+    .providerDialog .sapMDialogFooter .sapMBarRight,
+    .providerDialog .sapMDialogFooter .sapMBarPH {
+        width:
+            100% !important;
+
+        padding:
+            0.65rem !important;
+
+        gap:
+            0.5rem !important;
+    }
+
+    .providerDialog .sapMDialogFooter .sapMBtn {
+        width:
+            100% !important;
+
+        margin-left:
+            0 !important;
+    }
+
+    .providerDialogCancel .sapMBtnInner,
+    .providerDialogConfirm .sapMBtnInner {
+        width:
+            100% !important;
+    }
+}
+/* =========================================================
+   AJUSTE FINAL DEL POPUP DE PROVEEDORES
+   ========================================================= */
+
+/* Diálogo general */
+.providerDialog.sapMDialog {
+    width: min(46rem, calc(100vw - 2rem)) !important;
+    max-width: 46rem !important;
+    max-height: calc(100vh - 3rem) !important;
+
+    border-radius: 1.15rem !important;
+    overflow: hidden !important;
+
+    box-shadow:
+        0 1.25rem 3.2rem rgba(15, 23, 42, 0.26) !important;
+}
+
+/* =========================================================
+   CABECERA MÁS COMPACTA
+   ========================================================= */
+
+.providerDialog .sapMDialogTitleGroup,
+.providerDialog .sapMDialogTitle {
+    min-height: 3.45rem !important;
+    height: 3.45rem !important;
+}
+
+.providerDialog .sapMDialogTitle {
+    padding: 0 1.35rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+
+    color: #19344b !important;
+    font-size: 1.08rem !important;
+    font-weight: 900 !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f8fbfd 100%
+        ) !important;
+
+    border-bottom: 1px solid #d8e3ec !important;
+}
+
+/* =========================================================
+   ÁREA DE CONTENIDO
+   ========================================================= */
+
+.providerDialog .sapMDialogSection {
+    overflow: hidden !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f8fbfd 100%
+        ) !important;
+}
+
+.providerDialog .sapMDialogScrollCont {
+    padding: 0 !important;
+}
+
+.providerDialogContent {
+    width: 100% !important;
+
+    padding: 0.95rem 1.05rem 0.8rem !important;
+
+    box-sizing: border-box !important;
+}
+
+/* =========================================================
+   TARJETA HU MÁS COMPACTA
+   ========================================================= */
+
+.providerDialogHero {
+    width: 100% !important;
+
+    gap: 0.8rem !important;
+
+    margin-bottom: 0.7rem !important;
+    padding: 0.8rem 0.95rem !important;
+
+    box-sizing: border-box !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            #edf7ff 0%,
+            #f8fcff 100%
+        ) !important;
+
+    border: 1px solid #c9e0f2 !important;
+    border-radius: 0.9rem !important;
+}
+
+.providerDialogHeroIconBox {
+    width: 2.8rem !important;
+    height: 2.8rem !important;
+    min-width: 2.8rem !important;
+
+    border-radius: 0.8rem !important;
+
+    background: #e2f1fd !important;
+    border: 1px solid #b6d6ed !important;
+}
+
+.providerDialogHeroIcon {
+    color: #0a6ed1 !important;
+    font-size: 1.25rem !important;
+}
+
+.providerDialogHuTitle {
+    color: #17354d !important;
+
+    font-size: 0.98rem !important;
+    font-weight: 900 !important;
+}
+
+.providerDialogHuSubtitle {
+    margin-top: 0.1rem !important;
+
+    color: #638099 !important;
+
+    font-size: 0.78rem !important;
+    line-height: 1.25 !important;
+}
+
+/* =========================================================
+   MENSAJE MÁS COMPACTO
+   ========================================================= */
+
+.providerDialogInfo {
+    margin-bottom: 0.7rem !important;
+
+    border: 1px solid #8cc4ef !important;
+    border-radius: 0.72rem !important;
+}
+
+.providerDialogInfo.sapMMsgStrip {
+    min-height: 2.5rem !important;
+    padding-top: 0.45rem !important;
+    padding-bottom: 0.45rem !important;
+}
+
+.providerDialogInfo .sapMMsgStripMessage {
+    font-size: 0.8rem !important;
+    line-height: 1.32 !important;
+}
+
+/* =========================================================
+   TABLA
+   ========================================================= */
+
+.providerTable {
+    width: 100% !important;
+
+    margin-bottom: 0 !important;
+
+    overflow: hidden !important;
+
+    background: #ffffff !important;
+
+    border: 1px solid #d5e1eb !important;
+    border-radius: 0.85rem !important;
+}
+
+.providerTable .sapMListTblHeaderCell {
+    height: 2.8rem !important;
+
+    padding-top: 0.55rem !important;
+    padding-bottom: 0.55rem !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #f3f7fa 0%,
+            #eaf2f7 100%
+        ) !important;
+
+    border-bottom: 1px solid #d3dfe8 !important;
+}
+
+.providerTableHeader {
+    color: #3a5871 !important;
+
+    font-size: 0.72rem !important;
+    font-weight: 900 !important;
+
+    letter-spacing: 0.015rem !important;
+    text-transform: uppercase !important;
+}
+
+.providerTable .sapMListTblCell {
+    min-height: 2.8rem !important;
+
+    padding-top: 0.52rem !important;
+    padding-bottom: 0.52rem !important;
+
+    vertical-align: middle !important;
+}
+
+.providerTableRow {
+    transition:
+        background-color 0.15s ease,
+        box-shadow 0.15s ease !important;
+}
+
+.providerTableRow:hover {
+    background: #f4faff !important;
+}
+
+.providerTableRow.sapMLIBSelected {
+    background:
+        linear-gradient(
+            90deg,
+            #dff1ff 0%,
+            #f5fbff 100%
+        ) !important;
+
+    box-shadow:
+        inset 0 -2px 0 #0a6ed1,
+        inset 3px 0 0 #0a6ed1 !important;
+}
+
+.providerIdCell .sapMObjectIdentifierTitle {
+    color: #075d9f !important;
+
+    font-size: 0.84rem !important;
+    font-weight: 900 !important;
+}
+
+.providerNameCell {
+    color: #1d3b53 !important;
+
+    font-size: 0.84rem !important;
+    font-weight: 850 !important;
+}
+
+.providerOrderCell {
+    color: #36566f !important;
+
+    font-size: 0.84rem !important;
+    font-weight: 850 !important;
+}
+
+/* Radio de selección */
+.providerTable .sapMRbB {
+    border-color: #7a99b2 !important;
+}
+
+.providerTable .sapMLIBSelected .sapMRbB {
+    border-color: #0a6ed1 !important;
+}
+
+.providerTable .sapMLIBSelected .sapMRbBInn {
+    background: #0a6ed1 !important;
+}
+
+/* =========================================================
+   FOOTER CORREGIDO
+   ========================================================= */
+
+.providerDialog .sapMDialogFooter {
+    position: relative !important;
+
+    min-height: 4rem !important;
+    height: 4rem !important;
+
+    border-top: 1px solid #d9e3eb !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f7fafc 100%
+        ) !important;
+}
+
+.providerDialog .sapMDialogFooter .sapMBar,
+.providerDialog .sapMDialogFooter .sapMBarRight,
+.providerDialog .sapMDialogFooter .sapMBarPH {
+    width: 100% !important;
+    min-height: 4rem !important;
+    height: 4rem !important;
+
+    padding: 0 0.95rem !important;
+
+    box-sizing: border-box !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+
+    background: transparent !important;
+}
+
+/* Separación */
+.providerDialog .sapMDialogFooter .sapMBtn {
+    margin-left: 0.55rem !important;
+}
+
+/* Tamaño uniforme */
+.providerDialogCancel .sapMBtnInner,
+.providerDialogConfirm .sapMBtnInner {
+    min-height: 2.55rem !important;
+    height: 2.55rem !important;
+
+    padding: 0 1rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border-radius: 0.72rem !important;
+
+    font-size: 0.84rem !important;
+    font-weight: 850 !important;
+}
+
+/* Cancelar */
+.providerDialogCancel .sapMBtnInner {
+    color: #39566d !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f3f7fa 100%
+        ) !important;
+
+    border: 1px solid #bfd3e2 !important;
+
+    box-shadow:
+        0 0.18rem 0.45rem rgba(15, 23, 42, 0.06) !important;
+}
+
+.providerDialogCancel .sapMBtnIcon {
+    color: #627d92 !important;
+    margin-right: 0.35rem !important;
+}
+
+.providerDialogCancel .sapMBtnInner:hover {
+    color: #0a5ea8 !important;
+    background: #edf7ff !important;
+    border-color: #80b9e2 !important;
+}
+
+/* Confirmar */
+.providerDialogConfirm .sapMBtnInner {
+    color: #ffffff !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            #0a6ed1 0%,
+            #168fe4 100%
+        ) !important;
+
+    border: 1px solid #0a6ed1 !important;
+
+    box-shadow:
+        0 0.35rem 0.75rem rgba(10, 110, 209, 0.22) !important;
+}
+
+.providerDialogConfirm .sapMBtnIcon {
+    color: #ffffff !important;
+    margin-right: 0.4rem !important;
+}
+
+.providerDialogConfirm .sapMBtnInner:hover {
+    background:
+        linear-gradient(
+            135deg,
+            #085caf 0%,
+            #087bd7 100%
+        ) !important;
+
+    border-color: #085caf !important;
+}
+
+/* Confirmar deshabilitado */
+.providerDialogConfirm.sapMBtnDisabled {
+    opacity: 1 !important;
+}
+
+.providerDialogConfirm.sapMBtnDisabled .sapMBtnInner {
+    color: #a6b3be !important;
+
+    background: #edf1f4 !important;
+
+    border-color: #d6dfe6 !important;
+
+    box-shadow: none !important;
+}
+
+.providerDialogConfirm.sapMBtnDisabled .sapMBtnIcon {
+    color: #b1bec8 !important;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 600px) {
+    .providerDialogContent {
+        padding: 0.75rem !important;
+    }
+
+    .providerDialogHero {
+        padding: 0.75rem !important;
+    }
+
+    .providerDialog .sapMDialogFooter {
+        height: auto !important;
+        min-height: 6.8rem !important;
+    }
+
+    .providerDialog .sapMDialogFooter .sapMBar,
+    .providerDialog .sapMDialogFooter .sapMBarRight,
+    .providerDialog .sapMDialogFooter .sapMBarPH {
+        height: auto !important;
+        min-height: 6.8rem !important;
+
+        padding: 0.6rem !important;
+
+        flex-direction: column-reverse !important;
+        gap: 0.45rem !important;
+    }
+
+    .providerDialog .sapMDialogFooter .sapMBtn {
+        width: 100% !important;
+        margin-left: 0 !important;
+    }
+
+    .providerDialogCancel .sapMBtnInner,
+    .providerDialogConfirm .sapMBtnInner {
+        width: 100% !important;
+    }
+}
+/* =========================================================
+   FOOTER MÁS GRANDE PARA EVITAR BOTONES RECORTADOS
+   ========================================================= */
+
+.providerDialog .sapMDialogFooter {
+    min-height: 5.2rem !important;
+    height: 5.2rem !important;
+
+    padding: 0 !important;
+
+    overflow: visible !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f7fafc 100%
+        ) !important;
+
+    border-top: 1px solid #d9e3eb !important;
+}
+
+.providerDialog .sapMDialogFooter .sapMBar,
+.providerDialog .sapMDialogFooter .sapMBarRight,
+.providerDialog .sapMDialogFooter .sapMBarPH {
+    width: 100% !important;
+
+    min-height: 5.2rem !important;
+    height: 5.2rem !important;
+
+    padding: 0.8rem 1.15rem !important;
+
+    box-sizing: border-box !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+
+    overflow: visible !important;
+
+    background: transparent !important;
+}
+
+/* Espacio entre los botones */
+.providerDialog .sapMDialogFooter .sapMBtn {
+    margin-left: 0.7rem !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+
+    overflow: visible !important;
+}
+
+/* Botones un poco más altos */
+.providerDialogCancel .sapMBtnInner,
+.providerDialogConfirm .sapMBtnInner {
+    min-height: 3rem !important;
+    height: 3rem !important;
+
+    padding: 0 1.25rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    box-sizing: border-box !important;
+
+    border-radius: 0.8rem !important;
+
+    line-height: normal !important;
+}
+
+/* Evita que el texto o icono se corten */
+.providerDialogCancel .sapMBtnContent,
+.providerDialogConfirm .sapMBtnContent,
+.providerDialogCancel .sapMBtnIcon,
+.providerDialogConfirm .sapMBtnIcon {
+    line-height: normal !important;
+    overflow: visible !important;
+}
+
+/* Más aire debajo de la tabla */
+.providerDialogContent {
+    padding-bottom: 1.1rem !important;
+}
+
+/* El diálogo permite mostrar el footer completo */
+.providerDialog.sapMDialog,
+.providerDialog .sapMDialogSection,
+.providerDialog .sapMDialogScroll,
+.providerDialog .sapMDialogScrollCont {
+    overflow: visible !important;
+}
+/* =========================================================
+   FOOTER MÁS GRANDE PARA EVITAR BOTONES RECORTADOS
+   ========================================================= */
+
+.providerDialog .sapMDialogFooter {
+    min-height: 5.2rem !important;
+    height: 5.2rem !important;
+
+    padding: 0 !important;
+
+    overflow: visible !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f7fafc 100%
+        ) !important;
+
+    border-top: 1px solid #d9e3eb !important;
+}
+
+.providerDialog .sapMDialogFooter .sapMBar,
+.providerDialog .sapMDialogFooter .sapMBarRight,
+.providerDialog .sapMDialogFooter .sapMBarPH {
+    width: 100% !important;
+
+    min-height: 5.2rem !important;
+    height: 5.2rem !important;
+
+    padding: 0.8rem 1.15rem !important;
+
+    box-sizing: border-box !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+
+    overflow: visible !important;
+
+    background: transparent !important;
+}
+
+/* Espacio entre los botones */
+.providerDialog .sapMDialogFooter .sapMBtn {
+    margin-left: 0.7rem !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+
+    overflow: visible !important;
+}
+
+/* Botones un poco más altos */
+.providerDialogCancel .sapMBtnInner,
+.providerDialogConfirm .sapMBtnInner {
+    min-height: 3rem !important;
+    height: 3rem !important;
+
+    padding: 0 1.25rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    box-sizing: border-box !important;
+
+    border-radius: 0.8rem !important;
+
+    line-height: normal !important;
+}
+
+/* Evita que el texto o icono se corten */
+.providerDialogCancel .sapMBtnContent,
+.providerDialogConfirm .sapMBtnContent,
+.providerDialogCancel .sapMBtnIcon,
+.providerDialogConfirm .sapMBtnIcon {
+    line-height: normal !important;
+    overflow: visible !important;
+}
+
+/* Más aire debajo de la tabla */
+.providerDialogContent {
+    padding-bottom: 1.1rem !important;
+}
+
+/* El diálogo permite mostrar el footer completo */
+.providerDialog.sapMDialog,
+.providerDialog .sapMDialogSection,
+.providerDialog .sapMDialogScroll,
+.providerDialog .sapMDialogScrollCont {
+    overflow: visible !important;
+}
+/* =========================================================
+   AJUSTE FINAL DEL FOOTER DEL POPUP
+   ========================================================= */
+
+.providerDialog .sapMDialogFooter {
+    min-height: 4.4rem !important;
+    height: 4.4rem !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+.providerDialog .sapMDialogFooter .sapMBar,
+.providerDialog .sapMDialogFooter .sapMBarRight,
+.providerDialog .sapMDialogFooter .sapMBarPH {
+    min-height: 4.4rem !important;
+    height: 4.4rem !important;
+
+    padding: 0 1rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+
+    box-sizing: border-box !important;
+    overflow: visible !important;
+}
+
+/* Quita desplazamientos verticales internos */
+.providerDialog .sapMDialogFooter .sapMBtn {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    align-self: center !important;
+}
+
+/* Tamaño equilibrado de los botones */
+.providerDialogCancel .sapMBtnInner,
+.providerDialogConfirm .sapMBtnInner {
+    min-height: 2.7rem !important;
+    height: 2.7rem !important;
+
+    padding: 0 1.15rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    box-sizing: border-box !important;
+    border-radius: 0.8rem !important;
+
+    line-height: 2.7rem !important;
+}
+
+/* Centra icono y texto */
+.providerDialogCancel .sapMBtnContent,
+.providerDialogConfirm .sapMBtnContent {
+    line-height: 2.7rem !important;
+}
+
+.providerDialogCancel .sapMBtnIcon,
+.providerDialogConfirm .sapMBtnIcon {
+    line-height: 2.7rem !important;
+}
+
+/* Evita espacio blanco extra antes del footer */
+.providerDialog .sapMDialogSection {
+    padding-bottom: 0 !important;
+}
+
+.providerDialogContent {
+    padding-bottom: 0.8rem !important;
+}
+/* =========================================================
+   FIX FINAL POPUP PROVEEDORES
+   EVITA QUE LOS BOTONES SE VEAN CORTADOS
+   ========================================================= */
+
+.providerDialog.sapMDialog {
+    overflow: visible !important;
+}
+
+/* Área del contenido */
+.providerDialog .sapMDialogSection {
+    padding-bottom: 0 !important;
+    overflow: auto !important;
+}
+
+.providerDialog .sapMDialogScroll,
+.providerDialog .sapMDialogScrollCont {
+    overflow: auto !important;
+}
+
+/* Footer */
+.providerDialog .sapMDialogFooter {
+    min-height: 5rem !important;
+    height: 5rem !important;
+
+    padding: 0 !important;
+
+    overflow: visible !important;
+
+    background: #ffffff !important;
+
+    border-top: 1px solid #d9e3eb !important;
+
+    box-sizing: border-box !important;
+}
+
+/* Barra interna del footer */
+.providerDialog .sapMDialogFooter .sapMBar,
+.providerDialog .sapMDialogFooter .sapMBarRight,
+.providerDialog .sapMDialogFooter .sapMBarPH {
+    width: 100% !important;
+
+    min-height: 5rem !important;
+    height: 5rem !important;
+
+    padding: 0.65rem 1rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+
+    overflow: visible !important;
+
+    box-sizing: border-box !important;
+
+    background: transparent !important;
+}
+
+/* Espacio entre botones */
+.providerDialog .sapMDialogFooter .sapMBtn {
+    margin-left: 0.6rem !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+
+    align-self: center !important;
+
+    overflow: visible !important;
+}
+
+/* Botones Cancelar y Confirmar */
+.providerDialogCancel .sapMBtnInner,
+.providerDialogConfirm .sapMBtnInner {
+    min-height: 2.8rem !important;
+    height: 2.8rem !important;
+
+    padding: 0 1.15rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border-radius: 0.8rem !important;
+
+    box-sizing: border-box !important;
+
+    overflow: visible !important;
+}
+
+/* Texto de botones */
+.providerDialogCancel .sapMBtnContent,
+.providerDialogConfirm .sapMBtnContent {
+    line-height: 2.8rem !important;
+    overflow: visible !important;
+}
+
+/* Iconos de botones */
+.providerDialogCancel .sapMBtnIcon,
+.providerDialogConfirm .sapMBtnIcon {
+    line-height: 2.8rem !important;
+    overflow: visible !important;
+}
+
+/* Espacio debajo de la tabla */
+.providerDialogContent {
+    padding-bottom: 1rem !important;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .providerDialog .sapMDialogFooter,
+    .providerDialog .sapMDialogFooter .sapMBar,
+    .providerDialog .sapMDialogFooter .sapMBarRight,
+    .providerDialog .sapMDialogFooter .sapMBarPH {
+        height: auto !important;
+        min-height: 7rem !important;
+    }
+
+    .providerDialog .sapMDialogFooter .sapMBar,
+    .providerDialog .sapMDialogFooter .sapMBarRight,
+    .providerDialog .sapMDialogFooter .sapMBarPH {
+        flex-direction: column-reverse !important;
+
+        gap: 0.5rem !important;
+
+        padding: 0.7rem !important;
+    }
+
+    .providerDialog .sapMDialogFooter .sapMBtn {
+        width: 100% !important;
+        margin-left: 0 !important;
+    }
+
+    .providerDialogCancel .sapMBtnInner,
+    .providerDialogConfirm .sapMBtnInner {
+        width: 100% !important;
+    }
+}
+/* =========================================================
+   FOOTER DEFINITIVO - POPUP PROVEEDORES
+   ========================================================= */
+
+/* El diálogo mantiene todo dentro de sus límites */
+.providerDialog.sapMDialog {
+    overflow: hidden !important;
+}
+
+/* SAP controla el scroll del contenido */
+.providerDialog .sapMDialogSection {
+    padding-bottom: 0 !important;
+}
+
+/* Footer exterior */
+.providerDialog .sapMDialogFooter {
+    position: relative !important;
+
+    width: 100% !important;
+
+    height: 4.5rem !important;
+    min-height: 4.5rem !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    overflow: hidden !important;
+
+    background: #ffffff !important;
+
+    border-top: 1px solid #d9e3eb !important;
+
+    box-sizing: border-box !important;
+}
+
+/* Barra SAPUI5 */
+.providerDialog .sapMDialogFooter .sapMBar {
+    position: relative !important;
+
+    width: 100% !important;
+
+    height: 4.5rem !important;
+    min-height: 4.5rem !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    overflow: hidden !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f7fafc 100%
+        ) !important;
+
+    box-sizing: border-box !important;
+}
+
+/* Contenedor derecho donde UI5 pone los botones */
+.providerDialog .sapMDialogFooter .sapMBarRight {
+    position: absolute !important;
+
+    top: 0 !important;
+    right: 1rem !important;
+    bottom: 0 !important;
+
+    height: 4.5rem !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    display: flex !important;
+    flex-direction: row !important;
+
+    align-items: center !important;
+    justify-content: flex-end !important;
+
+    gap: 0.65rem !important;
+
+    overflow: visible !important;
+
+    box-sizing: border-box !important;
+}
+
+/* Evitar estilos anteriores del sapMBarPH */
+.providerDialog .sapMDialogFooter .sapMBarPH {
+    height: 4.5rem !important;
+    min-height: 4.5rem !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    box-sizing: border-box !important;
+}
+
+/* Cada botón */
+.providerDialog .sapMDialogFooter .sapMBtn {
+    height: 2.75rem !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    flex: 0 0 auto !important;
+
+    align-self: center !important;
+}
+
+/* Interior de los botones */
+.providerDialogCancel .sapMBtnInner,
+.providerDialogConfirm .sapMBtnInner {
+    height: 2.75rem !important;
+    min-height: 2.75rem !important;
+
+    padding: 0 1.15rem !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    box-sizing: border-box !important;
+
+    border-radius: 0.75rem !important;
+
+    line-height: normal !important;
+}
+
+/* Texto */
+.providerDialogCancel .sapMBtnContent,
+.providerDialogConfirm .sapMBtnContent {
+    line-height: normal !important;
+
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* Iconos */
+.providerDialogCancel .sapMBtnIcon,
+.providerDialogConfirm .sapMBtnIcon {
+    line-height: normal !important;
+
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* CANCELAR */
+.providerDialogCancel .sapMBtnInner {
+    color: #36566f !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f4f8fb 100%
+        ) !important;
+
+    border: 1px solid #bfd3e2 !important;
+}
+
+/* CONFIRMAR */
+.providerDialogConfirm .sapMBtnInner {
+    color: #ffffff !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            #0a6ed1 0%,
+            #168fe4 100%
+        ) !important;
+
+    border: 1px solid #0a6ed1 !important;
+
+    box-shadow:
+        0 0.35rem 0.75rem rgba(10, 110, 209, 0.22) !important;
+}
+
+.providerDialogConfirm .sapMBtnIcon {
+    color: #ffffff !important;
+}
+
+/* =========================================================
+   MÓVIL
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .providerDialog .sapMDialogFooter {
+        height: 7rem !important;
+        min-height: 7rem !important;
+    }
+
+    .providerDialog .sapMDialogFooter .sapMBar {
+        height: 7rem !important;
+        min-height: 7rem !important;
+    }
+
+    .providerDialog .sapMDialogFooter .sapMBarRight {
+        top: 0.5rem !important;
+        right: 0.6rem !important;
+        bottom: 0.5rem !important;
+        left: 0.6rem !important;
+
+        width: auto !important;
+        height: 6rem !important;
+
+        flex-direction: column-reverse !important;
+
+        gap: 0.45rem !important;
+    }
+
+    .providerDialog .sapMDialogFooter .sapMBtn {
+        width: 100% !important;
+    }
+
+    .providerDialogCancel .sapMBtnInner,
+    .providerDialogConfirm .sapMBtnInner {
+        width: 100% !important;
+    }
+}
+
+/* =========================================================
+   ACCIONES DEL POPUP - VERSIÓN DEFINITIVA
+   ========================================================= */
+
+/* Ya no utilizamos el footer nativo */
+.providerDialog .sapMDialogFooter {
+    display: none !important;
+}
+
+/* Contenedor de los botones */
+.providerDialogActions {
+    width: 100% !important;
+
+    min-height: 4.8rem !important;
+
+    margin-top: 1rem !important;
+
+    padding: 0.8rem 0.2rem 0.25rem !important;
+
+    gap: 0.7rem !important;
+
+    box-sizing: border-box !important;
+
+    border-top: 1px solid #d9e3eb !important;
+
+    background: transparent !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+
+    overflow: visible !important;
+}
+
+/* Cada botón */
+.providerDialogActions .sapMBtn {
+    margin: 0 !important;
+    padding: 0 !important;
+
+    flex: 0 0 auto !important;
+}
+
+/* Interior */
+.providerDialogActions .providerDialogCancel .sapMBtnInner,
+.providerDialogActions .providerDialogConfirm .sapMBtnInner {
+    min-height: 2.9rem !important;
+    height: 2.9rem !important;
+
+    padding: 0 1.25rem !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border-radius: 0.75rem !important;
+
+    box-sizing: border-box !important;
+}
+
+/* CANCELAR */
+.providerDialogActions .providerDialogCancel .sapMBtnInner {
+    color: #36566f !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f4f8fb 100%
+        ) !important;
+
+    border: 1px solid #bfd3e2 !important;
+
+    box-shadow:
+        0 0.18rem 0.45rem rgba(15, 23, 42, 0.07) !important;
+}
+
+.providerDialogActions .providerDialogCancel .sapMBtnIcon {
+    color: #607b91 !important;
+}
+
+/* CONFIRMAR */
+.providerDialogActions .providerDialogConfirm .sapMBtnInner {
+    color: #ffffff !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            #0a6ed1 0%,
+            #168fe4 100%
+        ) !important;
+
+    border: 1px solid #0a6ed1 !important;
+
+    box-shadow:
+        0 0.35rem 0.75rem rgba(10, 110, 209, 0.22) !important;
+}
+
+.providerDialogActions .providerDialogConfirm .sapMBtnIcon {
+    color: #ffffff !important;
+}
+
+/* Hover cancelar */
+.providerDialogActions
+.providerDialogCancel:hover
+.sapMBtnInner {
+    background: #edf7ff !important;
+    border-color: #80b9e2 !important;
+}
+
+/* Hover confirmar */
+.providerDialogActions
+.providerDialogConfirm:hover
+.sapMBtnInner {
+    background:
+        linear-gradient(
+            135deg,
+            #085caf 0%,
+            #087bd7 100%
+        ) !important;
+
+    border-color: #085caf !important;
+}
+
+/* Espacio inferior real */
+.providerDialogContent {
+    padding-bottom: 0.8rem !important;
+}
+
+/* Bordes inferiores del popup */
+.providerDialog.sapMDialog {
+    border-radius: 1.15rem !important;
+    overflow: hidden !important;
+}
+
+/* =========================================================
+   MÓVIL
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .providerDialogActions {
+        min-height: auto !important;
+
+        padding: 0.8rem 0 !important;
+
+        flex-direction: column-reverse !important;
+
+        gap: 0.5rem !important;
+    }
+
+    .providerDialogActions .sapMBtn {
+        width: 100% !important;
+    }
+
+    .providerDialogActions .sapMBtnInner {
+        width: 100% !important;
     }
 }

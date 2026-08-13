@@ -1,0 +1,218 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+
+    <Dialog
+        id="providerDialog"
+        title="Seleccionar proveedor"
+        contentWidth="56rem"
+        stretchOnPhone="true"
+        draggable="true"
+        resizable="true"
+        class="providerDialog">
+
+        <content>
+
+            <VBox
+                width="100%"
+                class="providerDialogContent">
+
+                <!-- =====================================================
+                     INFORMACIÓN DE LA HU
+                     ===================================================== -->
+
+                <HBox
+                    alignItems="Center"
+                    width="100%"
+                    class="providerDialogHero">
+
+                    <VBox
+                        alignItems="Center"
+                        justifyContent="Center"
+                        class="providerDialogHeroIconBox">
+
+                        <core:Icon
+                            src="sap-icon://supplier"
+                            class="providerDialogHeroIcon" />
+
+                    </VBox>
+
+                    <VBox
+                        width="100%"
+                        class="providerDialogHeroText">
+
+                        <Title
+                            text="{= 'HU ' + ${viewModel>/providerDialog/huVenum} }"
+                            level="H4"
+                            class="providerDialogHuTitle" />
+
+                        <Text
+                            text="{= 'Identificador: ' + ${viewModel>/providerDialog/huExidv} }"
+                            wrapping="true"
+                            class="providerDialogHuSubtitle" />
+
+                    </VBox>
+
+                </HBox>
+
+
+                <!-- =====================================================
+                     MENSAJE INFORMATIVO
+                     ===================================================== -->
+
+                <MessageStrip
+                    text="{= 'Esta HU tiene ' + ${viewModel>/providerDialog/providerCount} + ' proveedores asociados. Puedes seleccionar uno o varios proveedores para la anulación.' }"
+                    type="Information"
+                    showIcon="true"
+                    showCloseButton="false"
+                    class="providerDialogInfo" />
+
+
+                <!-- =====================================================
+                     TABLA DE PROVEEDORES
+                     SELECCIÓN MÚLTIPLE
+                     ===================================================== -->
+
+                <Table
+                    id="providerTable"
+                    items="{viewModel>/providerDialog/providers}"
+                    mode="MultiSelect"
+                    includeItemInSelection="true"
+                    selectionChange=".onProviderSelectionChange"
+                    inset="false"
+                    fixedLayout="false"
+                    width="100%"
+                    class="providerTable"
+                    noDataText="No hay proveedores disponibles.">
+
+                    <columns>
+
+                        <!-- PROVEEDOR -->
+
+                        <Column
+                            width="9rem"
+                            minScreenWidth="Tablet"
+                            demandPopin="true">
+
+                            <Text
+                                text="Proveedor"
+                                class="providerTableHeader" />
+
+                        </Column>
+
+
+                        <!-- NOMBRE DEL PROVEEDOR -->
+
+                        <Column
+                            minScreenWidth="Tablet"
+                            demandPopin="true">
+
+                            <Text
+                                text="Nombre del proveedor"
+                                class="providerTableHeader" />
+
+                        </Column>
+
+
+                        <!-- PEDIDO DE COMPRA -->
+
+                        <Column
+                            width="11rem"
+                            minScreenWidth="Tablet"
+                            demandPopin="true">
+
+                            <Text
+                                text="Pedido de compra"
+                                class="providerTableHeader" />
+
+                        </Column>
+
+                    </columns>
+
+
+                    <!-- =================================================
+                         REGISTROS
+                         ================================================= -->
+
+                    <items>
+
+                        <ColumnListItem
+                            type="Active"
+                            selected="{viewModel>selected}"
+                            vAlign="Middle"
+                            class="providerTableRow">
+
+                            <cells>
+
+                                <!-- PROVEEDOR -->
+
+                                <ObjectIdentifier
+                                    title="{viewModel>Lifnr}"
+                                    class="providerIdCell" />
+
+
+                                <!-- NOMBRE DEL PROVEEDOR -->
+
+                                <Text
+                                    text="{viewModel>Name1}"
+                                    wrapping="true"
+                                    maxLines="2"
+                                    class="providerNameCell" />
+
+
+                                <!-- PEDIDO DE COMPRA -->
+
+                                <Text
+                                    text="{viewModel>Ebeln}"
+                                    class="providerOrderCell" />
+
+                            </cells>
+
+                        </ColumnListItem>
+
+                    </items>
+
+                </Table>
+
+
+                <!-- =====================================================
+                     BOTONES DEL POPUP
+                     YA NO USAMOS beginButton / endButton
+                     ===================================================== -->
+
+                <HBox
+                    width="100%"
+                    justifyContent="End"
+                    alignItems="Center"
+                    wrap="Wrap"
+                    class="providerDialogActions">
+
+                    <!-- CANCELAR -->
+
+                    <Button
+                        text="Cancelar"
+                        type="Transparent"
+                        icon="sap-icon://decline"
+                        press=".onCloseProviderDialog"
+                        class="providerDialogCancel" />
+
+
+                    <!-- CONFIRMAR -->
+
+                    <Button
+                        text="Confirmar selección"
+                        type="Emphasized"
+                        icon="sap-icon://accept"
+                        enabled="{viewModel>/providerDialog/canConfirm}"
+                        press=".onConfirmProviderSelection"
+                        class="providerDialogConfirm" />
+
+                </HBox>
+
+            </VBox>
+
+        </content>
+
+    </Dialog>
+
+</core:FragmentDefinition>

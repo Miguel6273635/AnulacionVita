@@ -5,334 +5,722 @@
     xmlns:core="sap.ui.core">
 
     <Page
+        id="mainPage"
         title="Cancelación de documentos"
         class="customPageBg"
         busy="{viewModel>/busy}"
-        busyIndicatorDelay="0">
+        busyIndicatorDelay="0"
+        enableScrolling="true">
 
         <content>
-            <VBox class="mainWrapper" renderType="Bare">
+            <VBox
+                id="mainWrapper"
+                class="mainWrapper"
+                width="100%"
+                renderType="Bare">
 
-                <!-- HERO -->
-                <VBox class="heroSection">
-                    <HBox justifyContent="SpaceBetween" alignItems="Center" wrap="Wrap">
-                        <VBox>
-                            <Title
-                                text="Gestión de anulación"
-                                level="H1"
-                                class="heroTitle" />
+               <!-- =====================================================
+     ENCABEZADO PRINCIPAL
+     ===================================================== -->
 
-                            <Text
-                                text="Consulta el documento material, valida la cadena relacionada y ejecuta la anulación desde SAP BTP."
-                                class="heroSubtitle" />
-                        </VBox>
+<VBox
+    class="heroSection"
+    width="100%">
 
-                        <VBox class="heroBadgeBox">
-                            <Label
-                                text="Estado actual"
-                                class="heroBadgeLabel" />
+    <!-- Elemento decorativo de puntos -->
+    <HBox class="heroDotPattern" />
 
-                            <ObjectStatus
-                                text="{path:'viewModel>/resultado/Status', formatter:'.formatStatusText'}"
-                                state="{viewModel>/resultadoState}"
-                                class="heroStatus" />
-                        </VBox>
-                    </HBox>
-                </VBox>
+    <HBox
+        justifyContent="SpaceBetween"
+        alignItems="Center"
+        wrap="Wrap"
+        width="100%"
+        class="heroMainRow">
 
-                <!-- BÚSQUEDA -->
+        <!-- INFORMACIÓN PRINCIPAL -->
+
+        <VBox
+            class="heroTextContainer"
+            width="auto">
+
+            <HBox
+                alignItems="Center"
+                class="heroBrandRow">
+
+                <Text
+                    text="SAP BTP"
+                    class="heroBrandText" />
+
+                <Text
+                    text="•"
+                    class="heroBrandDot" />
+
+                <Text
+                    text="VITAFOODS"
+                    class="heroBrandText" />
+            </HBox>
+
+            <Title
+                text="Gestión de anulación"
+                level="H1"
+                class="heroTitle" />
+
+            <Text
+                text="Consulta el documento material, valida la cadena relacionada, selecciona los proveedores de las HU y ejecuta la anulación."
+                wrapping="true"
+                class="heroSubtitle" />
+        </VBox>
+
+        <!-- TARJETA DEL ESTADO -->
+
+        <HBox
+            alignItems="Center"
+            class="heroBadgeBox">
+
+            <VBox
+                alignItems="Center"
+                justifyContent="Center"
+                class="heroStatusIconBox">
+
+                <core:Icon
+                    src="sap-icon://alert"
+                    class="heroStatusIcon" />
+            </VBox>
+
+            <VBox class="heroStatusTextBox">
+
+                <Label
+                    text="Estado actual"
+                    class="heroBadgeLabel" />
+
+                <ObjectStatus
+                    text="{
+                        path: 'viewModel>/resultado/Status',
+                        formatter: '.formatStatusText'
+                    }"
+                    state="{viewModel>/resultadoState}"
+                    class="heroStatus" />
+            </VBox>
+        </HBox>
+    </HBox>
+</VBox>
+
                 <Panel
                     headerText="Búsqueda de documento"
                     expandable="false"
+                    width="100%"
                     class="modernPanel searchPanel">
 
-                    <VBox class="panelInner">
-                        <Label
-                            text="Número de documento material"
-                            design="Bold"
-                            class="fieldLabel" />
+                    <content>
+                        <VBox class="panelInner" width="100%">
+                            <HBox
+                                alignItems="End"
+                                wrap="Wrap"
+                                width="100%"
+                                class="searchContentRow">
 
-                        <Input
-                            value="{viewModel>/matDoc}"
-                            placeholder="Ej. 5000559774"
-                            liveChange=".onMatDocLiveChange"
-                            submit=".onBuscarDocumento"
-                            width="100%"
-                            maxLength="20"
-                            class="modernInput" />
+                                <VBox class="searchInputArea">
+                                    <Label
+                                        text="Número de documento material"
+                                        labelFor="matDocInput"
+                                        design="Bold"
+                                        class="fieldLabel" />
 
-                        <OverflowToolbar class="actionToolbar">
-                            <ToolbarSpacer />
+                                    <Input
+                                        id="matDocInput"
+                                        value="{viewModel>/matDoc}"
+                                        placeholder="Ej. 5000559774"
+                                        liveChange=".onMatDocLiveChange"
+                                        submit=".onBuscarDocumento"
+                                        width="100%"
+                                        maxLength="20"
+                                        class="modernInput" />
+                                </VBox>
 
-                            <Button
-                                text="Buscar"
-                                type="Emphasized"
-                                icon="sap-icon://search"
-                                press=".onBuscarDocumento"
-                                enabled="{= !${viewModel>/busy} }"
-                                class="btnPrimary" />
+                                <HBox
+                                    alignItems="Center"
+                                    wrap="Wrap"
+                                    class="searchActions">
 
-                            <Button
-                                text="Anular"
-                                type="Reject"
-                                icon="sap-icon://decline"
-                                press=".onAnularDocumento"
-                                enabled="{= ${viewModel>/canCancel} &amp;&amp; !${viewModel>/busy} }"
-                                class="btnDanger" />
+                                    <Button
+                                        text="Buscar"
+                                        type="Emphasized"
+                                        icon="sap-icon://search"
+                                        press=".onBuscarDocumento"
+                                        enabled="{= !${viewModel>/busy} }"
+                                        class="btnPrimary" />
 
-                            <Button
-                                text="Limpiar"
-                                icon="sap-icon://refresh"
-                                press=".onLimpiar"
-                                enabled="{= !${viewModel>/busy} }"
-                                class="btnLight" />
-                        </OverflowToolbar>
-                    </VBox>
+                                    <Button
+                                        text="Anular"
+                                        type="Reject"
+                                        icon="sap-icon://decline"
+                                        press=".onAnularDocumento"
+                                        enabled="{= ${viewModel>/canCancel} &amp;&amp; !${viewModel>/busy} }"
+                                        class="btnDanger" />
+
+                                    <Button
+                                        text="Limpiar"
+                                        type="Transparent"
+                                        icon="sap-icon://refresh"
+                                        press=".onLimpiar"
+                                        enabled="{= !${viewModel>/busy} }"
+                                        class="btnLight" />
+                                </HBox>
+                            </HBox>
+                        </VBox>
+                    </content>
                 </Panel>
 
-                <!-- RESULTADO GENERAL -->
                 <Panel
                     headerText="Resultado general"
                     expandable="false"
+                    width="100%"
                     class="modernPanel resultPanel">
 
-                    <VBox class="panelInner">
+                    <content>
+                        <VBox class="panelInner" width="100%">
+                            <HBox
+                                alignItems="Center"
+                                justifyContent="SpaceBetween"
+                                wrap="Wrap"
+                                width="100%">
+
+                                <VBox>
+                                    <Title
+                                        text="Estatus de la operación"
+                                        level="H4"
+                                        class="sectionTitle" />
+
+                                    <Text
+                                        text="Resumen de la consulta o anulación ejecutada."
+                                        class="sectionSubtitle" />
+                                </VBox>
+
+                                <ObjectStatus
+                                    text="{path:'viewModel>/resultado/Status', formatter:'.formatStatusText'}"
+                                    state="{viewModel>/resultadoState}"
+                                    class="resultStatus" />
+                            </HBox>
+
+                            <MessageStrip
+                                text="{viewModel>/resultado/Message}"
+                                type="{= ${viewModel>/resultadoState} === 'Error' ? 'Error' : ${viewModel>/resultadoState} === 'Warning' ? 'Warning' : ${viewModel>/resultadoState} === 'Success' ? 'Success' : 'Information' }"
+                                showIcon="true"
+                                showCloseButton="false"
+                                visible="{= !!${viewModel>/resultado/Message} }"
+                                class="resultMessageStrip" />
+
+                            <FlexBox
+                                class="summaryGrid"
+                                direction="Row"
+                                wrap="Wrap"
+                                justifyContent="Start"
+                                alignItems="Stretch"
+                                width="100%">
+
+                                <VBox class="summaryCard summaryCardTotal">
+                                    <Text
+                                        text="Objetos encontrados"
+                                        class="summaryLabel" />
+                                    <Title
+                                        text="{viewModel>/summary/total}"
+                                        level="H4"
+                                        class="summaryValue" />
+                                </VBox>
+
+                                <VBox class="summaryCard summaryCardHu">
+                                    <Text
+                                        text="HU"
+                                        class="summaryLabel" />
+
+                                    <HBox alignItems="Center" class="summaryValueRow">
+                                        <Title
+                                            text="{viewModel>/summary/hu}"
+                                            level="H4"
+                                            class="summaryValue" />
+
+                                        <core:Icon
+                                            src="sap-icon://alert"
+                                            visible="{= ${viewModel>/summary/huPendientes} > 0 }"
+                                            class="summaryWarningIcon" />
+                                    </HBox>
+                                </VBox>
+
+                                <VBox class="summaryCard summaryCardMaterial">
+                                    <Text
+                                        text="Documento material"
+                                        class="summaryLabel" />
+                                    <Title
+                                        text="{viewModel>/summary/material}"
+                                        level="H4"
+                                        class="summaryValue" />
+                                </VBox>
+
+                                <VBox class="summaryCard summaryCardOther">
+                                    <Text
+                                        text="Pedido / entrega / transporte"
+                                        class="summaryLabel" />
+                                    <Title
+                                        text="{viewModel>/summary/otros}"
+                                        level="H4"
+                                        class="summaryValue" />
+                                </VBox>
+                            </FlexBox>
+                        </VBox>
+                    </content>
+                </Panel>
+<!-- =====================================================
+     CONTENIDO: VISTA PREVIA
+     ===================================================== -->
+<VBox
+    visible="{= ${viewModel>/selectedSection} === 'preview' }"
+    class="dataSectionCard"
+    width="100%">
+
+    <HBox
+        alignItems="Center"
+        justifyContent="SpaceBetween"
+        wrap="Wrap"
+        width="100%"
+        class="embeddedSectionNavigation">
+
+        <SegmentedButton
+            selectedKey="{viewModel>/selectedSection}"
+            selectionChange=".onSectionChange"
+            class="embeddedSegmentedButton">
+
+            <items>
+                <SegmentedButtonItem
+                    key="preview"
+                    text="{= 'Vista previa (' + ${viewModel>/preview}.length + ')' }"
+                    icon="sap-icon://overview-chart" />
+
+                <SegmentedButtonItem
+                    key="detail"
+                    text="{= 'Detalle final (' + ${viewModel>/detalle}.length + ')' }"
+                    icon="sap-icon://document-text" />
+            </items>
+        </SegmentedButton>
+
+        <ObjectStatus
+            text="{= ${viewModel>/summary/huPendientes} > 0 ? ${viewModel>/summary/huPendientes} + ' HU pendientes' : '' }"
+            state="Warning"
+            visible="{= ${viewModel>/summary/huPendientes} > 0 }"
+            class="navigationPendingStatus" />
+    </HBox>
+
+    <Toolbar
+        class="dataSectionToolbar"
+        width="100%">
+
+        <VBox>
+            <Title
+                text="Vista previa de anulación"
+                level="H4"
+                class="dataSectionTitle" />
+
+            <Text
+                text="Consulta los objetos relacionados antes de realizar la anulación."
+                class="dataSectionSubtitle" />
+        </VBox>
+
+        <ToolbarSpacer />
+
+        <ObjectStatus
+            text="{=
+                ${viewModel>/preview}.length === 1
+                    ? '1 registro'
+                    : ${viewModel>/preview}.length + ' registros'
+            }"
+            state="Information"
+            class="dataCountStatus" />
+    </Toolbar>
+
+    <Table
+        id="previewTable"
+        items="{viewModel>/preview}"
+        inset="false"
+        growing="true"
+        growingThreshold="20"
+        growingScrollToLoad="true"
+        fixedLayout="false"
+        width="100%"
+        class="modernTable previewTable"
+        noDataText="No hay datos de vista previa.">
+
+        <columns>
+            <Column
+                width="13rem"
+                minScreenWidth="Tablet"
+                demandPopin="true">
+
+                <Text text="Tipo de objeto" />
+            </Column>
+
+            <Column
+                width="15rem"
+                minScreenWidth="Tablet"
+                demandPopin="true">
+
+                <Text text="Descripción" />
+            </Column>
+
+            <Column
+                width="14rem"
+                minScreenWidth="Tablet"
+                demandPopin="true">
+
+                <Text text="Referencia 1" />
+            </Column>
+
+            <Column
+                width="11rem"
+                minScreenWidth="Tablet"
+                demandPopin="true">
+
+                <Text text="Referencia 2" />
+            </Column>
+
+            <Column
+                width="18rem"
+                minScreenWidth="Desktop"
+                demandPopin="true">
+
+                <Text text="Proveedor" />
+            </Column>
+
+            <Column
+                width="11rem"
+                minScreenWidth="Desktop"
+                demandPopin="true">
+
+                <Text text="Pedido de compra" />
+            </Column>
+
+            <Column
+                width="16rem"
+                hAlign="Center"
+                minScreenWidth="Tablet"
+                demandPopin="true">
+
+                <Text text="Estatus" />
+            </Column>
+        </columns>
+
+        <items>
+            <ColumnListItem
+                type="Inactive"
+                vAlign="Middle"
+                class="tableRowCustom">
+
+                <cells>
+
+                    <HBox
+                        alignItems="Center"
+                        class="objectTypeCell">
+
+                        <core:Icon
+                            src="{viewModel>DisplayIcon}"
+                            tooltip="{viewModel>Message}"
+                            class="objectTypeIcon" />
+
+                        <Text
+                            text="{viewModel>Message}"
+                            wrapping="true"
+                            class="objectTypeText" />
+                    </HBox>
+
+                    <Text
+                        text="{viewModel>Message}"
+                        wrapping="true"
+                        maxLines="3" />
+
+                    <Text
+                        text="{viewModel>DisplayReference1}"
+                        wrapping="true"
+                        class="referenceText" />
+
+                    <Text
+                        text="{viewModel>DisplayReference2}"
+                        wrapping="true"
+                        class="referenceText" />
+
+                    <VBox
+                        class="providerCell"
+                        width="100%">
+
+                        <Text
+                            text="{viewModel>Name1}"
+                            wrapping="true"
+                            maxLines="2"
+                            visible="{=
+                                ${viewModel>Message} === 'HU'
+                                &amp;&amp;
+                                !!${viewModel>selectedProvider}
+                            }"
+                            class="selectedProviderName" />
+
+                        <Text
+                            text="{viewModel>Lifnr}"
+                            visible="{=
+                                ${viewModel>Message} === 'HU'
+                                &amp;&amp;
+                                !!${viewModel>selectedProvider}
+                            }"
+                            class="selectedProviderId" />
+
                         <HBox
                             alignItems="Center"
-                            justifyContent="SpaceBetween"
-                            wrap="Wrap">
+                            visible="{=
+                                ${viewModel>Message} === 'HU'
+                                &amp;&amp;
+                                !${viewModel>selectedProvider}
+                                &amp;&amp;
+                                ${viewModel>ProveedorCount} > 1
+                            }"
+                            class="providerCounterBox">
 
-                            <VBox>
-                                <Title
-                                    text="Estatus de la operación"
-                                    level="H4"
-                                    class="sectionTitle" />
+                            <core:Icon
+                                src="sap-icon://supplier"
+                                class="providerCounterIcon" />
 
-                                <Text
-                                    text="Resumen de la consulta o anulación ejecutada."
-                                    class="sectionSubtitle" />
-                            </VBox>
-
-                            <ObjectStatus
-                                text="{path:'viewModel>/resultado/Status', formatter:'.formatStatusText'}"
-                                state="{viewModel>/resultadoState}"
-                                class="resultStatus" />
+                            <Text
+                                text="{=
+                                    ${viewModel>ProveedorCount}
+                                    + ' proveedores'
+                                }"
+                                class="providerCountText" />
                         </HBox>
 
-                        <MessageStrip
-                            text="{viewModel>/resultado/Message}"
-                            type="{= ${viewModel>/resultadoState} === 'Error' ? 'Error' : ${viewModel>/resultadoState} === 'Warning' ? 'Warning' : ${viewModel>/resultadoState} === 'Success' ? 'Success' : 'Information' }"
-                            showIcon="true"
-                            showCloseButton="false"
-                            visible="{= !!${viewModel>/resultado/Message} }"
-                            class="resultMessageStrip" />
-
-                        <!-- RESUMEN DE OBJETOS -->
-                        <HBox class="summaryGrid" wrap="Wrap">
-                            <VBox class="summaryCard">
-                                <Text
-                                    text="Objetos encontrados"
-                                    class="summaryLabel" />
-
-                                <Title
-                                    text="{viewModel>/summary/total}"
-                                    level="H4"
-                                    class="summaryValue" />
-                            </VBox>
-
-                            <VBox class="summaryCard">
-                                <Text
-                                    text="HU"
-                                    class="summaryLabel" />
-
-                                <Title
-                                    text="{viewModel>/summary/hu}"
-                                    level="H4"
-                                    class="summaryValue" />
-                            </VBox>
-
-                            <VBox class="summaryCard">
-                                <Text
-                                    text="Documento material"
-                                    class="summaryLabel" />
-
-                                <Title
-                                    text="{viewModel>/summary/material}"
-                                    level="H4"
-                                    class="summaryValue" />
-                            </VBox>
-
-                            <VBox class="summaryCard">
-                                <Text
-                                    text="Pedido / entrega / transporte"
-                                    class="summaryLabel" />
-
-                                <Title
-                                    text="{viewModel>/summary/otros}"
-                                    level="H4"
-                                    class="summaryValue" />
-                            </VBox>
-                        </HBox>
+                        <Text
+                            text="-"
+                            visible="{=
+                                ${viewModel>Message} !== 'HU'
+                            }"
+                            class="emptyCellText" />
                     </VBox>
-                </Panel>
 
-                <!-- TABS -->
-                <IconTabBar
-                    class="modernTabs"
-                    expandable="false">
+                    <Text
+                        text="{=
+                            ${viewModel>Message} === 'HU'
+                            &amp;&amp;
+                            !!${viewModel>selectedProvider}
+                                ? ${viewModel>Ebeln}
+                                : '-'
+                        }"
+                        class="purchaseOrderText" />
+                                    <HBox
+                                        justifyContent="Center"
+                                        alignItems="Center"
+                                        wrap="NoWrap"
+                                        class="statusActionCell">
 
-                    <items>
+                        <ObjectStatus
+                            text="{viewModel>DisplayStatusText}"
+                            state="{viewModel>DisplayStatusState}"
+                            class="rowStatusBadge" />
 
-                        <!-- VISTA PREVIA -->
-                        <IconTabFilter
-                            text="Vista previa"
-                            icon="sap-icon://inspect-down"
-                            count="{= ${viewModel>/preview}.length }">
+                        <Button
+                            text="{=
+                                ${viewModel>selectedProvider}
+                                    ? 'Cambiar'
+                                    : 'Seleccionar'
+                            }"
+                            type="Transparent"
+                            icon="sap-icon://value-help"
+                            visible="{=
+                                ${viewModel>Message} === 'HU'
+                                &amp;&amp;
+                                ${viewModel>ProveedorCount} > 1
+                            }"
+                            press=".onOpenProviderDialog"
+                            class="selectProviderButton" />
+                    </HBox>
+                </cells>
+            </ColumnListItem>
+        </items>
+    </Table>
 
-                            <VBox class="tabContentBox">
-                                <Toolbar class="tableToolbar">
-                                    <Title
-                                        text="Vista previa de anulación"
-                                        level="H4"
-                                        class="tableTitle" />
+    <MessageStrip
+        text="Seleccione un proveedor en cada HU con múltiples proveedores antes de continuar con la anulación."
+        type="Information"
+        showIcon="true"
+        showCloseButton="false"
+        visible="{=
+            ${viewModel>/summary/huPendientes} > 0
+        }"
+        class="providerInfoStrip" />
+</VBox>
 
-                                    <ToolbarSpacer />
-                                </Toolbar>
+<!-- =====================================================
+     CONTENIDO: DETALLE FINAL
+     ===================================================== -->
 
-                                <Table
-                                    items="{viewModel>/preview}"
-                                    inset="false"
-                                    growing="true"
-                                    growingThreshold="20"
-                                    growingScrollToLoad="true"
-                                    width="100%"
-                                    class="modernTable"
-                                    noDataText="No hay datos de vista previa.">
+<VBox
+    visible="{= ${viewModel>/selectedSection} === 'detail' }"
+    class="dataSectionCard"
+    width="100%">
 
-                                    <columns>
-                                        <Column minScreenWidth="Tablet" demandPopin="true">
-                                            <Text text="Documento material" />
-                                        </Column>
+    <HBox
+        alignItems="Center"
+        justifyContent="SpaceBetween"
+        wrap="Wrap"
+        width="100%"
+        class="embeddedSectionNavigation">
 
-                                        <Column minScreenWidth="Tablet" demandPopin="true">
-                                            <Text text="Descripción" />
-                                        </Column>
+        <SegmentedButton
+            selectedKey="{viewModel>/selectedSection}"
+            selectionChange=".onSectionChange"
+            class="embeddedSegmentedButton">
 
-                                        <Column minScreenWidth="Tablet" demandPopin="true">
-                                            <Text text="Tipo de objeto" />
-                                        </Column>
+            <items>
+                <SegmentedButtonItem
+                    key="preview"
+                    text="{= 'Vista previa (' + ${viewModel>/preview}.length + ')' }"
+                    icon="sap-icon://overview-chart" />
 
-                                        <Column minScreenWidth="Tablet" demandPopin="true">
-                                            <Text text="Referencia 1" />
-                                        </Column>
+                <SegmentedButtonItem
+                    key="detail"
+                    text="{= 'Detalle final (' + ${viewModel>/detalle}.length + ')' }"
+                    icon="sap-icon://document-text" />
+            </items>
+        </SegmentedButton>
 
-                                        <Column minScreenWidth="Tablet" demandPopin="true">
-                                            <Text text="Referencia 2" />
-                                        </Column>
-                                    </columns>
+        <ObjectStatus
+            text="{= ${viewModel>/summary/huPendientes} > 0 ? ${viewModel>/summary/huPendientes} + ' HU pendientes' : '' }"
+            state="Warning"
+            visible="{= ${viewModel>/summary/huPendientes} > 0 }"
+            class="navigationPendingStatus" />
+    </HBox>
 
-                                    <items>
-                                        <ColumnListItem
-                                            vAlign="Middle"
-                                            class="tableRowCustom">
+    <Toolbar
+        class="dataSectionToolbar"
+        width="100%">
 
-                                            <cells>
-                                                <ObjectIdentifier
-                                                    title="{viewModel>MatDoc}"
-                                                    class="matDocId" />
+        <VBox>
+            <Title
+                text="Detalle final de anulación"
+                level="H4"
+                class="dataSectionTitle" />
 
-                                                <Text
-                                                    text="{viewModel>Message}"
-                                                    wrapping="true" />
+            <Text
+                text="Revisa el resultado devuelto por SAP después de ejecutar la anulación."
+                class="dataSectionSubtitle" />
+        </VBox>
 
-                                                <Text text="{viewModel>ObjTipo}" />
+        <ToolbarSpacer />
 
-                                                <Text text="{viewModel>ObjKey1}" />
+        <ObjectStatus
+            text="{=
+                ${viewModel>/detalle}.length === 1
+                    ? '1 registro'
+                    : ${viewModel>/detalle}.length + ' registros'
+            }"
+            state="Information"
+            class="dataCountStatus" />
+    </Toolbar>
 
-                                                <Text text="{viewModel>ObjKey2}" />
-                                            </cells>
-                                        </ColumnListItem>
-                                    </items>
-                                </Table>
-                            </VBox>
-                        </IconTabFilter>
+    <Table
+        id="finalDetailTable"
+        items="{viewModel>/detalle}"
+        inset="false"
+        growing="true"
+        growingThreshold="20"
+        growingScrollToLoad="true"
+        fixedLayout="false"
+        width="100%"
+        class="modernTable finalDetailTable"
+        noDataText="No hay datos de detalle final.">
 
-                        <!-- DETALLE FINAL -->
-                        <IconTabFilter
-                            text="Detalle final"
-                            icon="sap-icon://detail-view"
-                            count="{= ${viewModel>/detalle}.length }">
+        <columns>
+            <Column
+                width="13rem"
+                minScreenWidth="Tablet"
+                demandPopin="true">
 
-                            <VBox class="tabContentBox">
-                                <Toolbar class="tableToolbar">
-                                    <Title
-                                        text="Detalle final de anulación"
-                                        level="H4"
-                                        class="tableTitle" />
+                <Text text="Documento material" />
+            </Column>
 
-                                    <ToolbarSpacer />
-                                </Toolbar>
+            <Column
+                width="16rem"
+                minScreenWidth="Tablet"
+                demandPopin="true">
 
-                                <Table
-                                    items="{viewModel>/detalle}"
-                                    inset="false"
-                                    growing="true"
-                                    growingThreshold="20"
-                                    growingScrollToLoad="true"
-                                    width="100%"
-                                    class="modernTable"
-                                    noDataText="No hay datos de detalle final.">
+                <Text text="Descripción" />
+            </Column>
 
-                                    <columns>
-                                        <Column minScreenWidth="Tablet" demandPopin="true">
-                                            <Text text="Documento material" />
-                                        </Column>
+            <Column
+                width="10rem"
+                minScreenWidth="Tablet"
+                demandPopin="true">
 
-                                        <Column minScreenWidth="Tablet" demandPopin="true">
-                                            <Text text="Descripción" />
-                                        </Column>
+                <Text text="Tipo de objeto" />
+            </Column>
 
-                                        <Column minScreenWidth="Tablet" demandPopin="true">
-                                            <Text text="Tipo de objeto" />
-                                        </Column>
+            <Column
+                width="13rem"
+                minScreenWidth="Tablet"
+                demandPopin="true">
 
-                                        <Column minScreenWidth="Tablet" demandPopin="true">
-                                            <Text text="Referencia 1" />
-                                        </Column>
+                <Text text="Referencia 1" />
+            </Column>
 
-                                        <Column minScreenWidth="Tablet" demandPopin="true">
-                                            <Text text="Referencia 2" />
-                                        </Column>
-                                    </columns>
+            <Column
+                width="13rem"
+                minScreenWidth="Tablet"
+                demandPopin="true">
 
-                                    <items>
-                                        <ColumnListItem
-                                            vAlign="Middle"
-                                            class="tableRowCustom">
+                <Text text="Referencia 2" />
+            </Column>
 
-                                            <cells>
-                                                <ObjectIdentifier
-                                                    title="{viewModel>MatDoc}"
-                                                    class="matDocId" />
+            <Column
+                width="9rem"
+                hAlign="Center"
+                minScreenWidth="Tablet"
+                demandPopin="true">
 
-                                                <Text
-                                                    text="{viewModel>Message}"
-                                                    wrapping="true" />
+                <Text text="Estatus" />
+            </Column>
+        </columns>
 
-                                                <Text text="{viewModel>ObjTipo}" />
+        <items>
+            <ColumnListItem
+                type="Inactive"
+                vAlign="Middle"
+                class="tableRowCustom">
 
-                                                <Text text="{viewModel>ObjKey1}" />
+                <cells>
 
-                                                <Text text="{viewModel>ObjKey2}" />
-                                            </cells>
-                                        </ColumnListItem>
-                                    </items>
-                                </Table>
-                            </VBox>
-                        </IconTabFilter>
+                    <ObjectIdentifier
+                        title="{viewModel>MatDoc}"
+                        class="matDocId" />
 
-                    </items>
-                </IconTabBar>
+                    <Text
+                        text="{viewModel>Message}"
+                        wrapping="true" />
+
+                    <Text text="{viewModel>ObjTipo}" />
+
+                    <Text text="{viewModel>ObjKey1}" />
+
+                    <Text text="{viewModel>ObjKey2}" />
+
+                    <ObjectStatus
+                        text="{
+                            path: 'viewModel>Status',
+                            formatter: '.formatStatusText'
+                        }"
+                        state="{
+                            path: 'viewModel>Status',
+                            formatter: '.formatDetalleState'
+                        }"
+                        class="rowStatusBadge" />
+                </cells>
+            </ColumnListItem>
+        </items>
+    </Table>
+</VBox>
+
 
             </VBox>
         </content>
