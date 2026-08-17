@@ -1,0 +1,74 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+
+    <Dialog
+        id="statusMessageDialog"
+        contentWidth="29rem"
+        stretchOnPhone="true"
+        draggable="true"
+        class="statusMessageDialog">
+
+        <customHeader>
+            <Toolbar class="statusMessageHeader">
+                <HBox
+                    alignItems="Center"
+                    class="statusMessageHeaderContent">
+                    <VBox
+                        alignItems="Center"
+                        justifyContent="Center"
+                        class="statusMessageHeaderIconBox">
+                        <core:Icon
+                            src="sap-icon://message-error"
+                            class="statusMessageHeaderIcon" />
+                    </VBox>
+                    <Title
+                        text="{viewModel>/statusMessageDialog/title}"
+                        level="H4"
+                        class="statusMessageTitle" />
+                </HBox>
+            </Toolbar>
+        </customHeader>
+
+        <content>
+            <VBox
+                width="100%"
+                class="statusMessageContent">
+
+                <HBox
+                    width="100%"
+                    alignItems="Center"
+                    class="statusMessageBody">
+
+                    <VBox
+                        width="100%"
+                        class="statusMessageTextBox">
+                        <Text
+                            text="{viewModel>/statusMessageDialog/sourceText}"
+                            class="statusMessageSource" />
+                        <Text
+                            text="{viewModel>/statusMessageDialog/message}"
+                            wrapping="true"
+                            class="statusMessageText" />
+                    </VBox>
+
+                </HBox>
+
+                <HBox
+                    width="100%"
+                    justifyContent="End"
+                    alignItems="Center"
+                    class="statusMessageActions">
+                    <Button
+                        text="Cerrar"
+                        type="Emphasized"
+                        press=".onCloseStatusMessageDialog"
+                        class="statusMessageCloseButton" />
+                </HBox>
+
+            </VBox>
+        </content>
+
+    </Dialog>
+
+</core:FragmentDefinition>

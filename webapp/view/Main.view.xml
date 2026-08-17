@@ -151,6 +151,7 @@
                                         class="btnPrimary" />
 
                                     <Button
+                                        id="cancelButton"
                                         text="Anular"
                                         type="Reject"
                                         icon="sap-icon://decline"
@@ -209,6 +210,98 @@
                                 showCloseButton="false"
                                 visible="{= !!${viewModel>/resultado/Message} }"
                                 class="resultMessageStrip" />
+
+                            <VBox
+                                visible="{viewModel>/cancellationSummary/visible}"
+                                width="100%"
+                                class="cancellationSummaryBox">
+
+                                <HBox
+                                    alignItems="Center"
+                                    width="100%"
+                                    class="cancellationSummaryHeader">
+
+                                    <core:Icon
+                                        src="sap-icon://complete"
+                                        class="cancellationSummaryIcon" />
+
+                                    <VBox>
+                                        <Title
+                                            text="Elementos anulados"
+                                            level="H5"
+                                            class="cancellationSummaryTitle" />
+
+                                        <Text
+                                            text="Resumen enviado y confirmado por SAP."
+                                            class="cancellationSummarySubtitle" />
+                                    </VBox>
+                                </HBox>
+
+                                <FlexBox
+                                    direction="Row"
+                                    wrap="Wrap"
+                                    alignItems="Stretch"
+                                    width="100%"
+                                    class="cancellationSummaryGrid">
+
+                                    <VBox class="cancellationSummaryItem">
+                                        <Text
+                                            text="Documento material"
+                                            class="cancellationSummaryLabel" />
+                                        <Text
+                                            text="{viewModel>/cancellationSummary/document}"
+                                            wrapping="true"
+                                            class="cancellationSummaryValue" />
+                                    </VBox>
+
+                                    <VBox class="cancellationSummaryItem">
+                                        <Text
+                                            text="HU"
+                                            class="cancellationSummaryLabel" />
+                                        <Text
+                                            text="{viewModel>/cancellationSummary/huVenum}"
+                                            wrapping="true"
+                                            class="cancellationSummaryValue" />
+                                        <Text
+                                            text="{= 'Identificador: ' + ${viewModel>/cancellationSummary/huExidv} }"
+                                            visible="{= !!${viewModel>/cancellationSummary/huExidv} }"
+                                            wrapping="true"
+                                            class="cancellationSummaryHint" />
+                                    </VBox>
+
+                                    <VBox class="cancellationSummaryItem cancellationSummaryItemWide">
+                                        <Text
+                                            text="Proveedor(es)"
+                                            class="cancellationSummaryLabel" />
+                                        <Text
+                                            text="{viewModel>/cancellationSummary/providerText}"
+                                            wrapping="true"
+                                            class="cancellationSummaryValue" />
+                                    </VBox>
+
+                                    <VBox class="cancellationSummaryItem">
+                                        <Text
+                                            text="Pedido(s) de compra"
+                                            class="cancellationSummaryLabel" />
+                                        <Text
+                                            text="{viewModel>/cancellationSummary/purchaseOrderText}"
+                                            wrapping="true"
+                                            class="cancellationSummaryValue" />
+                                    </VBox>
+
+                                    <VBox
+                                        visible="{= !!${viewModel>/cancellationSummary/runId} }"
+                                        class="cancellationSummaryItem">
+                                        <Text
+                                            text="Ejecución SAP"
+                                            class="cancellationSummaryLabel" />
+                                        <Text
+                                            text="{viewModel>/cancellationSummary/runId}"
+                                            wrapping="true"
+                                            class="cancellationSummaryValue" />
+                                    </VBox>
+                                </FlexBox>
+                            </VBox>
 
                             <FlexBox
                                 class="summaryGrid"
@@ -338,7 +431,7 @@
 
     <Table
         id="previewTable"
-        items="{viewModel>/preview}"
+        items="{viewModel>/previewDisplay}"
         inset="false"
         growing="true"
         growingThreshold="20"
@@ -350,7 +443,7 @@
 
         <columns>
             <Column
-                width="13rem"
+                width="14rem"
                 minScreenWidth="Tablet"
                 demandPopin="true">
 
@@ -358,31 +451,23 @@
             </Column>
 
             <Column
-                width="15rem"
+                width="16rem"
                 minScreenWidth="Tablet"
                 demandPopin="true">
 
-                <Text text="Descripción" />
+                <Text text="Documento / HU" />
             </Column>
 
             <Column
-                width="14rem"
+                width="12rem"
                 minScreenWidth="Tablet"
                 demandPopin="true">
 
-                <Text text="Referencia 1" />
+                <Text text="Datos relacionados" />
             </Column>
 
             <Column
-                width="11rem"
-                minScreenWidth="Tablet"
-                demandPopin="true">
-
-                <Text text="Referencia 2" />
-            </Column>
-
-            <Column
-                width="18rem"
+                width="24rem"
                 minScreenWidth="Desktop"
                 demandPopin="true">
 
@@ -390,7 +475,7 @@
             </Column>
 
             <Column
-                width="11rem"
+                width="14rem"
                 minScreenWidth="Desktop"
                 demandPopin="true">
 
@@ -398,7 +483,7 @@
             </Column>
 
             <Column
-                width="16rem"
+                width="18rem"
                 hAlign="Center"
                 minScreenWidth="Tablet"
                 demandPopin="true">
@@ -419,21 +504,56 @@
                         alignItems="Center"
                         class="objectTypeCell">
 
+                        <Button
+                            type="Transparent"
+                            icon="{= ${viewModel>Expanded} ? 'sap-icon://slim-arrow-down' : 'sap-icon://slim-arrow-right' }"
+                            tooltip="{viewModel>GroupToggleTooltip}"
+                            visible="{viewModel>CanExpand}"
+                            press=".onTogglePreviewGroup"
+                            class="rowExpandButton" />
+
+                        <HBox
+                            alignItems="Center"
+                            justifyContent="Center"
+                            visible="{viewModel>IsChildRow}"
+                            class="childRowIndent">
+
+                            <core:Icon
+                                src="sap-icon://arrow-right"
+                                decorative="true"
+                                class="childRowIcon" />
+                        </HBox>
+
                         <core:Icon
                             src="{viewModel>DisplayIcon}"
                             tooltip="{viewModel>Message}"
                             class="objectTypeIcon" />
 
-                        <Text
-                            text="{viewModel>Message}"
-                            wrapping="true"
-                            class="objectTypeText" />
-                    </HBox>
+                        <VBox class="objectTypeTextBox">
+                            <Text
+                                text="{viewModel>Message}"
+                                wrapping="true"
+                                visible="{= !${viewModel>IsChildRow} }"
+                                class="objectTypeText" />
 
-                    <Text
-                        text="{viewModel>Message}"
-                        wrapping="true"
-                        maxLines="3" />
+                            <Text
+                                text="{= ${viewModel>IsHU} ? 'HU ' + ${viewModel>GroupPosition} : 'Documento ' + ${viewModel>GroupPosition} }"
+                                visible="{viewModel>IsChildRow}"
+                                class="childDocumentLabel" />
+
+                            <ObjectStatus
+                                text="{viewModel>GroupCountText}"
+                                state="Information"
+                                visible="{viewModel>CanExpand}"
+                                class="relatedDocumentsCount" />
+
+                            <Text
+                                text="{viewModel>GroupDocumentsText}"
+                                wrapping="true"
+                                visible="{viewModel>CanExpand}"
+                                class="relatedDocumentNumbers" />
+                        </VBox>
+                    </HBox>
 
                     <Text
                         text="{viewModel>DisplayReference1}"
@@ -449,66 +569,93 @@
                         class="providerCell"
                         width="100%">
 
-                        <Text
-                            text="{viewModel>Name1}"
-                            wrapping="true"
-                            maxLines="2"
+                        <VBox
                             visible="{=
-                                ${viewModel>Message} === 'HU'
+                                ${viewModel>IsHU}
                                 &amp;&amp;
-                                !!${viewModel>selectedProvider}
+                                !${viewModel>IsGroupHeader}
                             }"
-                            class="selectedProviderName" />
-
-                        <Text
-                            text="{viewModel>Lifnr}"
-                            visible="{=
-                                ${viewModel>Message} === 'HU'
-                                &amp;&amp;
-                                !!${viewModel>selectedProvider}
-                            }"
-                            class="selectedProviderId" />
-
-                        <HBox
-                            alignItems="Center"
-                            visible="{=
-                                ${viewModel>Message} === 'HU'
-                                &amp;&amp;
-                                !${viewModel>selectedProvider}
-                                &amp;&amp;
-                                ${viewModel>ProveedorCount} > 1
-                            }"
-                            class="providerCounterBox">
-
-                            <core:Icon
-                                src="sap-icon://supplier"
-                                class="providerCounterIcon" />
+                            class="providerSummaryBox">
 
                             <Text
-                                text="{=
-                                    ${viewModel>ProveedorCount}
-                                    + ' proveedores'
-                                }"
-                                class="providerCountText" />
-                        </HBox>
+                                text="{viewModel>ProviderCountText}"
+                                class="cellSummaryLabel" />
+
+                            <VBox
+                                items="{viewModel>ProviderSummaries}"
+                                class="providerSummaryList">
+
+                                <items>
+                                    <HBox
+                                        alignItems="Start"
+                                        class="providerSummaryItem">
+
+                                        <core:Icon
+                                            src="sap-icon://supplier"
+                                            class="providerSummaryIcon" />
+
+                                        <VBox>
+                                            <Text
+                                                text="{viewModel>Name1}"
+                                                wrapping="true"
+                                                maxLines="3"
+                                                class="selectedProviderName" />
+
+                                            <Text
+                                                text="{viewModel>Lifnr}"
+                                                class="selectedProviderId" />
+                                        </VBox>
+                                    </HBox>
+                                </items>
+                            </VBox>
+                        </VBox>
 
                         <Text
                             text="-"
                             visible="{=
-                                ${viewModel>Message} !== 'HU'
+                                !${viewModel>IsHU}
+                                &amp;&amp;
+                                !${viewModel>IsGroupHeader}
                             }"
                             class="emptyCellText" />
                     </VBox>
 
-                    <Text
-                        text="{=
-                            ${viewModel>Message} === 'HU'
-                            &amp;&amp;
-                            !!${viewModel>selectedProvider}
-                                ? ${viewModel>Ebeln}
-                                : '-'
-                        }"
-                        class="purchaseOrderText" />
+                    <VBox class="purchaseOrderCell">
+                        <VBox
+                            visible="{=
+                                ${viewModel>IsHU}
+                                &amp;&amp;
+                                !${viewModel>IsGroupHeader}
+                            }"
+                            class="purchaseOrderSummaryBox">
+
+                            <Text
+                                text="{viewModel>PurchaseOrderCountText}"
+                                class="cellSummaryLabel" />
+
+                            <HBox
+                                items="{viewModel>PurchaseOrderSummaries}"
+                                wrap="Wrap"
+                                class="purchaseOrderList">
+
+                                <items>
+                                    <ObjectStatus
+                                        text="{viewModel>Ebeln}"
+                                        state="Information"
+                                        class="purchaseOrderTag" />
+                                </items>
+                            </HBox>
+                        </VBox>
+
+                        <Text
+                            text="-"
+                            visible="{=
+                                !${viewModel>IsHU}
+                                &amp;&amp;
+                                !${viewModel>IsGroupHeader}
+                            }"
+                            class="emptyCellText" />
+                    </VBox>
                                     <HBox
                                         justifyContent="Center"
                                         alignItems="Center"
@@ -520,18 +667,46 @@
                             state="{viewModel>DisplayStatusState}"
                             class="rowStatusBadge" />
 
+                        <CheckBox
+                            text="Seleccionar HU"
+                            selected="{viewModel>HuSelected}"
+                            tooltip="{=
+                                ${viewModel>HuSelected}
+                                    ? 'Quitar selección de HU'
+                                    : 'Seleccionar HU'
+                            }"
+                            visible="{=
+                                ${viewModel>IsHU}
+                                &amp;&amp;
+                                !${viewModel>IsGroupHeader}
+                                &amp;&amp;
+                                ${viewModel>HuSelectionRequired}
+                            }"
+                            select=".onSelectHu"
+                            class="selectHuCheckBox" />
+
                         <Button
                             text="{=
-                                ${viewModel>selectedProvider}
-                                    ? 'Cambiar'
-                                    : 'Seleccionar'
+                                ${viewModel>SelectionOptionCount} === 1
+                                    ? 'Ver detalle'
+                                    : ${viewModel>selectedProvider}
+                                        ? 'Cambiar selección'
+                                        : 'Elegir pedidos'
                             }"
                             type="Transparent"
-                            icon="sap-icon://value-help"
+                            icon="{=
+                                ${viewModel>SelectionOptionCount} === 1
+                                    ? 'sap-icon://detail-view'
+                                    : 'sap-icon://value-help'
+                            }"
                             visible="{=
-                                ${viewModel>Message} === 'HU'
+                                ${viewModel>IsHU}
                                 &amp;&amp;
-                                ${viewModel>ProveedorCount} > 1
+                                !${viewModel>IsGroupHeader}
+                                &amp;&amp;
+                                ${viewModel>HuSelected}
+                                &amp;&amp;
+                                ${viewModel>SelectionOptionCount} > 0
                             }"
                             press=".onOpenProviderDialog"
                             class="selectProviderButton" />
@@ -542,7 +717,11 @@
     </Table>
 
     <MessageStrip
-        text="Seleccione un proveedor en cada HU con múltiples proveedores antes de continuar con la anulación."
+        text="{=
+            ${viewModel>/summary/huSelectionPending} > 0
+                ? 'Selecciona una de las HU disponibles para continuar.'
+                : 'Revisa el proveedor y selecciona uno o varios pedidos de compra de la HU elegida.'
+        }"
         type="Information"
         showIcon="true"
         showCloseButton="false"

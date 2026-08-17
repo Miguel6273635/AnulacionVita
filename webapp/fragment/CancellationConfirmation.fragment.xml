@@ -1,0 +1,201 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+
+    <Dialog
+        id="cancellationConfirmationDialog"
+        contentWidth="32rem"
+        stretchOnPhone="true"
+        draggable="true"
+        afterClose=".onAfterCancellationConfirmationClose"
+        class="cancellationConfirmDialog">
+
+        <customHeader>
+            <Toolbar class="cancellationConfirmHeader">
+                <HBox
+                    alignItems="Center"
+                    class="cancellationConfirmHeaderContent">
+                    <VBox
+                        alignItems="Center"
+                        justifyContent="Center"
+                        class="cancellationConfirmHeaderIconBox">
+                        <core:Icon
+                            src="sap-icon://alert"
+                            class="cancellationConfirmHeaderIcon" />
+                    </VBox>
+                    <Title
+                        text="Confirmar anulación"
+                        level="H4"
+                        class="cancellationConfirmTitle" />
+                </HBox>
+            </Toolbar>
+        </customHeader>
+
+        <content>
+            <VBox
+                width="100%"
+                class="cancellationConfirmContent">
+
+                <VBox
+                    width="100%"
+                    class="cancellationConfirmHero">
+                    <Text
+                        text="Se enviará la solicitud de anulación para el documento"
+                        wrapping="true"
+                        class="cancellationConfirmEyebrow" />
+                    <Title
+                        text="{viewModel>/confirmationDialog/matDoc}"
+                        level="H3"
+                        class="cancellationConfirmDocument" />
+                    <Text
+                        text="Revisa el resumen antes de continuar."
+                        wrapping="true"
+                        class="cancellationConfirmDescription" />
+                </VBox>
+
+                <HBox
+                    width="100%"
+                    wrap="Wrap"
+                    class="cancellationConfirmMetrics">
+                    <VBox class="cancellationConfirmMetric cancellationConfirmMetricTotal">
+                        <Text text="Objetos" class="cancellationConfirmMetricLabel" />
+                        <ObjectNumber
+                            number="{viewModel>/confirmationDialog/total}"
+                            class="cancellationConfirmMetricValue" />
+                    </VBox>
+                    <VBox class="cancellationConfirmMetric cancellationConfirmMetricHu">
+                        <Text text="HU" class="cancellationConfirmMetricLabel" />
+                        <ObjectNumber
+                            number="{viewModel>/confirmationDialog/hu}"
+                            class="cancellationConfirmMetricValue" />
+                    </VBox>
+                    <VBox class="cancellationConfirmMetric cancellationConfirmMetricMaterial">
+                        <Text text="Doc. material" class="cancellationConfirmMetricLabel" />
+                        <ObjectNumber
+                            number="{viewModel>/confirmationDialog/material}"
+                            class="cancellationConfirmMetricValue" />
+                    </VBox>
+                    <VBox class="cancellationConfirmMetric cancellationConfirmMetricOther">
+                        <Text text="Otros" class="cancellationConfirmMetricLabel" />
+                        <ObjectNumber
+                            number="{viewModel>/confirmationDialog/otros}"
+                            class="cancellationConfirmMetricValue" />
+                    </VBox>
+                </HBox>
+
+                <VBox
+                    width="100%"
+                    class="cancellationConfirmSelection">
+
+                    <HBox
+                        width="100%"
+                        alignItems="Center"
+                        class="cancellationConfirmSelectionHeader">
+                        <core:Icon
+                            src="sap-icon://shipping-status"
+                            class="cancellationConfirmSelectionIcon" />
+                        <VBox width="100%">
+                            <Text
+                                text="Selecciones de HU y proveedor"
+                                class="cancellationConfirmSelectionLabel" />
+                            <Text
+                                text="{= ${viewModel>/confirmationDialog/selectionCount} === 1 ? '1 selección preparada' : ${viewModel>/confirmationDialog/selectionCount} + ' selecciones preparadas' }"
+                                class="cancellationConfirmSelectionValue" />
+                        </VBox>
+                    </HBox>
+
+                    <VBox
+                        width="100%"
+                        items="{
+                            path: 'viewModel>/confirmationDialog/selections',
+                            templateShareable: false
+                        }"
+                        class="cancellationConfirmSelectionList">
+                        <items>
+                            <VBox
+                                width="100%"
+                                class="cancellationConfirmSelectionItem">
+
+                                <HBox
+                                    width="100%"
+                                    alignItems="Start"
+                                    class="cancellationConfirmProviderRow">
+                                    <VBox width="100%">
+                                        <Text
+                                            text="Proveedor"
+                                            class="cancellationConfirmDetailLabel" />
+                                        <Text
+                                            text="{= ${viewModel>Name1} || 'Proveedor sin nombre' }"
+                                            wrapping="true"
+                                            tooltip="{viewModel>Name1}"
+                                            class="cancellationConfirmProviderName" />
+                                        <Text
+                                            text="{viewModel>Lifnr}"
+                                            visible="{= !!${viewModel>Lifnr} }"
+                                            class="cancellationConfirmProviderNumber" />
+                                    </VBox>
+                                    <Text
+                                        text="{= '#' + ${viewModel>SeqNo} }"
+                                        visible="{= ${viewModel>SeqNo} !== null &amp;&amp; ${viewModel>SeqNo} !== undefined }"
+                                        class="cancellationConfirmSequence" />
+                                </HBox>
+
+                                <HBox
+                                    width="100%"
+                                    alignItems="End"
+                                    class="cancellationConfirmSelectionFacts">
+                                    <VBox
+                                        width="58%"
+                                        class="cancellationConfirmFact">
+                                        <Text
+                                            text="Material"
+                                            class="cancellationConfirmDetailLabel" />
+                                        <Text
+                                            text="{= ${viewModel>Matnr} || '-' }"
+                                            wrapping="false"
+                                            tooltip="{viewModel>Matnr}"
+                                            class="cancellationConfirmMaterial" />
+                                    </VBox>
+                                    <VBox
+                                        width="42%"
+                                        class="cancellationConfirmFact cancellationConfirmQuantityFact">
+                                        <Text
+                                            text="Cantidad"
+                                            class="cancellationConfirmDetailLabel" />
+                                        <ObjectNumber
+                                            number="{= ${viewModel>Menge} || '-' }"
+                                            unit="{viewModel>Meins}"
+                                            class="cancellationConfirmQuantity" />
+                                    </VBox>
+                                </HBox>
+
+                            </VBox>
+                        </items>
+                    </VBox>
+
+                </VBox>
+
+                <HBox
+                    width="100%"
+                    justifyContent="End"
+                    alignItems="Center"
+                    class="cancellationConfirmActions">
+                    <Button
+                        text="Cancelar"
+                        type="Transparent"
+                        press=".onCloseCancellationConfirmation"
+                        class="cancellationConfirmCancelButton" />
+                    <Button
+                        text="Anular documento"
+                        type="Reject"
+                        icon="sap-icon://decline"
+                        press=".onConfirmCancellation"
+                        class="cancellationConfirmSubmitButton" />
+                </HBox>
+
+            </VBox>
+        </content>
+
+    </Dialog>
+
+</core:FragmentDefinition>

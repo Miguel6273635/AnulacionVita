@@ -4,8 +4,8 @@
 
     <Dialog
         id="providerDialog"
-        title="Seleccionar proveedor"
-        contentWidth="56rem"
+        title="Seleccionar proveedor y pedido"
+        contentWidth="96rem"
         stretchOnPhone="true"
         draggable="true"
         resizable="true"
@@ -61,7 +61,7 @@
                      ===================================================== -->
 
                 <MessageStrip
-                    text="{= 'Esta HU tiene ' + ${viewModel>/providerDialog/providerCount} + ' proveedores asociados. Puedes seleccionar uno o varios proveedores para la anulación.' }"
+                    text="{viewModel>/providerDialog/infoText}"
                     type="Information"
                     showIcon="true"
                     showCloseButton="false"
@@ -83,9 +83,21 @@
                     fixedLayout="false"
                     width="100%"
                     class="providerTable"
-                    noDataText="No hay proveedores disponibles.">
+                    noDataText="No hay combinaciones de proveedor y pedido disponibles.">
 
                     <columns>
+
+                        <!-- LÍNEA DEL DETALLE PROFUNDO -->
+
+                        <Column
+                            width="5rem"
+                            hAlign="Center">
+
+                            <Text
+                                text="Línea"
+                                class="providerTableHeader" />
+
+                        </Column>
 
                         <!-- PROVEEDOR -->
 
@@ -104,6 +116,7 @@
                         <!-- NOMBRE DEL PROVEEDOR -->
 
                         <Column
+                            width="15rem"
                             minScreenWidth="Tablet"
                             demandPopin="true">
 
@@ -127,6 +140,105 @@
 
                         </Column>
 
+
+                        <!-- DOCUMENTO DE MATERIAL / EJERCICIO -->
+
+                        <Column
+                            width="10rem"
+                            minScreenWidth="Tablet"
+                            demandPopin="true">
+
+                            <Text
+                                text="Doc. material"
+                                class="providerTableHeader" />
+
+                        </Column>
+
+
+                        <!-- PEDIDO DE VENTAS -->
+
+                        <Column
+                            width="10rem"
+                            minScreenWidth="Tablet"
+                            demandPopin="true">
+
+                            <Text
+                                text="Pedido de ventas"
+                                class="providerTableHeader" />
+
+                        </Column>
+
+
+                        <!-- ENTREGA DE SALIDA -->
+
+                        <Column
+                            width="10rem"
+                            minScreenWidth="Tablet"
+                            demandPopin="true">
+
+                            <Text
+                                text="Entrega de salida"
+                                class="providerTableHeader" />
+
+                        </Column>
+
+
+                        <!-- LOTE -->
+
+                        <Column
+                            width="8rem"
+                            minScreenWidth="Tablet"
+                            demandPopin="true">
+
+                            <Text
+                                text="Lote"
+                                class="providerTableHeader" />
+
+                        </Column>
+
+
+                        <!-- CANTIDAD -->
+
+                        <Column
+                            width="7rem"
+                            hAlign="End"
+                            minScreenWidth="Tablet"
+                            demandPopin="true">
+
+                            <Text
+                                text="Cantidad"
+                                class="providerTableHeader" />
+
+                        </Column>
+
+
+                        <!-- UNIDAD -->
+
+                        <Column
+                            width="6rem"
+                            minScreenWidth="Tablet"
+                            demandPopin="true">
+
+                            <Text
+                                text="Unidad"
+                                class="providerTableHeader" />
+
+                        </Column>
+
+
+                        <!-- MATERIAL -->
+
+                        <Column
+                            width="12rem"
+                            minScreenWidth="Tablet"
+                            demandPopin="true">
+
+                            <Text
+                                text="Material"
+                                class="providerTableHeader" />
+
+                        </Column>
+
                     </columns>
 
 
@@ -144,6 +256,12 @@
 
                             <cells>
 
+                                <!-- SEQNO -->
+
+                                <ObjectNumber
+                                    number="{viewModel>SeqNo}"
+                                    class="providerSequenceCell" />
+
                                 <!-- PROVEEDOR -->
 
                                 <ObjectIdentifier
@@ -156,7 +274,7 @@
                                 <Text
                                     text="{viewModel>Name1}"
                                     wrapping="true"
-                                    maxLines="2"
+                                    tooltip="{viewModel>Name1}"
                                     class="providerNameCell" />
 
 
@@ -165,6 +283,69 @@
                                 <Text
                                     text="{viewModel>Ebeln}"
                                     class="providerOrderCell" />
+
+
+                                <!-- DOCUMENTO DE MATERIAL / EJERCICIO -->
+
+                                <VBox class="providerDocumentCell">
+                                    <Text
+                                        text="{= ${viewModel>GrMatDoc} || '-' }"
+                                        wrapping="false"
+                                        class="providerDetailCell providerOrderCell" />
+                                    <Text
+                                        text="{= ${viewModel>GrYear} ? 'Ejercicio ' + ${viewModel>GrYear} : '' }"
+                                        visible="{= !!${viewModel>GrYear} }"
+                                        class="providerDocumentYear" />
+                                </VBox>
+
+
+                                <!-- PEDIDO DE VENTAS -->
+
+                                <Text
+                                    text="{= ${viewModel>SoVbeln} || '-' }"
+                                    wrapping="false"
+                                    class="providerDetailCell providerSalesOrderCell" />
+
+
+                                <!-- ENTREGA DE SALIDA -->
+
+                                <Text
+                                    text="{= ${viewModel>DelivVbeln} || '-' }"
+                                    wrapping="false"
+                                    class="providerDetailCell providerDeliveryCell" />
+
+
+                                <!-- LOTE -->
+
+                                <Text
+                                    text="{= ${viewModel>Charg} || '-' }"
+                                    wrapping="true"
+                                    class="providerDetailCell providerBatchCell" />
+
+
+                                <!-- CANTIDAD -->
+
+                                <Text
+                                    text="{= ${viewModel>Menge} || '-' }"
+                                    wrapping="true"
+                                    textAlign="End"
+                                    class="providerDetailCell providerQuantityCell" />
+
+
+                                <!-- UNIDAD -->
+
+                                <Text
+                                    text="{= ${viewModel>Meins} || '-' }"
+                                    wrapping="true"
+                                    class="providerDetailCell providerUnitCell" />
+
+
+                                <!-- MATERIAL -->
+
+                                <Text
+                                    text="{= ${viewModel>Matnr} || '-' }"
+                                    wrapping="true"
+                                    class="providerDetailCell providerMaterialCell" />
 
                             </cells>
 

@@ -33,6 +33,20 @@ sap.ui.define([
                 this._oProviderDialog.destroy();
                 this._oProviderDialog = null;
             }
+
+            if (this._oStatusMessageDialog) {
+                this._oStatusMessageDialog.destroy();
+                this._oStatusMessageDialog = null;
+                this._pStatusMessageDialog = null;
+            }
+
+            if (this._oCancellationConfirmationDialog) {
+                this._oCancellationConfirmationDialog.destroy();
+                this._oCancellationConfirmationDialog = null;
+                this._pCancellationConfirmationDialog = null;
+            }
+
+            this._oPendingCancellation = null;
         },
 
         getModel: function () {
@@ -146,6 +160,10 @@ sap.ui.define([
             var oVM = this.getVM();
 
             oVM.setProperty("/preview", []);
+            oVM.setProperty("/previewDisplay", []);
+            oVM.setProperty("/previewHeader", {});
+            oVM.setProperty("/previewItems", []);
+            oVM.setProperty("/expandedPreviewGroups", {});
             oVM.setProperty("/detalle", []);
             oVM.setProperty("/canCancel", false);
             oVM.setProperty("/lastRunId", "");
@@ -156,13 +174,18 @@ sap.ui.define([
             });
 
             oVM.setProperty("/resultadoState", "None");
+            oVM.setProperty(
+                "/cancellationSummary",
+                this._getEmptyCancellationSummary()
+            );
 
             oVM.setProperty("/summary", {
                 total: 0,
                 hu: 0,
                 material: 0,
                 otros: 0,
-                huPendientes: 0
+                huPendientes: 0,
+                huSelectionPending: 0
             });
         },
 
@@ -170,7 +193,7 @@ sap.ui.define([
             var oModel = this.getModel();
             var oVM = this.getVM();
             var sTraceId = this._generateTraceId("PREVIEW");
-            var sPath = "/AnulacionDetallePreviewSet";
+            var sPath = "/AnulacionPreviewHeaderSet";
 
             oVM.setProperty("/busy", true);
             this._resetResultadoConsulta();
@@ -191,41 +214,22 @@ sap.ui.define([
                 ],
 
                 urlParameters: {
-                    "$select": [
-                        "MatDoc",
-                        "ObjTipo",
-                        "ObjKey1",
-                        "ObjKey2",
-                        "ObjKey3",
-                        "Status",
-                        "Message",
-                        "RunId",
-                        "SeqNo",
-                        "HuVenum",
-                        "HuExidv",
-                        "Lifnr",
-                        "Name1",
-                        "Ebeln",
-                        "ProveedorCount",
-                        "MultiProveedor"
-                    ].join(",")
+                    "sap-client": "300",
+                    "$expand": "ToItems"
                 },
 
                 success: function (oData) {
-                    var aResults = oData && oData.results
-                        ? oData.results
-                        : [];
+                    var oHeader = this._getDeepPreviewHeader(oData);
+                    var aItems = this._getDeepPreviewItems(oHeader);
 
                     this._logInfo("_getPreview.success", "Respuesta recibida", {
                         traceId: sTraceId,
-                        total: aResults.length,
-                        results: aResults
+                        header: oHeader,
+                        totalItems: aItems.length,
+                        items: aItems
                     });
 
-                    if (
-                        !aResults.length ||
-                        !this._hasValidPreviewData(aResults)
-                    ) {
+                    if (!oHeader) {
                         oVM.setProperty("/resultado", {
                             Status: "E",
                             Message: "No se encontraron registros para el documento."
@@ -235,15 +239,59 @@ sap.ui.define([
                         oVM.setProperty("/busy", false);
                         oVM.setProperty("/canCancel", false);
 
-                        MessageBox.error(
-                            "No se encontraron registros para el documento material capturado."
+                        this._showStatusMessageDialog(
+                            "No se encontraron registros para el documento material capturado.",
+                            "No se encontraron resultados"
                         );
                         return;
                     }
 
-                    var aGroupedRows = this._buildPreviewRows(aResults);
+                    if (String(oHeader.Status || "").toUpperCase() === "E") {
+                        var sSapMessage = oHeader.Message ||
+                            "SAP rechazó la consulta de vista previa.";
 
+                        oVM.setProperty("/resultado", {
+                            Status: "E",
+                            Message: sSapMessage
+                        });
+                        oVM.setProperty("/resultadoState", "Error");
+                        oVM.setProperty("/busy", false);
+                        oVM.setProperty("/canCancel", false);
+                        this._showStatusMessageDialog(
+                            sSapMessage,
+                            "No es posible continuar"
+                        );
+                        return;
+                    }
+
+                    if (!aItems.length) {
+                        var sEmptyMessage = oHeader.Message ||
+                            "No se encontraron registros para el documento material capturado.";
+
+                        oVM.setProperty("/resultado", {
+                            Status: "E",
+                            Message: sEmptyMessage
+                        });
+                        oVM.setProperty("/resultadoState", "Error");
+                        oVM.setProperty("/busy", false);
+                        oVM.setProperty("/canCancel", false);
+                        this._showStatusMessageDialog(
+                            sEmptyMessage,
+                            "No se encontraron resultados"
+                        );
+                        return;
+                    }
+
+                    var aPreviewItems = this._mapDeepPreviewItems(
+                        oHeader,
+                        aItems
+                    );
+                    var aGroupedRows = this._buildPreviewRows(aPreviewItems);
+
+                    oVM.setProperty("/previewHeader", oHeader);
+                    oVM.setProperty("/previewItems", aItems);
                     oVM.setProperty("/preview", aGroupedRows);
+                    this._refreshPreviewDisplay();
                     this._updateSummary(aGroupedRows);
                     this._evaluatePreviewBeforeCancel(aGroupedRows);
                     oVM.setProperty("/busy", false);
@@ -272,6 +320,143 @@ sap.ui.define([
                     );
                 }.bind(this)
             });
+        },
+
+        _showStatusMessageDialog: function (sMessage, sTitle) {
+            this.getVM().setProperty("/statusMessageDialog", {
+                title: sTitle || "Mensaje de SAP",
+                message: sMessage || "SAP no devolvió un mensaje.",
+                sourceText: "Respuesta de SAP"
+            });
+
+            if (!this._pStatusMessageDialog) {
+                this._pStatusMessageDialog = Fragment.load({
+                    id: this.getView().getId(),
+                    name:
+                        "z.anulacion.anulacion.fragment.StatusMessage",
+                    controller: this
+                }).then(function (oDialog) {
+                    this._oStatusMessageDialog = oDialog;
+                    this.getView().addDependent(oDialog);
+                    return oDialog;
+                }.bind(this));
+            }
+
+            this._pStatusMessageDialog.then(function (oDialog) {
+                oDialog.open();
+            });
+        },
+
+        onCloseStatusMessageDialog: function () {
+            if (this._oStatusMessageDialog) {
+                this._oStatusMessageDialog.close();
+            }
+        },
+
+        _getDeepPreviewHeader: function (oData) {
+            var oPayload = oData && oData.d
+                ? oData.d
+                : oData;
+            var aHeaders = oPayload && Array.isArray(oPayload.results)
+                ? oPayload.results
+                : [];
+
+            if (aHeaders.length) {
+                return aHeaders[0];
+            }
+
+            return oPayload && oPayload.MatDoc
+                ? oPayload
+                : null;
+        },
+
+        _getDeepPreviewItems: function (oHeader) {
+            var oNavigation = oHeader && oHeader.ToItems;
+
+            if (Array.isArray(oNavigation)) {
+                return oNavigation;
+            }
+
+            return oNavigation && Array.isArray(oNavigation.results)
+                ? oNavigation.results
+                : [];
+        },
+
+        _mapDeepPreviewItems: function (oHeader, aItems) {
+            var mHuProviders = {};
+            var aPreviewItems = [];
+
+            (aItems || []).forEach(function (oItem) {
+                var sHuKey = this._getHuKey(oItem);
+                var sProviderKey = String(
+                    oItem.Lifnr || oItem.Name1 || ""
+                ).trim();
+
+                mHuProviders[sHuKey] = mHuProviders[sHuKey] || {};
+
+                if (sProviderKey) {
+                    mHuProviders[sHuKey][sProviderKey] = true;
+                }
+            }.bind(this));
+
+            (aItems || []).forEach(function (oItem) {
+                var sHuKey = this._getHuKey(oItem);
+                var iProviderCount = Object.keys(
+                    mHuProviders[sHuKey] || {}
+                ).length;
+
+                [
+                    {
+                        Message: "Documento del material",
+                        MatDoc: oItem.GrMatDoc,
+                        ObjKey1: oItem.GrYear
+                    },
+                    {
+                        Message: "Pedido de compra",
+                        MatDoc: oItem.Ebeln,
+                        ObjKey1: oItem.GrMatDoc
+                    },
+                    {
+                        Message: "Pedido de ventas",
+                        MatDoc: oItem.SoVbeln,
+                        ObjKey1: oItem.Ebeln
+                    },
+                    {
+                        Message: "Entrega de salida",
+                        MatDoc: oItem.DelivVbeln,
+                        ObjKey1: oItem.SoVbeln
+                    }
+                ].forEach(function (oDocument) {
+                    if (!String(oDocument.MatDoc || "").trim()) {
+                        return;
+                    }
+
+                    aPreviewItems.push({
+                        HeaderMatDoc: oHeader.MatDoc || "",
+                        MatDoc: oDocument.MatDoc,
+                        ObjTipo: "",
+                        ObjKey1: oDocument.ObjKey1 || "",
+                        ObjKey2: "",
+                        ObjKey3: "",
+                        Status: oHeader.Status || "",
+                        Message: oDocument.Message
+                    });
+                });
+
+                aPreviewItems.push(Object.assign({}, oItem, {
+                    HeaderMatDoc: oHeader.MatDoc || "",
+                    Status: oHeader.Status || "",
+                    Message: "HU",
+                    ObjTipo: oItem.GrYear || "",
+                    ObjKey1: oItem.HuVenum || "",
+                    ObjKey2: oItem.GrMatDoc || "",
+                    ObjKey3: oItem.SoVbeln || "",
+                    ProveedorCount: iProviderCount,
+                    MultiProveedor: iProviderCount > 1 ? "X" : ""
+                }));
+            }.bind(this));
+
+            return aPreviewItems;
         },
 
         _hasValidPreviewData: function (aResults) {
@@ -305,15 +490,88 @@ sap.ui.define([
             ].join("|");
         },
 
+        _getObjectGroupKey: function (oItem) {
+            var sMessage = String(
+                oItem && oItem.Message || ""
+            ).trim().toUpperCase();
+
+            if (this._isHU(oItem)) {
+                return "HU";
+            }
+
+            if (
+                sMessage.indexOf("DOCUMENTO") >= 0 &&
+                sMessage.indexOf("MATERIAL") >= 0
+            ) {
+                return "DOCUMENTO_MATERIAL";
+            }
+
+            if (sMessage.indexOf("PEDIDO DE COMPRA") >= 0) {
+                return "PEDIDO_COMPRA";
+            }
+
+            if (
+                sMessage.indexOf("PEDIDO DE VENTA") >= 0 ||
+                sMessage.indexOf("PEDIDO DE VENTAS") >= 0
+            ) {
+                return "PEDIDO_VENTA";
+            }
+
+            if (sMessage.indexOf("TRANSPORTE") >= 0) {
+                return "TRANSPORTE";
+            }
+
+            if (sMessage.indexOf("ENTREGA") >= 0) {
+                return "ENTREGA_SALIDA";
+            }
+
+            return String(
+                oItem && oItem.ObjTipo || sMessage || "OTRO"
+            ).trim().toUpperCase();
+        },
+
+        _getPreviewObjectKey: function (oItem) {
+            var sMatDoc = String(
+                oItem && oItem.MatDoc || ""
+            ).trim();
+
+            if (sMatDoc) {
+                return [
+                    this._getObjectGroupKey(oItem),
+                    sMatDoc
+                ].join("|");
+            }
+
+            return [
+                this._getObjectGroupKey(oItem),
+                oItem.ObjKey1 || "",
+                oItem.ObjKey2 || "",
+                oItem.ObjKey3 || "",
+                oItem.MatDoc || "",
+                oItem.HuVenum || "",
+                oItem.HuExidv || ""
+            ].join("|");
+        },
+
         _buildPreviewRows: function (aResults) {
             var aRows = [];
             var mHuRows = {};
+            var mObjectRows = {};
 
             (aResults || []).forEach(function (oRawItem) {
                 var oItem = Object.assign({}, oRawItem);
 
                 if (!this._isHU(oItem)) {
+                    var sObjectKey = this._getPreviewObjectKey(oItem);
+
+                    if (mObjectRows[sObjectKey]) {
+                        return;
+                    }
+
+                    mObjectRows[sObjectKey] = true;
                     oItem.providerOptions = [];
+                    oItem.ProviderSummaries = [];
+                    oItem.PurchaseOrderSummaries = [];
                     oItem.selectedProviders = [];
                     oItem.selectedProvider = null;
                     oItem.providerSelectionRequired = false;
@@ -340,39 +598,65 @@ sap.ui.define([
 
                 if (oItem.Lifnr || oItem.Name1 || oItem.Ebeln) {
                     var sProviderKey = [
+                        oItem.SeqNo === null ||
+                        oItem.SeqNo === undefined
+                            ? ""
+                            : String(oItem.SeqNo),
                         oItem.Lifnr || "",
                         oItem.Ebeln || "",
                         oItem.HuVenum || "",
-                        oItem.HuExidv || ""
+                        oItem.HuExidv || "",
+                        oItem.GrMatDoc || "",
+                        oItem.Charg || "",
+                        oItem.Matnr || ""
                     ].join("|");
 
-                    var bExists =
-                        mHuRows[sHuKey].providerOptions.some(
+                    var oProviderOption =
+                        mHuRows[sHuKey].providerOptions.find(
                             function (oProvider) {
                                 return oProvider.providerKey === sProviderKey;
                             }
                         );
 
-                    if (!bExists) {
-                        mHuRows[sHuKey].providerOptions.push({
+                    if (!oProviderOption) {
+                        oProviderOption = {
                             providerKey: sProviderKey,
                             Lifnr: oItem.Lifnr || "",
                             Name1: oItem.Name1 || "",
                             Ebeln: oItem.Ebeln || "",
                             HuVenum: oItem.HuVenum || "",
                             HuExidv: oItem.HuExidv || "",
+                            SeqNo: oItem.SeqNo,
+                            GrMatDoc: oItem.GrMatDoc || "",
+                            GrYear: oItem.GrYear || "",
+                            SoVbeln: oItem.SoVbeln || "",
+                            DelivVbeln: oItem.DelivVbeln || "",
+                            itemDetails: [],
+                            Charg: "",
+                            Menge: "",
+                            Meins: "",
+                            Matnr: "",
                             selected: false
-                        });
+                        };
+
+                        mHuRows[sHuKey].providerOptions.push(
+                            oProviderOption
+                        );
                     }
+
+                    this._appendProviderItemDetail(
+                        oProviderOption,
+                        oItem
+                    );
                 }
             }.bind(this));
 
             aRows.forEach(function (oRow) {
                 if (this._isHU(oRow)) {
-                    oRow.ProveedorCount = Math.max(
-                        Number(oRow.ProveedorCount || 0),
-                        oRow.providerOptions.length
-                    );
+                    this._buildHuOptionSummaries(oRow);
+                    oRow.providerSelectionRequired =
+                        oRow.MultiProveedor === "X" ||
+                        oRow.SelectionOptionCount > 1;
 
                     if (oRow.providerOptions.length === 1) {
                         this._applySelectedProvidersToRow(
@@ -385,19 +669,468 @@ sap.ui.define([
                 this._decoratePreviewRow(oRow);
             }.bind(this));
 
+            var aHuRows = aRows.filter(function (oRow) {
+                return this._isHU(oRow);
+            }.bind(this));
+            var bRequiresHuChoice = aHuRows.length > 1;
+
+            aHuRows.forEach(function (oRow) {
+                oRow.HuSelectionRequired = bRequiresHuChoice;
+                oRow.HuSelected = !bRequiresHuChoice;
+                this._decoratePreviewRow(oRow);
+            }.bind(this));
+
             return aRows;
         },
 
+        _appendProviderItemDetail: function (oProvider, oItem) {
+            var oDetail = {
+                SeqNo: oItem.SeqNo,
+                GrMatDoc: String(oItem.GrMatDoc || "").trim(),
+                GrYear: String(oItem.GrYear || "").trim(),
+                SoVbeln: String(oItem.SoVbeln || "").trim(),
+                DelivVbeln: String(oItem.DelivVbeln || "").trim(),
+                Charg: String(oItem.Charg || "").trim(),
+                Menge: oItem.Menge === null ||
+                    oItem.Menge === undefined
+                    ? ""
+                    : String(oItem.Menge).trim(),
+                Meins: String(oItem.Meins || "").trim(),
+                Matnr: String(oItem.Matnr || "").trim()
+            };
+
+            if (
+                !oDetail.GrMatDoc &&
+                !oDetail.GrYear &&
+                !oDetail.SoVbeln &&
+                !oDetail.DelivVbeln &&
+                !oDetail.Charg &&
+                !oDetail.Menge &&
+                !oDetail.Meins &&
+                !oDetail.Matnr
+            ) {
+                return;
+            }
+
+            var aDetails = oProvider.itemDetails || [];
+            var sDetailKey = [
+                oDetail.SeqNo === null ||
+                oDetail.SeqNo === undefined
+                    ? ""
+                    : String(oDetail.SeqNo),
+                oDetail.GrMatDoc,
+                oDetail.GrYear,
+                oDetail.SoVbeln,
+                oDetail.DelivVbeln,
+                oDetail.Charg,
+                oDetail.Menge,
+                oDetail.Meins,
+                oDetail.Matnr
+            ].join("|");
+            var bExists = aDetails.some(function (oExistingDetail) {
+                return [
+                    oExistingDetail.SeqNo === null ||
+                    oExistingDetail.SeqNo === undefined
+                        ? ""
+                        : String(oExistingDetail.SeqNo),
+                    oExistingDetail.GrMatDoc || "",
+                    oExistingDetail.GrYear || "",
+                    oExistingDetail.SoVbeln || "",
+                    oExistingDetail.DelivVbeln || "",
+                    oExistingDetail.Charg || "",
+                    oExistingDetail.Menge || "",
+                    oExistingDetail.Meins || "",
+                    oExistingDetail.Matnr || ""
+                ].join("|") === sDetailKey;
+            });
+
+            if (!bExists) {
+                aDetails.push(oDetail);
+            }
+
+            oProvider.itemDetails = aDetails;
+            [
+                "GrMatDoc",
+                "GrYear",
+                "SoVbeln",
+                "DelivVbeln",
+                "Charg",
+                "Menge",
+                "Meins",
+                "Matnr"
+            ].forEach(
+                function (sProperty) {
+                    oProvider[sProperty] = aDetails
+                        .map(function (oEntry) {
+                            var sValue = String(
+                                oEntry[sProperty] || ""
+                            ).trim();
+
+                            return sValue || "-";
+                        })
+                        .join(" / ");
+                }
+            );
+        },
+
+        _buildHuOptionSummaries: function (oRow) {
+            var mProviders = {};
+            var mPurchaseOrders = {};
+            var aProviders = [];
+            var aPurchaseOrders = [];
+
+            (oRow.providerOptions || []).forEach(function (oOption) {
+                var sProviderKey = String(
+                    oOption.Lifnr || oOption.Name1 || ""
+                ).trim();
+                var sPurchaseOrder = String(
+                    oOption.Ebeln || ""
+                ).trim();
+
+                if (sProviderKey && !mProviders[sProviderKey]) {
+                    mProviders[sProviderKey] = true;
+                    aProviders.push({
+                        Lifnr: oOption.Lifnr || "",
+                        Name1: oOption.Name1 || ""
+                    });
+                }
+
+                if (
+                    sPurchaseOrder &&
+                    !mPurchaseOrders[sPurchaseOrder]
+                ) {
+                    mPurchaseOrders[sPurchaseOrder] = true;
+                    aPurchaseOrders.push({
+                        Ebeln: sPurchaseOrder
+                    });
+                }
+            });
+
+            oRow.ProviderSummaries = aProviders;
+            oRow.PurchaseOrderSummaries = aPurchaseOrders;
+            oRow.ProveedorCount = aProviders.length;
+            oRow.PurchaseOrderCount = aPurchaseOrders.length;
+            oRow.SelectionOptionCount =
+                (oRow.providerOptions || []).length;
+            oRow.ProviderCountText = aProviders.length === 1
+                ? "1 proveedor"
+                : aProviders.length + " proveedores";
+            oRow.PurchaseOrderCountText =
+                aPurchaseOrders.length === 1
+                    ? "1 pedido"
+                    : aPurchaseOrders.length + " pedidos";
+        },
+
+        _getRowDocumentNumber: function (oRow) {
+            if (this._isHU(oRow)) {
+                return String(
+                    oRow.HuExidv || oRow.HuVenum || ""
+                ).trim();
+            }
+
+            return String(
+                oRow.MatDoc ||
+                oRow.ObjKey1 ||
+                oRow.ObjKey2 ||
+                ""
+            ).trim();
+        },
+
+        _buildPreviewDisplayRows: function (aPreview, mExpandedGroups) {
+            var aGroupOrder = [];
+            var mGroups = {};
+            var aDisplayRows = [];
+
+            (aPreview || []).forEach(function (oRow, iPreviewIndex) {
+                var sGroupKey = this._getObjectGroupKey(oRow);
+
+                if (!mGroups[sGroupKey]) {
+                    mGroups[sGroupKey] = [];
+                    aGroupOrder.push(sGroupKey);
+                }
+
+                mGroups[sGroupKey].push({
+                    row: oRow,
+                    previewIndex: iPreviewIndex
+                });
+            }.bind(this));
+
+            aGroupOrder.forEach(function (sGroupKey) {
+                var aGroupRows = mGroups[sGroupKey];
+                var mDocumentNumbers = {};
+                var aDocumentNumbers = [];
+                var aDocumentRows = [];
+                var bExpanded = !!(
+                    mExpandedGroups &&
+                    mExpandedGroups[sGroupKey]
+                );
+
+                aGroupRows.forEach(function (oEntry) {
+                    var sDocumentNumber =
+                        this._getRowDocumentNumber(oEntry.row);
+                    var sDocumentKey = sDocumentNumber ||
+                        "ROW_" + oEntry.previewIndex;
+
+                    if (
+                        !mDocumentNumbers[sDocumentKey]
+                    ) {
+                        mDocumentNumbers[sDocumentKey] = true;
+                        aDocumentRows.push(oEntry);
+
+                        if (sDocumentNumber) {
+                            aDocumentNumbers.push(sDocumentNumber);
+                        }
+                    }
+                }.bind(this));
+
+                var bCanExpand = aDocumentNumbers.length > 0;
+                var oGroupEntry = aDocumentRows[0];
+                var iDocumentCount = aDocumentRows.length;
+                var sGroupCountText = "";
+                var sGroupToggleTooltip =
+                    "Ocultar documentos relacionados";
+
+                if (!bCanExpand) {
+                    aDisplayRows.push(Object.assign(
+                        {},
+                        oGroupEntry.row,
+                        {
+                            PreviewPath:
+                                "/preview/" +
+                                oGroupEntry.previewIndex,
+                            GroupKey: sGroupKey,
+                            GroupItemCount: 0,
+                            CanExpand: false,
+                            Expanded: false,
+                            IsGroupHeader: false,
+                            IsChildRow: false
+                        }
+                    ));
+                    return;
+                }
+
+                if (this._isHU(oGroupEntry.row)) {
+                    sGroupCountText = iDocumentCount === 1
+                        ? "1 HU"
+                        : iDocumentCount + " HU";
+                } else {
+                    sGroupCountText = iDocumentCount === 1
+                        ? "1 documento"
+                        : iDocumentCount + " documentos";
+                }
+
+                if (!bExpanded) {
+                    sGroupToggleTooltip = iDocumentCount === 1
+                        ? "Mostrar 1 documento relacionado"
+                        : "Mostrar " +
+                            iDocumentCount +
+                            " documentos relacionados";
+                }
+
+                aDisplayRows.push(Object.assign({}, oGroupEntry.row, {
+                    PreviewPath:
+                        "/preview/" + oGroupEntry.previewIndex,
+                    GroupKey: sGroupKey,
+                    GroupItemCount: iDocumentCount,
+                    CanExpand: true,
+                    Expanded: bExpanded,
+                    IsGroupHeader: true,
+                    IsChildRow: false,
+                    GroupPosition: 0,
+                    GroupCountText: sGroupCountText,
+                    GroupDocumentsText: bExpanded
+                        ? "Ocultar lista"
+                        : "Ver lista completa",
+                    GroupToggleTooltip: sGroupToggleTooltip,
+                    DisplayReference1: "",
+                    DisplayReference2: "",
+                    ProviderSummaries: [],
+                    PurchaseOrderSummaries: [],
+                    DisplayStatusText:
+                        this._getGroupStatusText(
+                            aDocumentRows,
+                            oGroupEntry.row
+                        ),
+                    DisplayStatusState:
+                        this._getGroupStatusState(
+                            aDocumentRows,
+                            oGroupEntry.row
+                        )
+                }));
+
+                if (!bExpanded) {
+                    return;
+                }
+
+                aDocumentRows.forEach(function (oEntry, iGroupIndex) {
+                    aDisplayRows.push(Object.assign({}, oEntry.row, {
+                        PreviewPath: "/preview/" + oEntry.previewIndex,
+                        GroupKey: sGroupKey,
+                        GroupItemCount: aDocumentRows.length,
+                        CanExpand: false,
+                        Expanded: false,
+                        IsGroupHeader: false,
+                        IsChildRow: true,
+                        GroupPosition: iGroupIndex + 1,
+                        GroupCountText: "",
+                        GroupDocumentsText: ""
+                    }));
+                });
+            }.bind(this));
+
+            return aDisplayRows;
+        },
+
+        _getGroupStatusText: function (aDocumentRows, oFallbackRow) {
+            if (!this._isHU(oFallbackRow)) {
+                return oFallbackRow.DisplayStatusText;
+            }
+
+            var aHuRows = (aDocumentRows || []).map(function (oEntry) {
+                return oEntry.row;
+            });
+            var oSelectedHu = aHuRows.find(function (oRow) {
+                return oRow.HuSelected === true;
+            });
+
+            if (aHuRows.length > 1 && !oSelectedHu) {
+                return "Selecciona una HU";
+            }
+
+            return (oSelectedHu || oFallbackRow).DisplayStatusText;
+        },
+
+        _getGroupStatusState: function (aDocumentRows, oFallbackRow) {
+            if (!this._isHU(oFallbackRow)) {
+                return oFallbackRow.DisplayStatusState;
+            }
+
+            var aHuRows = (aDocumentRows || []).map(function (oEntry) {
+                return oEntry.row;
+            });
+            var bHasSelectedHu = aHuRows.some(function (oRow) {
+                return oRow.HuSelected === true;
+            });
+
+            if (aHuRows.length > 1 && !bHasSelectedHu) {
+                return "Warning";
+            }
+
+            var oSelectedHu = aHuRows.find(function (oRow) {
+                return oRow.HuSelected === true;
+            });
+
+            return (oSelectedHu || oFallbackRow).DisplayStatusState;
+        },
+
+        _refreshPreviewDisplay: function () {
+            var oVM = this.getVM();
+            var aPreview = oVM.getProperty("/preview") || [];
+            var mExpandedGroups =
+                oVM.getProperty("/expandedPreviewGroups") || {};
+
+            oVM.setProperty(
+                "/previewDisplay",
+                this._buildPreviewDisplayRows(
+                    aPreview,
+                    mExpandedGroups
+                )
+            );
+        },
+
+        onTogglePreviewGroup: function (oEvent) {
+            var oContext = oEvent
+                .getSource()
+                .getBindingContext("viewModel");
+            var oDisplayRow = oContext && oContext.getObject();
+
+            if (!oDisplayRow || !oDisplayRow.GroupKey) {
+                return;
+            }
+
+            var oVM = this.getVM();
+            var mExpandedGroups = Object.assign(
+                {},
+                oVM.getProperty("/expandedPreviewGroups") || {}
+            );
+
+            mExpandedGroups[oDisplayRow.GroupKey] =
+                !mExpandedGroups[oDisplayRow.GroupKey];
+
+            oVM.setProperty(
+                "/expandedPreviewGroups",
+                mExpandedGroups
+            );
+            this._refreshPreviewDisplay();
+        },
+
+        onSelectHu: function (oEvent) {
+            var oContext = oEvent
+                .getSource()
+                .getBindingContext("viewModel");
+            var oDisplayRow = oContext && oContext.getObject();
+            var sSelectedPath =
+                oDisplayRow && oDisplayRow.PreviewPath;
+            var bSelected = oEvent.getParameter("selected") !== false;
+
+            if (!sSelectedPath) {
+                return;
+            }
+
+            var oVM = this.getVM();
+            var aPreview = oVM.getProperty("/preview") || [];
+
+            aPreview.forEach(function (oRow, iIndex) {
+                if (!this._isHU(oRow)) {
+                    return;
+                }
+
+                oRow.HuSelected =
+                    bSelected &&
+                    "/preview/" + iIndex === sSelectedPath;
+                this._decoratePreviewRow(oRow);
+            }.bind(this));
+
+            oVM.setProperty("/preview", aPreview);
+            this._refreshPreviewDisplay();
+            this._updateSummary(aPreview);
+            this._evaluatePreviewBeforeCancel(aPreview);
+
+            MessageToast.show(
+                bSelected
+                    ? "HU seleccionada correctamente."
+                    : "Selección de HU eliminada."
+            );
+        },
+
         _decoratePreviewRow: function (oRow) {
+            var aRelatedReferences = [];
+
+            oRow.IsHU = this._isHU(oRow);
             oRow.DisplayIcon = this._getObjectIcon(oRow.Message);
             oRow.DisplayStatusText = this._getPreviewStatusText(oRow);
             oRow.DisplayStatusState = this._getPreviewStatusState(oRow);
             oRow.DisplayReference1 = this._isHU(oRow)
                 ? (oRow.HuExidv || "")
-                : (oRow.ObjKey1 || "");
+                : (oRow.MatDoc || oRow.ObjKey1 || "");
+
+            [oRow.ObjKey1, oRow.ObjKey2, oRow.ObjKey3]
+                .forEach(function (sReference) {
+                    var sCleanReference =
+                        String(sReference || "").trim();
+
+                    if (
+                        sCleanReference &&
+                        sCleanReference !== oRow.DisplayReference1 &&
+                        aRelatedReferences.indexOf(sCleanReference) < 0
+                    ) {
+                        aRelatedReferences.push(sCleanReference);
+                    }
+                });
+
             oRow.DisplayReference2 = this._isHU(oRow)
                 ? (oRow.HuVenum || "")
-                : (oRow.ObjKey2 || "");
+                : aRelatedReferences.join(" · ");
         },
 
         _getObjectIcon: function (sMessage) {
@@ -460,6 +1193,23 @@ sap.ui.define([
 
             if (
                 this._isHU(oRow) &&
+                oRow.HuSelectionRequired &&
+                !oRow.HuSelected
+            ) {
+                return "Disponible";
+            }
+
+            if (
+                this._isHU(oRow) &&
+                oRow.HuSelectionRequired &&
+                oRow.HuSelected &&
+                !oRow.providerSelectionRequired
+            ) {
+                return "HU seleccionada";
+            }
+
+            if (
+                this._isHU(oRow) &&
                 oRow.providerSelectionRequired &&
                 !(oRow.selectedProviders && oRow.selectedProviders.length)
             ) {
@@ -491,6 +1241,23 @@ sap.ui.define([
 
             if (oRow.Status === "W") {
                 return "Warning";
+            }
+
+            if (
+                this._isHU(oRow) &&
+                oRow.HuSelectionRequired &&
+                !oRow.HuSelected
+            ) {
+                return "Information";
+            }
+
+            if (
+                this._isHU(oRow) &&
+                oRow.HuSelectionRequired &&
+                oRow.HuSelected &&
+                !oRow.providerSelectionRequired
+            ) {
+                return "Success";
             }
 
             if (
@@ -560,7 +1327,7 @@ sap.ui.define([
 
             var bRequiresProvider =
                 oRow.MultiProveedor === "X" ||
-                Number(oRow.ProveedorCount || 0) > 1 ||
+                Number(oRow.SelectionOptionCount || 0) > 1 ||
                 (oRow.providerOptions || []).length > 1;
 
             oRow.providerSelectionRequired =
@@ -576,6 +1343,14 @@ sap.ui.define([
             var iOtros = 0;
             var iTotal = 0;
             var iHuPendientes = 0;
+            var aHuItems = (aItems || []).filter(function (oItem) {
+                return this._isHU(oItem);
+            }.bind(this));
+            var bHuSelectionPending =
+                aHuItems.length > 1 &&
+                !aHuItems.some(function (oItem) {
+                    return oItem.HuSelected === true;
+                });
 
             (aItems || []).forEach(function (oItem) {
                 var sMessage = String(oItem.Message || "")
@@ -605,6 +1380,10 @@ sap.ui.define([
                     iHU++;
 
                     if (
+                        (
+                            !oItem.HuSelectionRequired ||
+                            oItem.HuSelected
+                        ) &&
                         oItem.providerSelectionRequired &&
                         !(oItem.selectedProviders && oItem.selectedProviders.length)
                     ) {
@@ -625,8 +1404,71 @@ sap.ui.define([
                 hu: iHU,
                 material: iMaterial,
                 otros: iOtros,
-                huPendientes: iHuPendientes
+                huPendientes:
+                    iHuPendientes +
+                    (bHuSelectionPending ? 1 : 0),
+                huSelectionPending:
+                    bHuSelectionPending ? 1 : 0
             });
+
+            var oPreviewHeader = this.getVM().getProperty(
+                "/previewHeader"
+            );
+            var aPreviewItems = this.getVM().getProperty(
+                "/previewItems"
+            );
+
+            if (
+                oPreviewHeader &&
+                oPreviewHeader.MatDoc &&
+                Array.isArray(aPreviewItems)
+            ) {
+                this._updateDeepPreviewSummary(
+                    oPreviewHeader,
+                    aPreviewItems
+                );
+            }
+        },
+
+        _updateDeepPreviewSummary: function (oHeader, aItems) {
+            var oSummary = Object.assign(
+                {},
+                this.getVM().getProperty("/summary") || {}
+            );
+            var mMaterialDocuments = {};
+            var mRelatedDocuments = {};
+
+            (aItems || []).forEach(function (oItem) {
+                var sMaterialDocument = String(
+                    oItem.GrMatDoc || ""
+                ).trim();
+
+                if (sMaterialDocument) {
+                    mMaterialDocuments[sMaterialDocument] = true;
+                }
+
+                [
+                    oItem.Ebeln,
+                    oItem.SoVbeln,
+                    oItem.DelivVbeln
+                ].forEach(function (vDocument) {
+                    var sDocument = String(vDocument || "").trim();
+
+                    if (sDocument) {
+                        mRelatedDocuments[sDocument] = true;
+                    }
+                });
+            });
+
+            oSummary.hu = Number(oHeader.HuCount) || oSummary.hu || 0;
+            oSummary.material = Object.keys(mMaterialDocuments).length;
+            oSummary.otros = Object.keys(mRelatedDocuments).length;
+            oSummary.total =
+                oSummary.hu +
+                oSummary.material +
+                oSummary.otros;
+
+            this.getVM().setProperty("/summary", oSummary);
         },
 
         _evaluatePreviewBeforeCancel: function (aResults) {
@@ -649,10 +1491,13 @@ sap.ui.define([
             }
 
             if (oSummary.huPendientes > 0) {
+                var sPendingMessage = oSummary.huSelectionPending > 0
+                    ? "Vista previa obtenida correctamente. Seleccione una HU para continuar."
+                    : "Vista previa obtenida correctamente. Seleccione los pedidos de compra que correspondan a la HU elegida.";
+
                 this.getVM().setProperty("/resultado", {
                     Status: "W",
-                    Message:
-                        "Vista previa obtenida correctamente. Seleccione uno o varios proveedores en cada HU pendiente para continuar."
+                    Message: sPendingMessage
                 });
 
                 this.getVM().setProperty("/resultadoState", "Warning");
@@ -670,13 +1515,37 @@ sap.ui.define([
             this.getVM().setProperty("/canCancel", true);
         },
 
+        _getProviderDialogInfoText: function (oRow, iOptionCount) {
+            if (iOptionCount === 1) {
+                return [
+                    "Esta HU tiene un proveedor y un pedido de compra.",
+                    "La opción fue seleccionada automáticamente;",
+                    "revisa aquí el lote, cantidad, unidad y material."
+                ].join(" ");
+            }
+
+            return [
+                "Esta HU tiene",
+                Number(oRow.ProveedorCount || 0),
+                Number(oRow.ProveedorCount || 0) === 1
+                    ? "proveedor y"
+                    : "proveedores y",
+                Number(oRow.PurchaseOrderCount || 0),
+                Number(oRow.PurchaseOrderCount || 0) === 1
+                    ? "pedido de compra asociado."
+                    : "pedidos de compra asociados.",
+                "Selecciona una o varias combinaciones para la anulación."
+            ].join(" ");
+        },
+
         onOpenProviderDialog: function (oEvent) {
             var oContext = oEvent
                 .getSource()
                 .getBindingContext("viewModel");
 
-            var sRowPath = oContext.getPath();
-            var oRow = oContext.getObject();
+            var oDisplayRow = oContext.getObject();
+            var sRowPath = oDisplayRow.PreviewPath || oContext.getPath();
+            var oRow = this.getVM().getProperty(sRowPath);
 
             var aExistingSelections = Array.isArray(oRow.selectedProviders)
                 ? oRow.selectedProviders
@@ -717,12 +1586,21 @@ sap.ui.define([
                 .map(function (oProvider) {
                     return oProvider.providerKey;
                 });
+            var sProviderDialogInfoText =
+                this._getProviderDialogInfoText(
+                    oRow,
+                    aProviders.length
+                );
 
             this.getVM().setProperty("/providerDialog", {
                 rowPath: sRowPath,
                 huVenum: oRow.HuVenum || oRow.ObjKey1 || "",
                 huExidv: oRow.HuExidv || oRow.MatDoc || "",
-                providerCount: aProviders.length,
+                providerCount: Number(oRow.ProveedorCount || 0),
+                purchaseOrderCount:
+                    Number(oRow.PurchaseOrderCount || 0),
+                optionCount: aProviders.length,
+                infoText: sProviderDialogInfoText,
                 providers: aProviders,
 
                 // Nuevo estado para selección múltiple.
@@ -880,7 +1758,7 @@ sap.ui.define([
 
             if (!aSelectedProviders.length) {
                 MessageBox.warning(
-                    "Seleccione al menos un proveedor antes de confirmar."
+                    "Seleccione al menos una combinaciÃ³n de proveedor y pedido antes de confirmar."
                 );
                 return;
             }
@@ -896,6 +1774,8 @@ sap.ui.define([
                 sRowPath,
                 oRow
             );
+
+            this._refreshPreviewDisplay();
 
             var aPreview =
                 oVM.getProperty("/preview") || [];
@@ -921,9 +1801,9 @@ sap.ui.define([
 
             MessageToast.show(
                 aSelectedProviders.length === 1
-                    ? "Proveedor seleccionado correctamente."
+                    ? "Pedido seleccionado correctamente."
                     : aSelectedProviders.length +
-                        " proveedores seleccionados correctamente."
+                        " pedidos seleccionados correctamente."
             );
         },
 
@@ -948,7 +1828,9 @@ sap.ui.define([
 
             if (oSummary.huPendientes > 0) {
                 MessageBox.warning(
-                    "Seleccione uno o varios proveedores en cada HU pendiente antes de anular."
+                    oSummary.huSelectionPending > 0
+                        ? "Seleccione una HU antes de anular."
+                        : "Seleccione los pedidos de compra de la HU elegida antes de anular."
                 );
                 return;
             }
@@ -962,42 +1844,72 @@ sap.ui.define([
 
             var aHuSelections = this._getHuSelections(aPreview);
 
-            var sConfirmMessage =
-                "¿Deseas anular el documento " +
-                sMatDoc +
-                "?\n\n" +
-                "Objetos encontrados: " +
-                (oSummary.total || 0) +
-                "\n" +
-                "HU: " +
-                (oSummary.hu || 0) +
-                "\n" +
-                "Documento material: " +
-                (oSummary.material || 0) +
-                "\n" +
-                "Otros objetos: " +
-                (oSummary.otros || 0) +
-                "\n\n" +
-                "Selecciones HU / proveedor: " +
-                aHuSelections.length;
+            this._oPendingCancellation = {
+                matDoc: sMatDoc,
+                huSelections: aHuSelections
+            };
 
-            MessageBox.confirm(sConfirmMessage, {
-                title: "Confirmar anulación",
-                actions: [
-                    MessageBox.Action.OK,
-                    MessageBox.Action.CANCEL
-                ],
-                emphasizedAction: MessageBox.Action.OK,
-
-                onClose: function (sAction) {
-                    if (sAction === MessageBox.Action.OK) {
-                        this._postAnulacion(
-                            sMatDoc,
-                            aHuSelections
-                        );
-                    }
-                }.bind(this)
+            this.getVM().setProperty("/confirmationDialog", {
+                matDoc: sMatDoc,
+                total: oSummary.total || 0,
+                hu: oSummary.hu || 0,
+                material: oSummary.material || 0,
+                otros: oSummary.otros || 0,
+                selectionCount: aHuSelections.length,
+                selections: aHuSelections
             });
+
+            this._openCancellationConfirmation();
+        },
+
+        _openCancellationConfirmation: function () {
+            if (!this._pCancellationConfirmationDialog) {
+                this._pCancellationConfirmationDialog = Fragment.load({
+                    id: this.getView().getId(),
+                    name:
+                        "z.anulacion.anulacion.fragment.CancellationConfirmation",
+                    controller: this
+                }).then(function (oDialog) {
+                    this._oCancellationConfirmationDialog = oDialog;
+                    this.getView().addDependent(oDialog);
+                    return oDialog;
+                }.bind(this));
+            }
+
+            this._pCancellationConfirmationDialog.then(function (oDialog) {
+                oDialog.open();
+            });
+        },
+
+        onCloseCancellationConfirmation: function () {
+            if (this._oCancellationConfirmationDialog) {
+                this._oCancellationConfirmationDialog.close();
+            }
+
+            this._oPendingCancellation = null;
+        },
+
+        onAfterCancellationConfirmationClose: function () {
+            this._oPendingCancellation = null;
+        },
+
+        onConfirmCancellation: function () {
+            var oPending = this._oPendingCancellation;
+
+            if (!oPending || !oPending.matDoc) {
+                this.onCloseCancellationConfirmation();
+                return;
+            }
+
+            if (this._oCancellationConfirmationDialog) {
+                this._oCancellationConfirmationDialog.close();
+            }
+
+            this._oPendingCancellation = null;
+            this._postAnulacion(
+                oPending.matDoc,
+                oPending.huSelections || []
+            );
         },
 
         _getHuSelections: function (aPreview) {
@@ -1006,6 +1918,13 @@ sap.ui.define([
 
             (aPreview || []).forEach(function (oRow) {
                 if (!this._isHU(oRow)) {
+                    return;
+                }
+
+                if (
+                    oRow.HuSelectionRequired &&
+                    !oRow.HuSelected
+                ) {
                     return;
                 }
 
@@ -1039,10 +1958,23 @@ sap.ui.define([
                         Name1:
                             oProvider.Name1 || "",
                         Ebeln:
-                            oProvider.Ebeln || ""
+                            oProvider.Ebeln || "",
+                        SeqNo: oProvider.SeqNo,
+                        GrMatDoc: oProvider.GrMatDoc || "",
+                        GrYear: oProvider.GrYear || "",
+                        SoVbeln: oProvider.SoVbeln || "",
+                        DelivVbeln: oProvider.DelivVbeln || "",
+                        Charg: oProvider.Charg || "",
+                        Menge: oProvider.Menge || "",
+                        Meins: oProvider.Meins || "",
+                        Matnr: oProvider.Matnr || ""
                     };
 
                     var sSelectionKey = [
+                        oSelection.SeqNo === null ||
+                        oSelection.SeqNo === undefined
+                            ? ""
+                            : String(oSelection.SeqNo),
                         oSelection.HuVenum,
                         oSelection.HuExidv,
                         oSelection.Lifnr,
@@ -1066,6 +1998,76 @@ sap.ui.define([
             );
 
             return aSelections;
+        },
+
+        _getEmptyCancellationSummary: function () {
+            return {
+                visible: false,
+                document: "",
+                huVenum: "",
+                huExidv: "",
+                providerText: "",
+                purchaseOrderText: "",
+                runId: ""
+            };
+        },
+
+        _buildCancellationSummary: function (
+            sMatDoc,
+            aSelections,
+            sRunId
+        ) {
+            var aItems = Array.isArray(aSelections)
+                ? aSelections
+                : [];
+            var mProviders = {};
+            var mPurchaseOrders = {};
+            var aProviders = [];
+            var aPurchaseOrders = [];
+
+            aItems.forEach(function (oItem) {
+                var sProviderNumber = String(
+                    oItem.Lifnr || ""
+                ).trim();
+                var sProviderName = String(
+                    oItem.Name1 || ""
+                ).trim();
+                var sProviderKey = sProviderNumber || sProviderName;
+                var sPurchaseOrder = String(
+                    oItem.Ebeln || ""
+                ).trim();
+
+                if (sProviderKey && !mProviders[sProviderKey]) {
+                    mProviders[sProviderKey] = true;
+                    aProviders.push(
+                        [sProviderNumber, sProviderName]
+                            .filter(Boolean)
+                            .join(" - ")
+                    );
+                }
+
+                if (
+                    sPurchaseOrder &&
+                    !mPurchaseOrders[sPurchaseOrder]
+                ) {
+                    mPurchaseOrders[sPurchaseOrder] = true;
+                    aPurchaseOrders.push(sPurchaseOrder);
+                }
+            });
+
+            return {
+                visible: true,
+                document: String(sMatDoc || "").trim(),
+                huVenum: aItems.length
+                    ? String(aItems[0].HuVenum || "").trim()
+                    : "",
+                huExidv: aItems.length
+                    ? String(aItems[0].HuExidv || "").trim()
+                    : "",
+                providerText: aProviders.join(" | "),
+                purchaseOrderText: aPurchaseOrders.join(" | "),
+                runId: String(sRunId || "").trim()
+            };
         },
 
         _postAnulacion: function (sMatDoc, aHuSelections) {
@@ -1247,6 +2249,10 @@ sap.ui.define([
                 "/detalle",
                 []
             );
+            this.getVM().setProperty(
+                "/cancellationSummary",
+                this._getEmptyCancellationSummary()
+            );
 
             // =========================================================
             // ENVÍO A SAP
@@ -1330,6 +2336,17 @@ sap.ui.define([
                         this.getVM().setProperty(
                             "/lastRunId",
                             sRunId
+                        );
+
+                        this.getVM().setProperty(
+                            "/cancellationSummary",
+                            sStatus === "S"
+                                ? this._buildCancellationSummary(
+                                    sMatDoc,
+                                    aSelections,
+                                    sRunId
+                                )
+                                : this._getEmptyCancellationSummary()
                         );
 
                         this.getVM().setProperty(
@@ -1598,7 +2615,12 @@ sap.ui.define([
         },
 
         resultadoState: "None",
+        cancellationSummary: this._getEmptyCancellationSummary(),
         preview: [],
+        previewDisplay: [],
+        previewHeader: {},
+        previewItems: [],
+        expandedPreviewGroups: {},
         detalle: [],
 
         summary: {
@@ -1606,7 +2628,8 @@ sap.ui.define([
             hu: 0,
             material: 0,
             otros: 0,
-            huPendientes: 0
+            huPendientes: 0,
+            huSelectionPending: 0
         },
 
         providerDialog: {
@@ -1614,6 +2637,9 @@ sap.ui.define([
             huVenum: "",
             huExidv: "",
             providerCount: 0,
+            purchaseOrderCount: 0,
+            optionCount: 0,
+            infoText: "",
             providers: [],
 
             // Selección múltiple.
@@ -1623,6 +2649,22 @@ sap.ui.define([
 
             // Compatibilidad con fragmentos/versiones anteriores.
             selectedProviderKey: ""
+        },
+
+        statusMessageDialog: {
+            title: "Mensaje de SAP",
+            message: "",
+            sourceText: "Respuesta de SAP"
+        },
+
+        confirmationDialog: {
+            matDoc: "",
+            total: 0,
+            hu: 0,
+            material: 0,
+            otros: 0,
+            selectionCount: 0,
+            selections: []
         }
     };
 },
@@ -1692,7 +2734,10 @@ sap.ui.define([
                 false
             );
 
-            MessageBox.error(sMessage);
+            this._showStatusMessageDialog(
+                sMessage,
+                "Error de comunicación con SAP"
+            );
         }
     });
 });
