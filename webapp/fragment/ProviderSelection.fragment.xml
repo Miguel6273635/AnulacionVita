@@ -239,6 +239,20 @@
 
                         </Column>
 
+
+                        <!-- NOMBRE DEL MATERIAL -->
+
+                        <Column
+                            width="16rem"
+                            minScreenWidth="Desktop"
+                            demandPopin="true">
+
+                            <Text
+                                text="Nombre del material"
+                                class="providerTableHeader" />
+
+                        </Column>
+
                     </columns>
 
 
@@ -343,9 +357,18 @@
                                 <!-- MATERIAL -->
 
                                 <Text
-                                    text="{= ${viewModel>Matnr} || '-' }"
+                                    text="{= ${viewModel>DisplayMatnr} || '-' }"
                                     wrapping="true"
                                     class="providerDetailCell providerMaterialCell" />
+
+
+                                <!-- NOMBRE DEL MATERIAL -->
+
+                                <Text
+                                    text="{= ${viewModel>Maktx} || 'Sin nombre disponible' }"
+                                    wrapping="true"
+                                    tooltip="{viewModel>Maktx}"
+                                    class="providerDetailCell providerMaterialDescriptionCell" />
 
                             </cells>
 

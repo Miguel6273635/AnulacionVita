@@ -151,7 +151,7 @@
                                             text="Material"
                                             class="cancellationConfirmDetailLabel" />
                                         <Text
-                                            text="{= ${viewModel>Matnr} || '-' }"
+                                            text="{= ${viewModel>DisplayMatnr} || '-' }"
                                             wrapping="false"
                                             tooltip="{viewModel>Matnr}"
                                             class="cancellationConfirmMaterial" />

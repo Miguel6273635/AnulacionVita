@@ -592,6 +592,25 @@
     min-width: 0;
 }
 
+/* Mantiene la información de la HU alineada con el inicio
+   del bloque de pedidos, incluso cuando la fila crece. */
+.previewTable .tableRowCustom > .sapMListTblCell:first-child {
+    vertical-align: top !important;
+}
+
+.previewTable .tableRowCustom > .sapMListTblCell:last-child {
+    vertical-align: middle !important;
+}
+
+.previewTable .objectTypeCell {
+    align-items: flex-start !important;
+}
+
+.previewTable .objectTypeCell > .rowExpandButton,
+.previewTable .objectTypeCell > .objectTypeIcon {
+    margin-top: 0.08rem !important;
+}
+
 .rowExpandButton {
     flex: 0 0 auto;
     margin-left: -0.35rem !important;
@@ -615,6 +634,85 @@
 
 .objectTypeTextBox {
     min-width: 0;
+    width: 100%;
+}
+
+.huHorizontalSummary {
+    width: 100% !important;
+    gap: 0 !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+    border: 1px solid #d6e5f0 !important;
+    border-left: 0.22rem solid #0a6ed1 !important;
+    border-radius: 0.68rem !important;
+    box-shadow: 0 0.12rem 0.38rem rgba(26, 72, 105, 0.05) !important;
+}
+
+.huHorizontalFact {
+    min-height: 3.55rem !important;
+    padding: 0.48rem 0.68rem !important;
+    box-sizing: border-box !important;
+    justify-content: center !important;
+}
+
+.huHorizontalFact + .huHorizontalFact {
+    border-left: 1px solid #e2ebf2 !important;
+}
+
+.huHorizontalHuFact {
+    width: 5rem !important;
+    min-width: 5rem !important;
+    background: #eef7fd !important;
+}
+
+.huHorizontalIdentifierFact {
+    width: 11rem !important;
+    min-width: 11rem !important;
+}
+
+.huHorizontalInternalFact {
+    width: 9.5rem !important;
+    min-width: 9.5rem !important;
+}
+
+.huHorizontalProviderFact {
+    min-width: 16rem !important;
+    background: #fbfdff !important;
+}
+
+.huHorizontalLabel {
+    color: #668096 !important;
+    font-size: 0.58rem !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.018rem !important;
+    line-height: 1.1 !important;
+    text-transform: uppercase !important;
+}
+
+.huHorizontalValue {
+    display: block !important;
+    margin-top: 0.13rem !important;
+    overflow: hidden !important;
+    color: #183e5a !important;
+    font-size: 0.72rem !important;
+    font-weight: 850 !important;
+    text-overflow: ellipsis !important;
+}
+
+.huHorizontalHuValue {
+    color: #0a5ea8 !important;
+    font-size: 0.78rem !important;
+}
+
+.huHorizontalProviderList {
+    gap: 0.45rem !important;
+    margin-top: 0.15rem !important;
+}
+
+.huHorizontalProviderItem {
+    gap: 0.42rem !important;
+    min-width: 13rem !important;
+    max-width: 24rem !important;
 }
 
 .relatedDocumentsCount {
@@ -729,6 +827,7 @@
 
 .purchaseOrderCell {
     width: 100%;
+    gap: 0.5rem !important;
 }
 
 .purchaseOrderList {
@@ -747,6 +846,515 @@
     font-family: Consolas, "72Mono", monospace !important;
     font-size: 0.72rem !important;
     font-weight: 800 !important;
+}
+
+/* =========================
+   FLUJO HU > PEDIDO > MATERIAL
+   ========================= */
+
+.huFlowCell {
+    min-width: 28rem !important;
+}
+
+.huFlowBox {
+    width: 100% !important;
+    gap: 0.48rem !important;
+}
+
+.huChildExpandButton .sapMBtnInner {
+    background: #edf7ff !important;
+    border: 1px solid #c4e0f4 !important;
+}
+
+.huFlowCollapsedPrompt {
+    gap: 0.55rem !important;
+    min-height: 2.8rem !important;
+    padding: 0.42rem 0.62rem !important;
+    background: #f7fbfe !important;
+    border: 1px dashed #bed9ec !important;
+    border-radius: 0.62rem !important;
+}
+
+.huFlowCollapsedIcon {
+    color: #0a6ed1 !important;
+    font-size: 1rem !important;
+}
+
+.huFlowCollapsedTitle {
+    color: #173b57 !important;
+    font-size: 0.75rem !important;
+    font-weight: 850 !important;
+}
+
+.huFlowCollapsedText {
+    margin-top: 0.08rem !important;
+    color: #668096 !important;
+    font-size: 0.66rem !important;
+    font-weight: 650 !important;
+}
+
+.huFlowHeader {
+    min-height: 2.35rem !important;
+    padding: 0.42rem 0.55rem !important;
+    background: linear-gradient(135deg, #f5faff 0%, #eef7fd 100%) !important;
+    border: 1px solid #d6e7f3 !important;
+    border-radius: 0.58rem !important;
+}
+
+/* Convierte el resumen de la HU y todo su detalle en una sola tarjeta. */
+.purchaseOrderCell > .huHorizontalSummary:has(~ .huFlowBox) {
+    margin-bottom: -0.5rem !important;
+    border-bottom: 0 !important;
+    border-radius: 0.68rem 0.68rem 0 0 !important;
+    box-shadow: none !important;
+}
+
+.purchaseOrderCell > .huFlowBox {
+    margin-top: -0.5rem !important;
+}
+
+.purchaseOrderCell > .huFlowBox > .huFlowHeader:has(+ .huFlowOrderCard) {
+    border-top: 0 !important;
+    border-left-width: 0.22rem !important;
+    border-radius: 0 !important;
+}
+
+/* Mantiene unidos el encabezado y los materiales dentro del detalle. */
+.huFlowBox > .huFlowHeader:has(+ .huFlowOrderCard) {
+    border-left: 0.2rem solid #0a6ed1 !important;
+    border-bottom: 0 !important;
+    border-radius: 0.62rem 0.62rem 0 0 !important;
+}
+
+.huFlowBox > .huFlowHeader + .huFlowOrderCard {
+    margin-top: -0.48rem !important;
+    border-top: 0 !important;
+    border-radius: 0 0 0.62rem 0.62rem !important;
+    box-shadow: 0 0.12rem 0.35rem rgba(26, 72, 105, 0.06) !important;
+}
+
+.huFlowEyebrow {
+    color: #607c93 !important;
+    font-size: 0.61rem !important;
+    font-weight: 850 !important;
+    letter-spacing: 0.025rem !important;
+    text-transform: uppercase !important;
+}
+
+.huFlowCount {
+    margin-top: 0.08rem !important;
+    color: #173b57 !important;
+    font-size: 0.77rem !important;
+    font-weight: 850 !important;
+}
+
+.huFlowHuState {
+    padding: 0.08rem 0.36rem !important;
+    background: #ffffff !important;
+    border: 1px solid #d3e3ef !important;
+    border-radius: 999px !important;
+}
+
+.huFlowHuState .sapMObjStatusText {
+    font-size: 0.66rem !important;
+    font-weight: 800 !important;
+}
+
+.huFlowOrderList {
+    width: 100% !important;
+    gap: 0.48rem !important;
+}
+
+.huFlowOrderCard {
+    width: 100% !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+    border: 1px solid #d8e5ef !important;
+    border-left: 0.2rem solid #0a6ed1 !important;
+    border-radius: 0.62rem !important;
+    box-shadow: 0 0.12rem 0.35rem rgba(26, 72, 105, 0.06) !important;
+}
+
+.huFlowOrderHeader {
+    min-height: 2.65rem !important;
+    padding: 0.4rem 0.5rem !important;
+    background: #fbfdff !important;
+    border-bottom: 1px solid #e6edf3 !important;
+}
+
+.huFlowOrderExpandButton {
+    flex: 0 0 auto !important;
+    margin-right: 0.18rem !important;
+}
+
+.huFlowOrderExpandButton .sapMBtnInner {
+    min-width: 1.8rem !important;
+    width: 1.8rem !important;
+    height: 1.8rem !important;
+    min-height: 1.8rem !important;
+    padding: 0 !important;
+    background: #edf7ff !important;
+    border: 1px solid #bcdcf3 !important;
+    border-radius: 50% !important;
+}
+
+.huFlowOrderExpandButton .sapMBtnIcon {
+    color: #0a6ed1 !important;
+    font-size: 0.8rem !important;
+    line-height: 1.7rem !important;
+}
+
+.huFlowOrderExpandButton:hover .sapMBtnInner {
+    background: #dff1fe !important;
+    border-color: #0a6ed1 !important;
+}
+
+.huFlowOrderSelectionBox {
+    flex: 0 0 2.7rem !important;
+    width: 2.7rem !important;
+    min-width: 2.7rem !important;
+    min-height: 2rem !important;
+    margin-right: 0.38rem !important;
+    padding: 0.15rem !important;
+    box-sizing: border-box !important;
+    background: #eaf5fd !important;
+    border: 1px solid #b7d9ef !important;
+    border-radius: 0.52rem !important;
+}
+
+.huFlowOrderCheck {
+    flex: 0 0 2rem !important;
+    width: 2rem !important;
+    min-width: 2rem !important;
+    margin: 0 !important;
+}
+
+.huFlowOrderCheck .sapMCbBg {
+    border: 2px solid #0a6ed1 !important;
+    border-radius: 0.34rem !important;
+    background: #eef7ff !important;
+    box-shadow: 0 0 0 0.12rem rgba(10, 110, 209, 0.1) !important;
+    transition:
+        background 0.16s ease,
+        border-color 0.16s ease,
+        box-shadow 0.16s ease !important;
+}
+
+.huFlowOrderCheck:not(.sapMCbDisabled):hover .sapMCbBg {
+    border-color: #085caf !important;
+    background: #dcefff !important;
+    box-shadow: 0 0 0 0.18rem rgba(10, 110, 209, 0.16) !important;
+}
+
+.huFlowOrderSelectionBox:has(.sapMCbDisabled),
+.huFlowOrderCheck .sapMCbBgDis {
+    opacity: 0.82 !important;
+}
+
+.huFlowOrderCheck .sapMCbBg.sapMCbMarkChecked {
+    border-color: #107e3e !important;
+    background: #107e3e !important;
+    box-shadow: 0 0 0 0.16rem rgba(16, 126, 62, 0.16) !important;
+}
+
+.huFlowOrderCheck .sapMCbBg.sapMCbMarkChecked::before {
+    color: #ffffff !important;
+}
+
+.huFlowOrderSelectionBox:has(.sapMCbMarkChecked) {
+    background: #e7f6ec !important;
+    border-color: #a9d8ba !important;
+}
+
+.huFlowOrderTitleBox {
+    min-width: 0 !important;
+}
+
+.huFlowOrderLabel,
+.huFlowMaterialLabel {
+    color: #668096 !important;
+    font-size: 0.6rem !important;
+    font-weight: 850 !important;
+    letter-spacing: 0.018rem !important;
+    line-height: 1.1 !important;
+    text-transform: uppercase !important;
+}
+
+.huFlowOrderNumber {
+    margin-top: 0.08rem !important;
+    color: #103b5c !important;
+    font-family: "72Mono", Consolas, monospace !important;
+    font-size: 0.8rem !important;
+    font-weight: 900 !important;
+}
+
+.huFlowOrderState {
+    flex: 0 0 auto !important;
+    min-width: 5.9rem !important;
+    margin-left: 0.4rem !important;
+    padding: 0.13rem 0.52rem !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+    border-radius: 999px !important;
+    background: #e7f4fd !important;
+    border: 1px solid #b7d9ef !important;
+}
+
+.huFlowOrderState .sapMObjStatusText {
+    display: block !important;
+    white-space: nowrap !important;
+    font-size: 0.68rem !important;
+    font-weight: 850 !important;
+}
+
+.huFlowOrderState.sapMObjStatusSuccess {
+    background: #e7f6ec !important;
+    border-color: #a9d8ba !important;
+}
+
+.huFlowOrderMaterialCount {
+    margin-top: 0.12rem !important;
+    color: #668096 !important;
+    font-size: 0.62rem !important;
+    font-weight: 750 !important;
+}
+
+.huFlowOrderPrompt {
+    gap: 0.42rem !important;
+    min-height: 2.2rem !important;
+    padding: 0.42rem 0.62rem !important;
+    background: #f7fafc !important;
+}
+
+.huFlowOrderPromptIcon {
+    color: #5b7f99 !important;
+    font-size: 0.82rem !important;
+}
+
+.huFlowOrderPromptText {
+    color: #5b7488 !important;
+    font-size: 0.68rem !important;
+    font-weight: 650 !important;
+}
+
+.huFlowMaterialSection {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    background: #ffffff !important;
+    border-top: 1px solid #dfeaf2 !important;
+}
+
+.huFlowMaterialSectionHeader {
+    gap: 0.38rem !important;
+    min-height: 2rem !important;
+    padding: 0.35rem 0.62rem !important;
+    background: linear-gradient(90deg, #edf8f1 0%, #f7fcf9 100%) !important;
+    border-bottom: 1px solid #d9e9df !important;
+}
+
+.huFlowMaterialSectionIcon {
+    color: #107e3e !important;
+    font-size: 0.82rem !important;
+}
+
+.huFlowMaterialSectionTitle {
+    color: #276044 !important;
+    font-size: 0.65rem !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.02rem !important;
+    text-transform: uppercase !important;
+}
+
+.huFlowMaterialTable {
+    width: 100% !important;
+    min-width: 46rem !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.huFlowMaterialTable .sapMListTbl {
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+}
+
+.huFlowMaterialTable .sapMListTblHeaderCell {
+    padding: 0.4rem 0.45rem !important;
+    background: #f6faf7 !important;
+    border-bottom: 1px solid #dce9e1 !important;
+}
+
+.huFlowMaterialTable .sapMListTblHeaderCell .sapMText {
+    color: #4f6e5c !important;
+    font-size: 0.59rem !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.016rem !important;
+    white-space: nowrap !important;
+    text-transform: uppercase !important;
+}
+
+.huFlowMaterialTable .sapMListTblCell {
+    padding: 0.46rem 0.45rem !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid #edf3ef !important;
+    vertical-align: middle !important;
+}
+
+.huFlowMaterialTableRow:last-child .sapMListTblCell {
+    border-bottom: 0 !important;
+}
+
+.huFlowMaterialPosition {
+    display: block !important;
+    text-align: center !important;
+}
+
+.huFlowMaterialPosition .sapMObjStatusText {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 1.35rem !important;
+    min-height: 1.35rem !important;
+    padding: 0 !important;
+    color: #0a5ea8 !important;
+    background: #eaf5fd !important;
+    border-radius: 50% !important;
+    font-size: 0.62rem !important;
+    font-weight: 900 !important;
+}
+
+.huFlowMaterialTable .huFlowMaterialNumber {
+    color: #173b57 !important;
+    font-family: "72Mono", Consolas, monospace !important;
+    font-size: 0.68rem !important;
+    font-weight: 850 !important;
+}
+
+.huFlowMaterialTable .huFlowMaterialDescription {
+    color: #314f64 !important;
+    font-size: 0.68rem !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+}
+
+.huFlowMaterialTable .huFlowBatch,
+.huFlowMaterialTable .huFlowUnit {
+    color: #4f6d82 !important;
+    font-family: "72Mono", Consolas, monospace !important;
+    font-size: 0.66rem !important;
+    font-weight: 750 !important;
+}
+
+.huFlowMaterialTable .huFlowQuantity {
+    display: block !important;
+    text-align: right !important;
+}
+
+.huFlowMaterialTable .huFlowQuantity .sapMObjectNumberText {
+    color: #173b57 !important;
+    font-size: 0.7rem !important;
+    font-weight: 900 !important;
+}
+
+.huFlowMaterialList {
+    width: 100% !important;
+}
+
+.huFlowMaterialRow {
+    width: 100% !important;
+    min-height: 3.5rem !important;
+    padding: 0.45rem 0.55rem !important;
+}
+
+.huFlowMaterialRow + .huFlowMaterialRow {
+    border-top: 1px solid #edf2f6 !important;
+}
+
+.huFlowMaterialIconBox {
+    width: 1.75rem !important;
+    height: 1.75rem !important;
+    min-width: 1.75rem !important;
+    margin-right: 0.45rem !important;
+    color: #0a6ed1 !important;
+    background: #eaf5fd !important;
+    border-radius: 0.45rem !important;
+}
+
+.huFlowMaterialIcon {
+    color: #0a6ed1 !important;
+    font-size: 0.85rem !important;
+}
+
+.huFlowMaterialTextBox {
+    min-width: 0 !important;
+}
+
+.huFlowMaterialNumber {
+    margin-top: 0.08rem !important;
+    overflow: hidden !important;
+    color: #173b57 !important;
+    font-family: "72Mono", Consolas, monospace !important;
+    font-size: 0.69rem !important;
+    font-weight: 850 !important;
+    text-overflow: ellipsis !important;
+}
+
+.huFlowMaterialDescription {
+    margin-top: 0.08rem !important;
+    color: #536f85 !important;
+    font-size: 0.67rem !important;
+    font-weight: 650 !important;
+    line-height: 1.18 !important;
+}
+
+.huFlowQuantityBox {
+    min-width: 6.5rem !important;
+    margin-left: 0.55rem !important;
+    padding-left: 0.55rem !important;
+    border-left: 1px solid #e5edf3 !important;
+}
+
+.huFlowQuantity .sapMObjectNumberText,
+.huFlowQuantity .sapMObjectNumberUnit {
+    color: #173b57 !important;
+    font-size: 0.72rem !important;
+    font-weight: 850 !important;
+}
+
+.huFlowBatch {
+    margin-top: 0.08rem !important;
+    color: #6a8295 !important;
+    font-size: 0.61rem !important;
+    font-weight: 700 !important;
+}
+
+.huFlowHint {
+    padding: 0.38rem 0.5rem !important;
+    color: #5c7890 !important;
+    background: #f6f9fb !important;
+    border-radius: 0.45rem !important;
+    font-size: 0.67rem !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+}
+
+@media (max-width: 900px) {
+    .huFlowCell {
+        min-width: 0 !important;
+    }
+
+    .huFlowOrderState {
+        display: none !important;
+    }
+
+    .huFlowQuantityBox {
+        min-width: 5.5rem !important;
+    }
+
+    .huFlowMaterialTable {
+        min-width: 44rem !important;
+    }
 }
 
 .providerCounterBox {
@@ -5174,6 +5782,13 @@ body,
     font-size: 0.78rem !important;
 }
 
+.providerMaterialDescriptionCell {
+    color: #4f6c82 !important;
+    font-size: 0.76rem !important;
+    font-weight: 650 !important;
+    line-height: 1.25 !important;
+}
+
 /* =========================================================
    CONFIRMACIÓN DE ANULACIÓN
    ========================================================= */
@@ -5468,20 +6083,37 @@ body,
     border-color: #8bb7d9 !important;
 }
 
-.cancellationConfirmSubmitButton .sapMBtnInner {
+.cancellationConfirmSubmitButton:not(.sapMBtnDisabled)
+    .sapMBtnInner.sapMBtnReject {
     min-width: 10.5rem !important;
     color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
     background: linear-gradient(135deg, #c90000 0%, #e20b0b 100%) !important;
     border: 1px solid #bb0000 !important;
     box-shadow: 0 0.28rem 0.7rem rgba(187, 0, 0, 0.2) !important;
+    opacity: 1 !important;
 }
 
-.cancellationConfirmSubmitButton .sapMBtnContent,
-.cancellationConfirmSubmitButton .sapMBtnIcon {
+.cancellationConfirmSubmitButton:not(.sapMBtnDisabled)
+    .sapMBtnInner.sapMBtnReject .sapMBtnContent,
+.cancellationConfirmSubmitButton:not(.sapMBtnDisabled)
+    .sapMBtnInner.sapMBtnReject .sapMBtnIcon,
+.cancellationConfirmSubmitButton:not(.sapMBtnDisabled)
+    span.sapMBtnContent {
     color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    text-shadow: none !important;
+    opacity: 1 !important;
 }
 
-.cancellationConfirmSubmitButton:hover .sapMBtnInner {
+.cancellationConfirmSubmitButton:not(.sapMBtnDisabled):hover
+    .sapMBtnInner.sapMBtnReject,
+.cancellationConfirmSubmitButton:not(.sapMBtnDisabled):focus
+    .sapMBtnInner.sapMBtnReject,
+.cancellationConfirmSubmitButton:not(.sapMBtnDisabled):active
+    .sapMBtnInner.sapMBtnReject {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
     background: linear-gradient(135deg, #a90000 0%, #c90000 100%) !important;
 }
 

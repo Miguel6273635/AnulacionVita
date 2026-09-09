@@ -385,7 +385,7 @@
             <items>
                 <SegmentedButtonItem
                     key="preview"
-                    text="{= 'Vista previa (' + ${viewModel>/preview}.length + ')' }"
+                    text="{= 'Flujo HU (' + ${viewModel>/summary/hu} + ')' }"
                     icon="sap-icon://overview-chart" />
 
                 <SegmentedButtonItem
@@ -408,12 +408,12 @@
 
         <VBox>
             <Title
-                text="Vista previa de anulación"
+                text="Selección por HU"
                 level="H4"
                 class="dataSectionTitle" />
 
             <Text
-                text="Consulta los objetos relacionados antes de realizar la anulación."
+                text="Selecciona una HU para incluir todos sus pedidos; después puedes ajustar pedidos individuales y consultar sus materiales."
                 class="dataSectionSubtitle" />
         </VBox>
 
@@ -421,9 +421,9 @@
 
         <ObjectStatus
             text="{=
-                ${viewModel>/preview}.length === 1
-                    ? '1 registro'
-                    : ${viewModel>/preview}.length + ' registros'
+                ${viewModel>/summary/hu} === 1
+                    ? '1 HU'
+                    : ${viewModel>/summary/hu} + ' HU'
             }"
             state="Information"
             class="dataCountStatus" />
@@ -443,47 +443,23 @@
 
         <columns>
             <Column
-                width="14rem"
+                width="10rem"
                 minScreenWidth="Tablet"
                 demandPopin="true">
 
-                <Text text="Tipo de objeto" />
+                <Text text="HU" />
             </Column>
 
             <Column
-                width="16rem"
-                minScreenWidth="Tablet"
-                demandPopin="true">
-
-                <Text text="Documento / HU" />
-            </Column>
-
-            <Column
-                width="12rem"
-                minScreenWidth="Tablet"
-                demandPopin="true">
-
-                <Text text="Datos relacionados" />
-            </Column>
-
-            <Column
-                width="24rem"
+                width="76rem"
                 minScreenWidth="Desktop"
                 demandPopin="true">
 
-                <Text text="Proveedor" />
+                <Text text="Detalle de la HU / pedido / material" />
             </Column>
 
             <Column
                 width="14rem"
-                minScreenWidth="Desktop"
-                demandPopin="true">
-
-                <Text text="Pedido de compra" />
-            </Column>
-
-            <Column
-                width="18rem"
                 hAlign="Center"
                 minScreenWidth="Tablet"
                 demandPopin="true">
@@ -495,13 +471,13 @@
         <items>
             <ColumnListItem
                 type="Inactive"
-                vAlign="Middle"
+                vAlign="Top"
                 class="tableRowCustom">
 
                 <cells>
 
                     <HBox
-                        alignItems="Center"
+                        alignItems="Start"
                         class="objectTypeCell">
 
                         <Button
@@ -515,7 +491,11 @@
                         <HBox
                             alignItems="Center"
                             justifyContent="Center"
-                            visible="{viewModel>IsChildRow}"
+                            visible="{=
+                                ${viewModel>IsChildRow}
+                                &amp;&amp;
+                                !${viewModel>CanExpandHuFlow}
+                            }"
                             class="childRowIndent">
 
                             <core:Icon
@@ -523,6 +503,18 @@
                                 decorative="true"
                                 class="childRowIcon" />
                         </HBox>
+
+                        <Button
+                            type="Transparent"
+                            icon="{= ${viewModel>HuFlowExpanded} ? 'sap-icon://slim-arrow-down' : 'sap-icon://slim-arrow-right' }"
+                            tooltip="{viewModel>HuFlowToggleTooltip}"
+                            visible="{=
+                                ${viewModel>IsChildRow}
+                                &amp;&amp;
+                                ${viewModel>CanExpandHuFlow}
+                            }"
+                            press=".onToggleHuFlow"
+                            class="rowExpandButton huChildExpandButton" />
 
                         <core:Icon
                             src="{viewModel>DisplayIcon}"
@@ -555,96 +547,375 @@
                         </VBox>
                     </HBox>
 
-                    <Text
-                        text="{viewModel>DisplayReference1}"
-                        wrapping="true"
-                        class="referenceText" />
-
-                    <Text
-                        text="{viewModel>DisplayReference2}"
-                        wrapping="true"
-                        class="referenceText" />
-
                     <VBox
-                        class="providerCell"
-                        width="100%">
+                        width="100%"
+                        class="purchaseOrderCell huFlowCell">
 
-                        <VBox
+                        <HBox
+                            width="100%"
+                            alignItems="Start"
+                            wrap="NoWrap"
                             visible="{=
                                 ${viewModel>IsHU}
                                 &amp;&amp;
                                 !${viewModel>IsGroupHeader}
                             }"
-                            class="providerSummaryBox">
+                            class="huHorizontalSummary">
+                            <VBox class="huHorizontalFact huHorizontalHuFact">
+                                <Text
+                                    text="HU"
+                                    class="huHorizontalLabel" />
+                                <Text
+                                    text="{= 'HU ' + ${viewModel>GroupPosition} }"
+                                    class="huHorizontalValue huHorizontalHuValue" />
+                            </VBox>
 
-                            <Text
-                                text="{viewModel>ProviderCountText}"
-                                class="cellSummaryLabel" />
+                            <VBox class="huHorizontalFact huHorizontalIdentifierFact">
+                                <Text
+                                    text="Identificador HU"
+                                    class="huHorizontalLabel" />
+                                <Text
+                                    text="{viewModel>DisplayReference1Short}"
+                                    wrapping="false"
+                                    tooltip="{viewModel>DisplayReference1}"
+                                    class="referenceText huHorizontalValue" />
+                            </VBox>
+
+                            <VBox class="huHorizontalFact huHorizontalInternalFact">
+                                <Text
+                                    text="Número interno"
+                                    class="huHorizontalLabel" />
+                                <Text
+                                    text="{viewModel>DisplayReference2}"
+                                    wrapping="false"
+                                    class="referenceText huHorizontalValue" />
+                            </VBox>
 
                             <VBox
-                                items="{viewModel>ProviderSummaries}"
-                                class="providerSummaryList">
-
-                                <items>
-                                    <HBox
-                                        alignItems="Start"
-                                        class="providerSummaryItem">
-
-                                        <core:Icon
-                                            src="sap-icon://supplier"
-                                            class="providerSummaryIcon" />
-
-                                        <VBox>
-                                            <Text
-                                                text="{viewModel>Name1}"
-                                                wrapping="true"
-                                                maxLines="3"
-                                                class="selectedProviderName" />
-
-                                            <Text
-                                                text="{viewModel>Lifnr}"
-                                                class="selectedProviderId" />
-                                        </VBox>
-                                    </HBox>
-                                </items>
+                                width="100%"
+                                class="huHorizontalFact huHorizontalProviderFact">
+                                <Text
+                                    text="{viewModel>ProviderCountText}"
+                                    class="huHorizontalLabel" />
+                                <HBox
+                                    items="{ path: 'viewModel>ProviderSummaries', templateShareable: false }"
+                                    wrap="Wrap"
+                                    class="huHorizontalProviderList">
+                                    <items>
+                                        <HBox
+                                            alignItems="Start"
+                                            class="huHorizontalProviderItem">
+                                            <core:Icon
+                                                src="sap-icon://supplier"
+                                                class="providerSummaryIcon" />
+                                            <VBox>
+                                                <Text
+                                                    text="{viewModel>Name1}"
+                                                    wrapping="true"
+                                                    maxLines="2"
+                                                    class="selectedProviderName" />
+                                                <Text
+                                                    text="{viewModel>Lifnr}"
+                                                    class="selectedProviderId" />
+                                            </VBox>
+                                        </HBox>
+                                    </items>
+                                </HBox>
                             </VBox>
-                        </VBox>
+                        </HBox>
 
-                        <Text
-                            text="-"
+                        <HBox
+                            width="100%"
+                            alignItems="Center"
                             visible="{=
-                                !${viewModel>IsHU}
+                                ${viewModel>IsHU}
                                 &amp;&amp;
                                 !${viewModel>IsGroupHeader}
+                                &amp;&amp;
+                                !${viewModel>HuFlowExpanded}
                             }"
-                            class="emptyCellText" />
-                    </VBox>
+                            class="huFlowCollapsedPrompt">
+                            <core:Icon
+                                src="sap-icon://process"
+                                class="huFlowCollapsedIcon" />
+                            <VBox>
+                                <Text
+                                    text="{viewModel>PurchaseOrderCountText}"
+                                    class="huFlowCollapsedTitle" />
+                                <Text
+                                    text="Despliega la HU para ver sus pedidos y materiales"
+                                    wrapping="true"
+                                    class="huFlowCollapsedText" />
+                            </VBox>
+                        </HBox>
 
-                    <VBox class="purchaseOrderCell">
                         <VBox
                             visible="{=
                                 ${viewModel>IsHU}
                                 &amp;&amp;
                                 !${viewModel>IsGroupHeader}
+                                &amp;&amp;
+                                ${viewModel>HuFlowExpanded}
                             }"
-                            class="purchaseOrderSummaryBox">
-
-                            <Text
-                                text="{viewModel>PurchaseOrderCountText}"
-                                class="cellSummaryLabel" />
+                            class="huFlowBox">
 
                             <HBox
-                                items="{viewModel>PurchaseOrderSummaries}"
-                                wrap="Wrap"
-                                class="purchaseOrderList">
+                                width="100%"
+                                alignItems="Center"
+                                justifyContent="SpaceBetween"
+                                class="huFlowHeader">
+                                <VBox>
+                                    <Text
+                                        text="Nivel 2 · Pedidos y materiales"
+                                        class="huFlowEyebrow" />
+                                    <Text
+                                        text="{viewModel>PurchaseOrderCountText}"
+                                        class="huFlowCount" />
+                                </VBox>
+                                <ObjectStatus
+                                    text="{= ${viewModel>HuSelected} ? 'HU activa' : 'Selecciona la HU' }"
+                                    state="{= ${viewModel>HuSelected} ? 'Success' : 'Information' }"
+                                    class="huFlowHuState" />
+                            </HBox>
+
+                            <VBox
+                                width="100%"
+                                visible="{viewModel>HasHuMaterialDetails}"
+                                class="huFlowOrderCard">
+
+                                <VBox
+                                    width="100%"
+                                    class="huFlowMaterialSection">
+                                    <Table
+                                        items="{
+                                            path: 'viewModel>HuMaterialDetails',
+                                            templateShareable: false
+                                        }"
+                                        inset="false"
+                                        fixedLayout="false"
+                                        width="100%"
+                                        noDataText="La HU no contiene materiales sin pedido."
+                                        class="huFlowMaterialTable">
+                                        <columns>
+                                            <Column width="3rem" hAlign="Center">
+                                                <Text text="#" />
+                                            </Column>
+                                            <Column width="12rem">
+                                                <Text text="Material" />
+                                            </Column>
+                                            <Column width="18rem">
+                                                <Text text="Nombre del material" />
+                                            </Column>
+                                            <Column width="10rem">
+                                                <Text text="Lote" />
+                                            </Column>
+                                            <Column width="8rem" hAlign="End">
+                                                <Text text="Cantidad" />
+                                            </Column>
+                                            <Column width="6rem">
+                                                <Text text="Unidad" />
+                                            </Column>
+                                        </columns>
+                                        <items>
+                                            <ColumnListItem
+                                                type="Inactive"
+                                                vAlign="Middle"
+                                                class="huFlowMaterialTableRow">
+                                                <cells>
+                                                    <ObjectStatus
+                                                        text="{viewModel>MaterialPosition}"
+                                                        state="Information"
+                                                        class="huFlowMaterialPosition" />
+                                                    <Text
+                                                        text="{= ${viewModel>DisplayMatnr} || '-' }"
+                                                        wrapping="false"
+                                                        tooltip="{viewModel>Matnr}"
+                                                        class="huFlowMaterialNumber" />
+                                                    <Text
+                                                        text="{viewModel>Maktx}"
+                                                        wrapping="true"
+                                                        tooltip="{viewModel>Maktx}"
+                                                        class="huFlowMaterialDescription" />
+                                                    <Text
+                                                        text="{= ${viewModel>Charg} || '-' }"
+                                                        wrapping="false"
+                                                        class="huFlowBatch" />
+                                                    <ObjectNumber
+                                                        number="{= ${viewModel>Menge} || '-' }"
+                                                        emphasized="false"
+                                                        class="huFlowQuantity" />
+                                                    <Text
+                                                        text="{= ${viewModel>Meins} || '-' }"
+                                                        class="huFlowUnit" />
+                                                </cells>
+                                            </ColumnListItem>
+                                        </items>
+                                    </Table>
+                                </VBox>
+                            </VBox>
+
+                            <VBox
+                                width="100%"
+                                items="{
+                                    path: 'viewModel>FlowOptions',
+                                    templateShareable: false
+                                }"
+                                class="huFlowOrderList">
 
                                 <items>
-                                    <ObjectStatus
-                                        text="{viewModel>Ebeln}"
-                                        state="Information"
-                                        class="purchaseOrderTag" />
+                                    <VBox
+                                        width="100%"
+                                        class="huFlowOrderCard">
+
+                                        <HBox
+                                            width="100%"
+                                            alignItems="Center"
+                                            class="huFlowOrderHeader">
+                                            <Button
+                                                type="Transparent"
+                                                icon="{= ${viewModel>MaterialExpanded} ? 'sap-icon://slim-arrow-down' : 'sap-icon://slim-arrow-right' }"
+                                                tooltip="{= ${viewModel>MaterialExpanded} ? 'Ocultar materiales del pedido' : 'Mostrar materiales del pedido' }"
+                                                press=".onToggleOrderMaterials"
+                                                class="huFlowOrderExpandButton" />
+
+                                            <HBox
+                                                alignItems="Center"
+                                                justifyContent="Center"
+                                                class="huFlowOrderSelectionBox">
+                                                <CheckBox
+                                                    selected="{viewModel>selected}"
+                                                    tooltip="{= ${viewModel>selected} ? 'Quitar pedido de la selección' : 'Seleccionar pedido de compra' }"
+                                                    select=".onInlineOrderSelection"
+                                                    class="huFlowOrderCheck" />
+                                            </HBox>
+
+                                            <VBox
+                                                width="100%"
+                                                class="huFlowOrderTitleBox">
+                                                <Text
+                                                    text="Pedido de compra · Nivel 2"
+                                                    class="huFlowOrderLabel" />
+                                                <Text
+                                                    text="{viewModel>Ebeln}"
+                                                    class="huFlowOrderNumber" />
+                                            </VBox>
+
+                                            <VBox alignItems="End">
+                                                <ObjectStatus
+                                                    text="{= ${viewModel>selected} ? 'Seleccionado' : 'Disponible' }"
+                                                    state="{= ${viewModel>selected} ? 'Success' : 'Information' }"
+                                                    class="huFlowOrderState" />
+                                                <Text
+                                                    text="{viewModel>MaterialCountText}"
+                                                    class="huFlowOrderMaterialCount" />
+                                            </VBox>
+                                        </HBox>
+
+                                        <HBox
+                                            width="100%"
+                                            alignItems="Center"
+                                            visible="{= !${viewModel>MaterialExpanded} }"
+                                            class="huFlowOrderPrompt">
+                                            <core:Icon
+                                                src="sap-icon://hint"
+                                                class="huFlowOrderPromptIcon" />
+                                            <Text
+                                                text="Despliega el pedido para consultar sus materiales."
+                                                wrapping="true"
+                                                class="huFlowOrderPromptText" />
+                                        </HBox>
+
+                                        <VBox
+                                            width="100%"
+                                            visible="{viewModel>MaterialExpanded}"
+                                            class="huFlowMaterialSection">
+                                            <HBox
+                                                alignItems="Center"
+                                                class="huFlowMaterialSectionHeader">
+                                                <core:Icon
+                                                    src="sap-icon://product"
+                                                    class="huFlowMaterialSectionIcon" />
+                                                <Text
+                                                    text="Nivel 3 · Materiales del pedido"
+                                                    class="huFlowMaterialSectionTitle" />
+                                            </HBox>
+
+                                            <Table
+                                                items="{
+                                                    path: 'viewModel>MaterialDetails',
+                                                    templateShareable: false
+                                                }"
+                                                inset="false"
+                                                fixedLayout="false"
+                                                width="100%"
+                                                noDataText="El pedido no contiene materiales."
+                                                class="huFlowMaterialTable">
+                                                <columns>
+                                                    <Column width="3rem" hAlign="Center">
+                                                        <Text text="#" />
+                                                    </Column>
+                                                    <Column width="12rem">
+                                                        <Text text="Material" />
+                                                    </Column>
+                                                    <Column width="18rem">
+                                                        <Text text="Nombre del material" />
+                                                    </Column>
+                                                    <Column width="10rem">
+                                                        <Text text="Lote" />
+                                                    </Column>
+                                                    <Column width="8rem" hAlign="End">
+                                                        <Text text="Cantidad" />
+                                                    </Column>
+                                                    <Column width="6rem">
+                                                        <Text text="Unidad" />
+                                                    </Column>
+                                                </columns>
+                                                <items>
+                                                    <ColumnListItem
+                                                        type="Inactive"
+                                                        vAlign="Middle"
+                                                        class="huFlowMaterialTableRow">
+                                                        <cells>
+                                                            <ObjectStatus
+                                                                text="{viewModel>MaterialPosition}"
+                                                                state="Information"
+                                                                class="huFlowMaterialPosition" />
+                                                            <Text
+                                                                text="{= ${viewModel>DisplayMatnr} || '-' }"
+                                                                wrapping="false"
+                                                                tooltip="{viewModel>Matnr}"
+                                                                class="huFlowMaterialNumber" />
+                                                            <Text
+                                                                text="{viewModel>Maktx}"
+                                                                wrapping="true"
+                                                                tooltip="{viewModel>Maktx}"
+                                                                class="huFlowMaterialDescription" />
+                                                            <Text
+                                                                text="{= ${viewModel>Charg} || '-' }"
+                                                                wrapping="false"
+                                                                class="huFlowBatch" />
+                                                            <ObjectNumber
+                                                                number="{= ${viewModel>Menge} || '-' }"
+                                                                emphasized="false"
+                                                                class="huFlowQuantity" />
+                                                            <Text
+                                                                text="{= ${viewModel>Meins} || '-' }"
+                                                                class="huFlowUnit" />
+                                                        </cells>
+                                                    </ColumnListItem>
+                                                </items>
+                                            </Table>
+                                        </VBox>
+
+                                    </VBox>
                                 </items>
-                            </HBox>
+                            </VBox>
+
+                            <Text
+                                text="Selecciona esta HU para incluir todos sus pedidos de compra."
+                                wrapping="true"
+                                visible="{= !${viewModel>HuSelected} }"
+                                class="huFlowHint" />
                         </VBox>
 
                         <Text
@@ -679,37 +950,9 @@
                                 ${viewModel>IsHU}
                                 &amp;&amp;
                                 !${viewModel>IsGroupHeader}
-                                &amp;&amp;
-                                ${viewModel>HuSelectionRequired}
                             }"
                             select=".onSelectHu"
                             class="selectHuCheckBox" />
-
-                        <Button
-                            text="{=
-                                ${viewModel>SelectionOptionCount} === 1
-                                    ? 'Ver detalle'
-                                    : ${viewModel>selectedProvider}
-                                        ? 'Cambiar selección'
-                                        : 'Elegir pedidos'
-                            }"
-                            type="Transparent"
-                            icon="{=
-                                ${viewModel>SelectionOptionCount} === 1
-                                    ? 'sap-icon://detail-view'
-                                    : 'sap-icon://value-help'
-                            }"
-                            visible="{=
-                                ${viewModel>IsHU}
-                                &amp;&amp;
-                                !${viewModel>IsGroupHeader}
-                                &amp;&amp;
-                                ${viewModel>HuSelected}
-                                &amp;&amp;
-                                ${viewModel>SelectionOptionCount} > 0
-                            }"
-                            press=".onOpenProviderDialog"
-                            class="selectProviderButton" />
                     </HBox>
                 </cells>
             </ColumnListItem>
@@ -719,8 +962,8 @@
     <MessageStrip
         text="{=
             ${viewModel>/summary/huSelectionPending} > 0
-                ? 'Selecciona una de las HU disponibles para continuar.'
-                : 'Revisa el proveedor y selecciona uno o varios pedidos de compra de la HU elegida.'
+                ? 'Selecciona una o varias HU disponibles para continuar.'
+                : 'Selecciona los pedidos de compra de cada HU elegida y revisa sus materiales.'
         }"
         type="Information"
         showIcon="true"
@@ -755,7 +998,7 @@
             <items>
                 <SegmentedButtonItem
                     key="preview"
-                    text="{= 'Vista previa (' + ${viewModel>/preview}.length + ')' }"
+                    text="{= 'Flujo HU (' + ${viewModel>/summary/hu} + ')' }"
                     icon="sap-icon://overview-chart" />
 
                 <SegmentedButtonItem
