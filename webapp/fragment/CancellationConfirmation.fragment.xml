@@ -190,6 +190,7 @@
                         type="Reject"
                         icon="sap-icon://decline"
                         press=".onConfirmCancellation"
+                        enabled="{= !${viewModel>/busy} }"
                         class="cancellationConfirmSubmitButton" />
                 </HBox>
 

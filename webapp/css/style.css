@@ -6288,3 +6288,94 @@ body,
         width: 100% !important;
     }
 }
+/* =========================================================
+   DIALOG RESULTADO DE ANULACION
+   ========================================================= */
+
+.cancelResultDialog .sapMDialogTitleGroup {
+    border-bottom: 1px solid #e5e7eb !important;
+}
+
+.cancelResultDialog .sapMDialogSection {
+    padding: 0 !important;
+}
+
+.cancelResultDialogContent {
+    padding: 0 !important;
+}
+
+.cancelResultDialogHtml {
+    padding: 1rem 1.25rem 1rem 1.25rem;
+    box-sizing: border-box;
+    background: #ffffff;
+    color: #1f2937;
+    font-family: "72", Arial, sans-serif;
+}
+
+.cancelResultSummary {
+    margin-bottom: 1rem;
+    padding: 0.85rem 1rem;
+    border-radius: 0.75rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    font-size: 1rem;
+    line-height: 1.4rem;
+}
+
+.cancelResultSummaryStrong {
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.cancelResultSection {
+    margin-bottom: 1.25rem;
+}
+
+.cancelResultSectionTitle {
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    line-height: 1.2rem;
+    font-weight: 800;
+}
+
+.cancelResultSectionTitle.success {
+    color: #15803d;
+}
+
+.cancelResultSectionTitle.warning {
+    color: #b45309;
+}
+
+.cancelResultCard {
+    margin-bottom: 0.75rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid #dbeafe;
+    border-radius: 0.85rem;
+    background: #f8fbff;
+}
+
+.cancelResultLine {
+    margin-bottom: 0.35rem;
+    font-size: 0.96rem;
+    line-height: 1.35rem;
+    word-break: break-word;
+}
+
+.cancelResultLine:last-child {
+    margin-bottom: 0;
+}
+
+.cancelResultLabel {
+    font-weight: 800;
+    color: #1e3a8a;
+}
+
+.cancelResultReason {
+    margin-top: 0.45rem;
+    padding-top: 0.45rem;
+    border-top: 1px dashed #cbd5e1;
+    font-size: 0.95rem;
+    line-height: 1.35rem;
+    color: #7c2d12;
+    word-break: break-word;
+}

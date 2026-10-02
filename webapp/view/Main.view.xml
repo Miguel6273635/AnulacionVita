@@ -419,6 +419,14 @@
 
         <ToolbarSpacer />
 
+        <Button
+            text="Seleccionar todo"
+            type="Transparent"
+            icon="sap-icon://multi-select"
+            press=".onSelectAllHu"
+            enabled="{= ${viewModel>/summary/hu} > 0 &amp;&amp; !${viewModel>/busy} }"
+            tooltip="Seleccionar todas las HU y todos sus pedidos" />
+
         <ObjectStatus
             text="{=
                 ${viewModel>/summary/hu} === 1

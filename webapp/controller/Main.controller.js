@@ -1325,6 +1325,54 @@ sap.ui.define([
             );
         },
 
+        onSelectAllHu: function () {
+            var oVM = this.getVM();
+
+            if (oVM.getProperty("/busy")) {
+                return;
+            }
+
+            var aPreview = oVM.getProperty("/preview") || [];
+            var iSelectedHu = this._selectAllHuRows(aPreview);
+
+            if (!iSelectedHu) {
+                MessageToast.show("No hay HU disponibles para seleccionar.");
+                return;
+            }
+
+            oVM.setProperty("/preview", aPreview);
+            this._refreshPreviewDisplay();
+            this._updateSummary(aPreview);
+            this._evaluatePreviewBeforeCancel(aPreview);
+
+            MessageToast.show(
+                iSelectedHu === 1
+                    ? "1 HU seleccionada con todos sus pedidos."
+                    : iSelectedHu +
+                        " HU seleccionadas con todos sus pedidos."
+            );
+        },
+
+        _selectAllHuRows: function (aPreview) {
+            var iSelectedHu = 0;
+
+            (aPreview || []).forEach(function (oRow, iIndex) {
+                if (!this._isHU(oRow)) {
+                    return;
+                }
+
+                if (this._updateHuSelection(
+                    aPreview,
+                    "/preview/" + iIndex,
+                    true
+                )) {
+                    iSelectedHu++;
+                }
+            }.bind(this));
+
+            return iSelectedHu;
+        },
+
         _updateHuSelection: function (
             aPreview,
             sSelectedPath,
@@ -2230,10 +2278,15 @@ sap.ui.define([
         },
 
         onAnularDocumento: function () {
-            var sMatDoc = this.getVM().getProperty("/matDoc");
-            var bCanCancel = this.getVM().getProperty("/canCancel");
-            var aPreview = this.getVM().getProperty("/preview") || [];
-            var oSummary = this.getVM().getProperty("/summary") || {};
+            var oVM = this.getVM();
+            var sMatDoc = oVM.getProperty("/matDoc");
+            var bCanCancel = oVM.getProperty("/canCancel");
+            var aPreview = oVM.getProperty("/preview") || [];
+            var oSummary = oVM.getProperty("/summary") || {};
+
+            if (oVM.getProperty("/busy")) {
+                return;
+            }
 
             if (!sMatDoc) {
                 MessageBox.warning(
@@ -2311,6 +2364,11 @@ sap.ui.define([
 
         onConfirmCancellation: function () {
             var oPending = this._oPendingCancellation;
+            var oVM = this.getVM();
+
+            if (oVM.getProperty("/busy")) {
+                return;
+            }
 
             if (!oPending || !oPending.matDoc) {
                 this.onCloseCancellationConfirmation();
@@ -2321,8 +2379,11 @@ sap.ui.define([
                 this._oCancellationConfirmationDialog.close();
             }
 
+            // Bloqueo inmediato para impedir doble clic antes de iniciar
+            // la primera llamada OData.
+            oVM.setProperty("/busy", true);
             this._oPendingCancellation = null;
-            this._postAnulacion(
+            this._postMultipleAnulaciones(
                 oPending.matDoc,
                 oPending.huSelections || []
             );
@@ -2541,6 +2602,12 @@ sap.ui.define([
                 ? aSelections
                 : [];
             var oFirstItem = aItems[0] || {};
+            var sEbelnsSel = aItems
+                .map(function (oItem) {
+                    return String(oItem.Ebeln || "").trim();
+                })
+                .filter(Boolean)
+                .join(";");
 
             return {
                 MatDoc: sMatDoc,
@@ -2552,12 +2619,8 @@ sap.ui.define([
                     })
                     .filter(Boolean)
                     .join(";"),
-                EbelnsSel: aItems
-                    .map(function (oItem) {
-                        return String(oItem.Ebeln || "").trim();
-                    })
-                    .filter(Boolean)
-                    .join(";")
+                EbelnSel: sEbelnsSel,
+                EbelnsSel: sEbelnsSel
             };
         },
 
@@ -2657,46 +2720,511 @@ sap.ui.define([
             return aSections.join("\n\n");
         },
 
-        _postMultipleAnulaciones: function (sMatDoc, aSelections) {
-            var aGroups = this._groupHuSelections(aSelections);
-            var aResults = [];
-            var iCurrentGroup = 0;
 
-            this.getVM().setProperty("/busy", true);
-            this.getVM().setProperty("/detalle", []);
-            this.getVM().setProperty(
-                "/cancellationSummary",
-                this._getEmptyCancellationSummary()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+_postMultipleAnulaciones: function (sMatDoc, aSelections) {
+  var aOriginalGroups = this._groupHuSelections(aSelections);
+  var aResults = [];
+  var iCurrentGroup = 0;
+  var oVM = this.getVM();
+
+  var sSequentialTraceId = this._generateTraceId("ANULACION_SECUENCIAL");
+
+  var fnNormalize = function (sValue) {
+    return String(sValue || "").trim().replace(/^0+/, "");
+  };
+
+  var fnFindCurrentHuRow = function (aPreview, oOriginalGroup) {
+    var sTargetExidv = fnNormalize(oOriginalGroup.HuExidv);
+    var sTargetVenum = fnNormalize(oOriginalGroup.HuVenum);
+    var oBestMatch = null;
+    var i;
+
+    for (i = 0; i < (aPreview || []).length; i++) {
+      var oRow = aPreview[i];
+
+      if (!this._isHU(oRow)) {
+        continue;
+      }
+
+      var sRowExidv = fnNormalize(oRow.HuExidv);
+      var sRowVenum = fnNormalize(oRow.HuVenum);
+
+      if (sTargetExidv && sRowExidv && sTargetExidv === sRowExidv) {
+        return oRow;
+      }
+
+      if (!oBestMatch && sTargetVenum && sRowVenum && sTargetVenum === sRowVenum) {
+        oBestMatch = oRow;
+      }
+    }
+
+    return oBestMatch;
+  }.bind(this);
+
+  var fnBuildFreshSelections = function (oOriginalGroup, oCurrentHuRow) {
+    var aOriginalSelections = oOriginalGroup.selections || [];
+    var aProviderOptions = oCurrentHuRow.providerOptions || [];
+    var mWantedEbeln = {};
+    var mWantedLifnr = {};
+    var bHasWantedEbeln = false;
+    var bHasWantedLifnr = false;
+
+    aOriginalSelections.forEach(function (oSelection) {
+      var sEbeln = String(oSelection.Ebeln || "").trim();
+      var sLifnr = String(oSelection.Lifnr || "").trim();
+
+      if (sEbeln) {
+        mWantedEbeln[sEbeln] = true;
+        bHasWantedEbeln = true;
+      }
+
+      if (sLifnr) {
+        mWantedLifnr[sLifnr] = true;
+        bHasWantedLifnr = true;
+      }
+    });
+
+    var aMatchedProviders = aProviderOptions.filter(function (oProvider) {
+      var sProviderEbeln = String(oProvider.Ebeln || "").trim();
+      var sProviderLifnr = String(oProvider.Lifnr || "").trim();
+
+      var bEbelnOk = !bHasWantedEbeln || !!mWantedEbeln[sProviderEbeln];
+      var bLifnrOk = !bHasWantedLifnr || !!mWantedLifnr[sProviderLifnr];
+
+      return bEbelnOk && bLifnrOk;
+    });
+
+    if (!aMatchedProviders.length && Array.isArray(oCurrentHuRow.selectedProviders)) {
+      aMatchedProviders = oCurrentHuRow.selectedProviders;
+    }
+
+    if (!aMatchedProviders.length) {
+      aMatchedProviders = aProviderOptions;
+    }
+
+    return aMatchedProviders.map(function (oProvider) {
+      return {
+        HuVenum: String(oCurrentHuRow.HuVenum || oProvider.HuVenum || "").trim(),
+        HuExidv: String(oCurrentHuRow.HuExidv || oProvider.HuExidv || "").trim(),
+        Lifnr: String(oProvider.Lifnr || "").trim(),
+        Name1: String(oProvider.Name1 || "").trim(),
+        Ebeln: String(oProvider.Ebeln || "").trim(),
+        SeqNo: oProvider.SeqNo,
+        GrMatDoc: String(oProvider.GrMatDoc || "").trim(),
+        GrYear: String(oProvider.GrYear || "").trim(),
+        SoVbeln: String(oProvider.SoVbeln || "").trim(),
+        DelivVbeln: String(oProvider.DelivVbeln || "").trim(),
+        Charg: String(oProvider.Charg || "").trim(),
+        Menge: String(oProvider.Menge || "").trim(),
+        Meins: String(oProvider.Meins || "").trim(),
+        Matnr: String(oProvider.Matnr || "").trim(),
+        DisplayMatnr: oProvider.DisplayMatnr || String(oProvider.Matnr || "").trim().slice(-10),
+        Maktx: String(oProvider.Maktx || "").trim()
+      };
+    });
+  };
+
+  var fnAddPendingAsSkipped = function () {
+    aOriginalGroups.slice(iCurrentGroup).forEach(function (oPendingGroup) {
+      aResults.push({
+        success: false,
+        skipped: true,
+        error: {
+          message: "No se envió porque una HU anterior regresó error."
+        },
+        group: oPendingGroup
+      });
+    });
+  };
+
+  this._logInfo(
+    "ANULACION_SECUENCIAL.INICIO",
+    "Inicia la cola con refresh real antes de cada HU",
+    {
+      traceId: sSequentialTraceId,
+      matDoc: sMatDoc,
+      totalHu: aOriginalGroups.length,
+      huQueue: aOriginalGroups.map(function (oGroup) {
+        return {
+          HuVenum: oGroup.HuVenum,
+          HuExidv: oGroup.HuExidv
+        };
+      })
+    }
+  );
+
+  oVM.setProperty("/busy", true);
+  oVM.setProperty("/detalle", []);
+  oVM.setProperty("/cancellationSummary", this._getEmptyCancellationSummary());
+
+  var fnPostNextGroup = function () {
+    if (iCurrentGroup >= aOriginalGroups.length) {
+      this._logInfo(
+        "ANULACION_SECUENCIAL.FIN",
+        "Finalizó la cola; no quedan HU por enviar",
+        {
+          traceId: sSequentialTraceId,
+          matDoc: sMatDoc,
+          totalHu: aOriginalGroups.length,
+          results: aResults
+        }
+      );
+
+      this._finalizeMultipleAnulaciones(sMatDoc, aResults);
+      return;
+    }
+
+    var oOriginalGroup = aOriginalGroups[iCurrentGroup];
+    var iPosition = iCurrentGroup + 1;
+
+    this._logInfo(
+      "ANULACION_SECUENCIAL.REFRESH",
+      "Se refresca preview antes de preparar la HU " + iPosition,
+      {
+        traceId: sSequentialTraceId,
+        position: iPosition,
+        totalHu: aOriginalGroups.length,
+        originalHuVenum: oOriginalGroup.HuVenum,
+        originalHuExidv: oOriginalGroup.HuExidv
+      }
+    );
+
+    this._refreshPreviewAfterCancellation(
+      sMatDoc,
+      function (bPreviewUpdated, oPreviewError) {
+        if (!bPreviewUpdated) {
+          aResults.push({
+            success: false,
+            error: {
+              message: "No fue posible refrescar la vista previa antes de enviar la siguiente HU.",
+              detail: oPreviewError
+            },
+            group: oOriginalGroup
+          });
+
+          iCurrentGroup++;
+          fnAddPendingAsSkipped();
+
+          this._finalizeMultipleAnulaciones(sMatDoc, aResults);
+          return;
+        }
+
+        var aCurrentPreview = oVM.getProperty("/preview") || [];
+        var oCurrentHuRow = fnFindCurrentHuRow(aCurrentPreview, oOriginalGroup);
+
+        if (!oCurrentHuRow) {
+          this._logWarn(
+            "ANULACION_SECUENCIAL.HU_NO_ENCONTRADA",
+            "La HU ya no aparece en el preview actualizado; se considera atendida y continúa la cola",
+            {
+              traceId: sSequentialTraceId,
+              position: iPosition,
+              totalHu: aOriginalGroups.length,
+              originalHuVenum: oOriginalGroup.HuVenum,
+              originalHuExidv: oOriginalGroup.HuExidv
+            }
+          );
+
+          aResults.push({
+            success: true,
+            alreadyRemoved: true,
+            data: {
+              Status: "S",
+              Message: "La HU ya no aparece en la vista previa actualizada; se considera ya procesada."
+            },
+            group: oOriginalGroup
+          });
+
+          iCurrentGroup++;
+          this._waitForSapRelease(fnPostNextGroup);
+          return;
+        }
+
+        var aFreshSelections = fnBuildFreshSelections(oOriginalGroup, oCurrentHuRow);
+
+        if (!aFreshSelections.length) {
+          aResults.push({
+            success: false,
+            error: {
+              message: "No se encontraron proveedores/pedidos vigentes para la HU en el preview actualizado."
+            },
+            group: oOriginalGroup
+          });
+
+          iCurrentGroup++;
+          fnAddPendingAsSkipped();
+
+          this._finalizeMultipleAnulaciones(sMatDoc, aResults);
+          return;
+        }
+
+        var oRuntimeGroup = {
+          HuVenum: String(oCurrentHuRow.HuVenum || "").trim(),
+          HuExidv: String(oCurrentHuRow.HuExidv || "").trim(),
+          selections: aFreshSelections,
+          originalGroup: oOriginalGroup
+        };
+
+        this._logInfo(
+          "ANULACION_SECUENCIAL.ENVIO",
+          "Enviando HU " + iPosition + " de " + aOriginalGroups.length + " con datos refrescados",
+          {
+            traceId: sSequentialTraceId,
+            position: iPosition,
+            totalHu: aOriginalGroups.length,
+            MatDoc: sMatDoc,
+            HuVenum: oRuntimeGroup.HuVenum,
+            HuExidv: oRuntimeGroup.HuExidv,
+            selections: aFreshSelections
+          }
+        );
+
+        iCurrentGroup++;
+
+        this._postAnulacion(
+          sMatDoc,
+          aFreshSelections,
+          {
+            isBatchItem: true,
+            onComplete: function (oResult) {
+              var sResponseStatus = String(
+                oResult.data && oResult.data.Status
+                  ? oResult.data.Status
+                  : ""
+              ).toUpperCase();
+
+              if (!sResponseStatus) {
+                sResponseStatus = oResult.success === true ? "S" : "E";
+              }
+
+              aResults.push(Object.assign({}, oResult, {
+                group: oRuntimeGroup
+              }));
+
+              this._logInfo(
+                "ANULACION_SECUENCIAL.RESPUESTA",
+                "Respuesta final de HU " + iPosition + " de " + aOriginalGroups.length + ": " + sResponseStatus,
+                {
+                  traceId: sSequentialTraceId,
+                  position: iPosition,
+                  totalHu: aOriginalGroups.length,
+                  HuVenum: oRuntimeGroup.HuVenum,
+                  HuExidv: oRuntimeGroup.HuExidv,
+                  Status: sResponseStatus,
+                  Message:
+                    oResult.data && oResult.data.Message ||
+                    this._getAnulacionResultErrorMessage(oResult)
+                }
+              );
+
+              if (oResult.success !== true) {
+                this._logError(
+                  "ANULACION_SECUENCIAL.DETENIDA",
+                  "La cola se detuvo en la HU " + iPosition + "; no se enviarán las restantes",
+                  {
+                    traceId: sSequentialTraceId,
+                    HuVenum: oRuntimeGroup.HuVenum,
+                    HuExidv: oRuntimeGroup.HuExidv,
+                    Status: sResponseStatus,
+                    pendingHu: aOriginalGroups.length - iCurrentGroup
+                  }
+                );
+
+                fnAddPendingAsSkipped();
+                this._finalizeMultipleAnulaciones(sMatDoc, aResults);
+                return;
+              }
+
+              this._logInfo(
+                "ANULACION_SECUENCIAL.ESPERA",
+                "Respuesta aceptada; esperando liberación SAP antes de refrescar y continuar",
+                {
+                  traceId: sSequentialTraceId,
+                  completedHu: iPosition,
+                  pendingHu: aOriginalGroups.length - iCurrentGroup
+                }
+              );
+
+              this._waitForSapRelease(fnPostNextGroup);
+            }.bind(this)
+          }
+        );
+      }.bind(this)
+    );
+  }.bind(this);
+
+  fnPostNextGroup();
+},
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        _waitForSapRelease: function (fnContinue) {
+            setTimeout(fnContinue, 2000);
+        },
+
+        _refreshPreviewAfterCancellation: function (
+            sMatDoc,
+            fnComplete
+        ) {
+            var oModel = this.getModel();
+            var oVM = this.getVM();
+            var sTraceId = this._generateTraceId(
+                "PREVIEW_AFTER_ANULACION"
             );
 
-            var fnPostNextGroup = function () {
-                if (iCurrentGroup >= aGroups.length) {
-                    this._finalizeMultipleAnulaciones(
-                        sMatDoc,
-                        aResults
-                    );
-                    return;
-                }
+            oModel.read("/AnulacionPreviewHeaderSet", {
+                filters: [
+                    new Filter(
+                        "MatDoc",
+                        FilterOperator.EQ,
+                        sMatDoc
+                    )
+                ],
+                urlParameters: {
+                    "sap-client": "300",
+                    "$expand": "ToItems"
+                },
+                success: function (oData) {
+                    var oHeader = this._getDeepPreviewHeader(oData);
+                    var aItems = this._getDeepPreviewItems(oHeader);
+                    var aGroupedRows = [];
 
-                var oGroup = aGroups[iCurrentGroup];
-                iCurrentGroup++;
-
-                this._postAnulacion(
-                    sMatDoc,
-                    oGroup.selections,
-                    {
-                        isBatchItem: true,
-                        onComplete: function (oResult) {
-                            aResults.push(Object.assign({}, oResult, {
-                                group: oGroup
-                            }));
-                            fnPostNextGroup();
-                        }
+                    if (
+                        oHeader &&
+                        String(oHeader.Status || "")
+                            .toUpperCase() !== "E" &&
+                        aItems.length
+                    ) {
+                        aGroupedRows = this._buildPreviewRows(
+                            this._mapDeepPreviewItems(oHeader, aItems)
+                        );
                     }
-                );
-            }.bind(this);
 
-            fnPostNextGroup();
+                    oVM.setProperty("/previewHeader", oHeader || {});
+                    oVM.setProperty("/previewItems", aItems);
+                    oVM.setProperty("/preview", aGroupedRows);
+                    this._refreshPreviewDisplay();
+                    this._updateSummary(aGroupedRows);
+                    oVM.setProperty("/canCancel", false);
+
+                    this._logInfo(
+                        "_refreshPreviewAfterCancellation.success",
+                        "Vista previa actualizada después de la anulación",
+                        {
+                            traceId: sTraceId,
+                            matDoc: sMatDoc,
+                            huCount:
+                                oVM.getProperty("/summary/hu") || 0
+                        }
+                    );
+
+                    if (typeof fnComplete === "function") {
+                        fnComplete(true);
+                    }
+                }.bind(this),
+                error: function (oError) {
+                    this._logError(
+                        "_refreshPreviewAfterCancellation.error",
+                        "No fue posible actualizar la vista previa",
+                        {
+                            traceId: sTraceId,
+                            matDoc: sMatDoc,
+                            error: this._serializeError(oError)
+                        }
+                    );
+
+                    if (typeof fnComplete === "function") {
+                        fnComplete(false, oError);
+                    }
+                }.bind(this)
+            });
         },
 
         _finalizeMultipleAnulaciones: function (sMatDoc, aResults) {
@@ -2764,23 +3292,34 @@ sap.ui.define([
             );
             this.getVM().setProperty("/selectedSection", "detail");
 
-            if (!aSuccessResults.length) {
-                this.getVM().setProperty("/busy", false);
-                MessageBox.error(sDetailedMessage, {
-                    title: "Resultado de anulación"
-                });
-                return;
-            }
+            this._refreshPreviewAfterCancellation(
+                sMatDoc,
+                function (bPreviewUpdated) {
+                    if (!bPreviewUpdated) {
+                        MessageToast.show(
+                            "La anulación terminó, pero no fue posible refrescar la vista previa."
+                        );
+                    }
 
-            if (aErrorResults.length) {
-                MessageBox.warning(sDetailedMessage, {
-                    title: "Resultado de anulación"
-                });
-            } else {
-                MessageToast.show(sMessage);
-            }
+                    if (!aSuccessResults.length) {
+                        this.getVM().setProperty("/busy", false);
+                        MessageBox.error(sDetailedMessage, {
+                            title: "Resultado de anulación"
+                        });
+                        return;
+                    }
 
-            this._getDetalleFinalByMatDoc(sMatDoc);
+                    if (aErrorResults.length) {
+                        MessageBox.warning(sDetailedMessage, {
+                            title: "Resultado de anulación"
+                        });
+                    } else {
+                        MessageToast.show(sMessage);
+                    }
+
+                    this._getDetalleFinalByMatDoc(sMatDoc);
+                }.bind(this)
+            );
         },
 
         _postAnulacion: function (
@@ -3045,8 +3584,13 @@ sap.ui.define([
                         console.groupEnd();
 
                         if (typeof oOptions.onComplete === "function") {
+                            var sBatchStatus = String(
+                                oData && oData.Status
+                                    ? oData.Status
+                                    : "S"
+                            ).toUpperCase();
                             var bBatchSuccess = !(
-                                oData && oData.Status === "E"
+                                sBatchStatus === "E"
                             );
 
                             oOptions.onComplete({
