@@ -2311,11 +2311,19 @@ sap.ui.define([
                 return;
             }
 
-            var aHuSelections = this._getHuSelections(aPreview);
+            var aHuSelections = this._annotateHuSelectionScope(
+                aPreview,
+                this._getHuSelections(aPreview)
+            );
+            var bAllHuSelected = this._isFullHuSelection(
+                aPreview,
+                aHuSelections
+            );
 
             this._oPendingCancellation = {
                 matDoc: sMatDoc,
-                huSelections: aHuSelections
+                huSelections: aHuSelections,
+                allHuSelected: bAllHuSelected
             };
 
             this.getVM().setProperty("/confirmationDialog", {
@@ -2325,6 +2333,7 @@ sap.ui.define([
                 material: oSummary.material || 0,
                 otros: oSummary.otros || 0,
                 selectionCount: aHuSelections.length,
+                allHuSelected: bAllHuSelected,
                 selections: aHuSelections
             });
 
@@ -2383,6 +2392,15 @@ sap.ui.define([
             // la primera llamada OData.
             oVM.setProperty("/busy", true);
             this._oPendingCancellation = null;
+
+            if (oPending.allHuSelected) {
+                this._postAllHuAnulacion(
+                    oPending.matDoc,
+                    oPending.huSelections || []
+                );
+                return;
+            }
+
             this._postMultipleAnulaciones(
                 oPending.matDoc,
                 oPending.huSelections || []
@@ -2597,23 +2615,259 @@ sap.ui.define([
             return aGroups;
         },
 
-        _buildAnulacionPayload: function (sMatDoc, aSelections) {
+        _annotateHuSelectionScope: function (aPreview, aSelections) {
+            return (aSelections || []).map(function (oSelection) {
+                var sSelectionExidv = String(
+                    oSelection.HuExidv || ""
+                ).trim();
+                var sSelectionVenum = String(
+                    oSelection.HuVenum || ""
+                ).trim();
+                var oRow = (aPreview || []).find(function (oPreviewRow) {
+                    if (!this._isHU(oPreviewRow)) {
+                        return false;
+                    }
+
+                    var sRowExidv = String(
+                        oPreviewRow.HuExidv || ""
+                    ).trim();
+                    var sRowVenum = String(
+                        oPreviewRow.HuVenum || ""
+                    ).trim();
+
+                    return sSelectionExidv
+                        ? sRowExidv === sSelectionExidv
+                        : sRowVenum === sSelectionVenum;
+                }.bind(this));
+                var iAvailableOrders = oRow && Array.isArray(
+                    oRow.providerOptions
+                )
+                    ? oRow.providerOptions.length
+                    : 0;
+                var iSelectedOrders = oRow && Array.isArray(
+                    oRow.selectedProviders
+                )
+                    ? oRow.selectedProviders.length
+                    : 0;
+
+                return Object.assign({}, oSelection, {
+                    AllHuOrdersSelected:
+                        iAvailableOrders > 0 &&
+                        iSelectedOrders === iAvailableOrders
+                });
+            }.bind(this));
+        },
+
+        _isFullHuSelection: function (aPreview, aSelections) {
+            var aAvailableHu = (aPreview || []).filter(function (oRow) {
+                return this._isHU(oRow);
+            }.bind(this));
+            var aSelectedGroups = this._groupHuSelections(
+                aSelections || []
+            );
+            var mSelectedHu = {};
+
+            aSelectedGroups.forEach(function (oGroup) {
+                mSelectedHu[
+                    [oGroup.HuVenum, oGroup.HuExidv].join("|")
+                ] = true;
+            });
+
+            // Una sola HU siempre usa el POST individual con sus
+            // identificadores. El modo global aplica únicamente cuando
+            // existen varias HU, todas fueron seleccionadas y no se quitó
+            // ningún pedido de una HU.
+            return aAvailableHu.length > 1 &&
+                aSelectedGroups.length === aAvailableHu.length &&
+                aAvailableHu.every(function (oRow) {
+                    var sKey = [
+                        String(oRow.HuVenum || "").trim(),
+                        String(oRow.HuExidv || "").trim()
+                    ].join("|");
+                    var iAvailableOrders = (
+                        oRow.providerOptions || []
+                    ).length;
+                    var iSelectedOrders = (
+                        oRow.selectedProviders || []
+                    ).length;
+
+                    return !!mSelectedHu[sKey] &&
+                        iAvailableOrders > 0 &&
+                        iSelectedOrders === iAvailableOrders;
+                });
+        },
+
+        _normalizeHuIdentifier: function (sValue) {
+            var sNormalized = String(sValue || "").trim();
+
+            return sNormalized
+                ? (sNormalized.replace(/^0+/, "") || "0")
+                : "";
+        },
+
+        _findLiveHuRow: function (oTargetGroup, aPreview) {
+            var sTargetExidv = String(
+                oTargetGroup && oTargetGroup.HuExidv || ""
+            ).trim();
+            var sTargetVenum = String(
+                oTargetGroup && oTargetGroup.HuVenum || ""
+            ).trim();
+            var sNormalizedExidv = this._normalizeHuIdentifier(
+                sTargetExidv
+            );
+            var sNormalizedVenum = this._normalizeHuIdentifier(
+                sTargetVenum
+            );
+            var aHuRows = (aPreview || []).filter(function (oRow) {
+                return this._isHU(oRow);
+            }.bind(this));
+            var oLiveRow = aHuRows.find(function (oRow) {
+                return sNormalizedExidv &&
+                    this._normalizeHuIdentifier(oRow.HuExidv) ===
+                        sNormalizedExidv;
+            }.bind(this));
+
+            if (oLiveRow) {
+                return oLiveRow;
+            }
+
+            return aHuRows.find(function (oRow) {
+                return sNormalizedVenum &&
+                    this._normalizeHuIdentifier(oRow.HuVenum) ===
+                        sNormalizedVenum;
+            }.bind(this));
+        },
+
+        _getLiveHuSelections: function (oTargetGroup, aPreview) {
+            var oLiveRow = this._findLiveHuRow(
+                oTargetGroup,
+                aPreview
+            );
+
+            if (!oLiveRow) {
+                return [];
+            }
+
+            var mRequestedPairs = {};
+            var bAllOrdersOriginallySelected =
+                (oTargetGroup.selections || []).length > 0 &&
+                (oTargetGroup.selections || []).every(
+                    function (oSelection) {
+                        return oSelection.AllHuOrdersSelected === true;
+                    }
+                );
+
+            (oTargetGroup.selections || []).forEach(function (oSelection) {
+                var sOrder = String(oSelection.Ebeln || "").trim();
+                var sProvider = String(oSelection.Lifnr || "").trim();
+
+                if (sOrder || sProvider) {
+                    mRequestedPairs[
+                        [sProvider, sOrder].join("|")
+                    ] = true;
+                }
+            });
+
+            var aLiveProviders = (oLiveRow.providerOptions || []);
+
+            if (!bAllOrdersOriginallySelected) {
+                aLiveProviders = aLiveProviders.filter(
+                    function (oProvider) {
+                        var sPairKey = [
+                            String(oProvider.Lifnr || "").trim(),
+                            String(oProvider.Ebeln || "").trim()
+                        ].join("|");
+
+                        return !!mRequestedPairs[sPairKey];
+                    }
+                );
+            }
+
+            if (!aLiveProviders.length) {
+                return [];
+            }
+
+            if (
+                !bAllOrdersOriginallySelected &&
+                Object.keys(mRequestedPairs).some(function (sPairKey) {
+                    return !aLiveProviders.some(function (oProvider) {
+                        return [
+                            String(oProvider.Lifnr || "").trim(),
+                            String(oProvider.Ebeln || "").trim()
+                        ].join("|") === sPairKey;
+                    });
+                })
+            ) {
+                return [];
+            }
+
+            var oSelectableRow = Object.assign({}, oLiveRow, {
+                HuSelected: true,
+                HuSelectionRequired: false,
+                selectedProviders: aLiveProviders,
+                selectedProvider: aLiveProviders[0]
+            });
+
+            return this._getHuSelections([oSelectableRow]);
+        },
+
+        _getAllLiveHuSelections: function (aPreview) {
+            return (aPreview || []).reduce(function (
+                aSelections,
+                oRow
+            ) {
+                if (!this._isHU(oRow)) {
+                    return aSelections;
+                }
+
+                var aLiveProviders = oRow.providerOptions || [];
+                var oSelectableRow = Object.assign({}, oRow, {
+                    HuSelected: true,
+                    HuSelectionRequired: false,
+                    selectedProviders: aLiveProviders,
+                    selectedProvider: aLiveProviders[0]
+                });
+
+                return aSelections.concat(
+                    this._getHuSelections([oSelectableRow])
+                );
+            }.bind(this), []);
+        },
+
+        _buildAnulacionPayload: function (
+            sMatDoc,
+            aSelections,
+            bOmitHuIdentifiers
+        ) {
             var aItems = Array.isArray(aSelections)
                 ? aSelections
                 : [];
-            var oFirstItem = aItems[0] || {};
-            var sEbelnsSel = aItems
+            var mSeenPairs = {};
+            var aPayloadItems = bOmitHuIdentifiers
+                ? aItems.filter(function (oItem) {
+                    var sPairKey = [
+                        String(oItem.Lifnr || "").trim(),
+                        String(oItem.Ebeln || "").trim()
+                    ].join("|");
+
+                    if (mSeenPairs[sPairKey]) {
+                        return false;
+                    }
+
+                    mSeenPairs[sPairKey] = true;
+                    return true;
+                })
+                : aItems;
+            var oFirstItem = aPayloadItems[0] || {};
+            var sEbelnsSel = aPayloadItems
                 .map(function (oItem) {
                     return String(oItem.Ebeln || "").trim();
                 })
                 .filter(Boolean)
                 .join(";");
-
-            return {
+            var oPayload = {
                 MatDoc: sMatDoc,
-                HuVenum: String(oFirstItem.HuVenum || "").trim(),
-                HuExidv: String(oFirstItem.HuExidv || "").trim(),
-                ProveedoresSel: aItems
+                ProveedoresSel: aPayloadItems
                     .map(function (oItem) {
                         return String(oItem.Lifnr || "").trim();
                     })
@@ -2622,6 +2876,17 @@ sap.ui.define([
                 EbelnSel: sEbelnsSel,
                 EbelnsSel: sEbelnsSel
             };
+
+            if (!bOmitHuIdentifiers) {
+                oPayload.HuVenum = String(
+                    oFirstItem.HuVenum || ""
+                ).trim();
+                oPayload.HuExidv = String(
+                    oFirstItem.HuExidv || ""
+                ).trim();
+            }
+
+            return oPayload;
         },
 
         _formatHuAnulacionResult: function (oResult) {
@@ -2663,14 +2928,32 @@ sap.ui.define([
             var sMessage = String(
                 oError.message || ""
             ).trim();
+            var sHttpStatus = [
+                oError.statusCode,
+                oError.statusText
+            ].filter(Boolean).join(" ");
 
             try {
                 if (oError.responseText) {
                     var oResponse = JSON.parse(oError.responseText);
-                    var sSapMessage = oResponse &&
-                        oResponse.error &&
-                        oResponse.error.message &&
-                        oResponse.error.message.value;
+                    var oResponseError = oResponse && oResponse.error;
+                    var oResponseMessage = oResponseError &&
+                        oResponseError.message;
+                    var aErrorDetails = oResponseError &&
+                        oResponseError.innererror &&
+                        oResponseError.innererror.errordetails;
+                    var sSapMessage = oResponseMessage &&
+                        (oResponseMessage.value || oResponseMessage);
+
+                    if (!sSapMessage && Array.isArray(aErrorDetails)) {
+                        var oDetail = aErrorDetails.find(function (
+                            oErrorDetail
+                        ) {
+                            return oErrorDetail &&
+                                oErrorDetail.message;
+                        });
+                        sSapMessage = oDetail && oDetail.message;
+                    }
 
                     if (sSapMessage) {
                         sMessage = String(sSapMessage).trim();
@@ -2681,6 +2964,11 @@ sap.ui.define([
                 if (!(oParseError instanceof SyntaxError)) {
                     throw oParseError;
                 }
+            }
+
+            if (sHttpStatus && sMessage.indexOf(sHttpStatus) === -1) {
+                sMessage = (sMessage || "Falló la solicitud OData") +
+                    " (HTTP " + sHttpStatus + ")";
             }
 
             return sMessage || "SAP no devolvió el motivo.";
@@ -2720,430 +3008,437 @@ sap.ui.define([
             return aSections.join("\n\n");
         },
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-_postMultipleAnulaciones: function (sMatDoc, aSelections) {
-  var aOriginalGroups = this._groupHuSelections(aSelections);
-  var aResults = [];
-  var iCurrentGroup = 0;
-  var oVM = this.getVM();
-
-  var sSequentialTraceId = this._generateTraceId("ANULACION_SECUENCIAL");
-
-  var fnNormalize = function (sValue) {
-    return String(sValue || "").trim().replace(/^0+/, "");
-  };
-
-  var fnFindCurrentHuRow = function (aPreview, oOriginalGroup) {
-    var sTargetExidv = fnNormalize(oOriginalGroup.HuExidv);
-    var sTargetVenum = fnNormalize(oOriginalGroup.HuVenum);
-    var oBestMatch = null;
-    var i;
-
-    for (i = 0; i < (aPreview || []).length; i++) {
-      var oRow = aPreview[i];
-
-      if (!this._isHU(oRow)) {
-        continue;
-      }
-
-      var sRowExidv = fnNormalize(oRow.HuExidv);
-      var sRowVenum = fnNormalize(oRow.HuVenum);
-
-      if (sTargetExidv && sRowExidv && sTargetExidv === sRowExidv) {
-        return oRow;
-      }
-
-      if (!oBestMatch && sTargetVenum && sRowVenum && sTargetVenum === sRowVenum) {
-        oBestMatch = oRow;
-      }
-    }
-
-    return oBestMatch;
-  }.bind(this);
-
-  var fnBuildFreshSelections = function (oOriginalGroup, oCurrentHuRow) {
-    var aOriginalSelections = oOriginalGroup.selections || [];
-    var aProviderOptions = oCurrentHuRow.providerOptions || [];
-    var mWantedEbeln = {};
-    var mWantedLifnr = {};
-    var bHasWantedEbeln = false;
-    var bHasWantedLifnr = false;
-
-    aOriginalSelections.forEach(function (oSelection) {
-      var sEbeln = String(oSelection.Ebeln || "").trim();
-      var sLifnr = String(oSelection.Lifnr || "").trim();
-
-      if (sEbeln) {
-        mWantedEbeln[sEbeln] = true;
-        bHasWantedEbeln = true;
-      }
-
-      if (sLifnr) {
-        mWantedLifnr[sLifnr] = true;
-        bHasWantedLifnr = true;
-      }
-    });
-
-    var aMatchedProviders = aProviderOptions.filter(function (oProvider) {
-      var sProviderEbeln = String(oProvider.Ebeln || "").trim();
-      var sProviderLifnr = String(oProvider.Lifnr || "").trim();
-
-      var bEbelnOk = !bHasWantedEbeln || !!mWantedEbeln[sProviderEbeln];
-      var bLifnrOk = !bHasWantedLifnr || !!mWantedLifnr[sProviderLifnr];
-
-      return bEbelnOk && bLifnrOk;
-    });
-
-    if (!aMatchedProviders.length && Array.isArray(oCurrentHuRow.selectedProviders)) {
-      aMatchedProviders = oCurrentHuRow.selectedProviders;
-    }
-
-    if (!aMatchedProviders.length) {
-      aMatchedProviders = aProviderOptions;
-    }
-
-    return aMatchedProviders.map(function (oProvider) {
-      return {
-        HuVenum: String(oCurrentHuRow.HuVenum || oProvider.HuVenum || "").trim(),
-        HuExidv: String(oCurrentHuRow.HuExidv || oProvider.HuExidv || "").trim(),
-        Lifnr: String(oProvider.Lifnr || "").trim(),
-        Name1: String(oProvider.Name1 || "").trim(),
-        Ebeln: String(oProvider.Ebeln || "").trim(),
-        SeqNo: oProvider.SeqNo,
-        GrMatDoc: String(oProvider.GrMatDoc || "").trim(),
-        GrYear: String(oProvider.GrYear || "").trim(),
-        SoVbeln: String(oProvider.SoVbeln || "").trim(),
-        DelivVbeln: String(oProvider.DelivVbeln || "").trim(),
-        Charg: String(oProvider.Charg || "").trim(),
-        Menge: String(oProvider.Menge || "").trim(),
-        Meins: String(oProvider.Meins || "").trim(),
-        Matnr: String(oProvider.Matnr || "").trim(),
-        DisplayMatnr: oProvider.DisplayMatnr || String(oProvider.Matnr || "").trim().slice(-10),
-        Maktx: String(oProvider.Maktx || "").trim()
-      };
-    });
-  };
-
-  var fnAddPendingAsSkipped = function () {
-    aOriginalGroups.slice(iCurrentGroup).forEach(function (oPendingGroup) {
-      aResults.push({
-        success: false,
-        skipped: true,
-        error: {
-          message: "No se envió porque una HU anterior regresó error."
-        },
-        group: oPendingGroup
-      });
-    });
-  };
-
-  this._logInfo(
-    "ANULACION_SECUENCIAL.INICIO",
-    "Inicia la cola con refresh real antes de cada HU",
-    {
-      traceId: sSequentialTraceId,
-      matDoc: sMatDoc,
-      totalHu: aOriginalGroups.length,
-      huQueue: aOriginalGroups.map(function (oGroup) {
-        return {
-          HuVenum: oGroup.HuVenum,
-          HuExidv: oGroup.HuExidv
-        };
-      })
-    }
-  );
-
-  oVM.setProperty("/busy", true);
-  oVM.setProperty("/detalle", []);
-  oVM.setProperty("/cancellationSummary", this._getEmptyCancellationSummary());
-
-  var fnPostNextGroup = function () {
-    if (iCurrentGroup >= aOriginalGroups.length) {
-      this._logInfo(
-        "ANULACION_SECUENCIAL.FIN",
-        "Finalizó la cola; no quedan HU por enviar",
-        {
-          traceId: sSequentialTraceId,
-          matDoc: sMatDoc,
-          totalHu: aOriginalGroups.length,
-          results: aResults
-        }
-      );
-
-      this._finalizeMultipleAnulaciones(sMatDoc, aResults);
-      return;
-    }
-
-    var oOriginalGroup = aOriginalGroups[iCurrentGroup];
-    var iPosition = iCurrentGroup + 1;
-
-    this._logInfo(
-      "ANULACION_SECUENCIAL.REFRESH",
-      "Se refresca preview antes de preparar la HU " + iPosition,
-      {
-        traceId: sSequentialTraceId,
-        position: iPosition,
-        totalHu: aOriginalGroups.length,
-        originalHuVenum: oOriginalGroup.HuVenum,
-        originalHuExidv: oOriginalGroup.HuExidv
-      }
-    );
-
-    this._refreshPreviewAfterCancellation(
-      sMatDoc,
-      function (bPreviewUpdated, oPreviewError) {
-        if (!bPreviewUpdated) {
-          aResults.push({
-            success: false,
-            error: {
-              message: "No fue posible refrescar la vista previa antes de enviar la siguiente HU.",
-              detail: oPreviewError
-            },
-            group: oOriginalGroup
-          });
-
-          iCurrentGroup++;
-          fnAddPendingAsSkipped();
-
-          this._finalizeMultipleAnulaciones(sMatDoc, aResults);
-          return;
-        }
-
-        var aCurrentPreview = oVM.getProperty("/preview") || [];
-        var oCurrentHuRow = fnFindCurrentHuRow(aCurrentPreview, oOriginalGroup);
-
-        if (!oCurrentHuRow) {
-          this._logWarn(
-            "ANULACION_SECUENCIAL.HU_NO_ENCONTRADA",
-            "La HU ya no aparece en el preview actualizado; se considera atendida y continúa la cola",
-            {
-              traceId: sSequentialTraceId,
-              position: iPosition,
-              totalHu: aOriginalGroups.length,
-              originalHuVenum: oOriginalGroup.HuVenum,
-              originalHuExidv: oOriginalGroup.HuExidv
-            }
-          );
-
-          aResults.push({
-            success: true,
-            alreadyRemoved: true,
-            data: {
-              Status: "S",
-              Message: "La HU ya no aparece en la vista previa actualizada; se considera ya procesada."
-            },
-            group: oOriginalGroup
-          });
-
-          iCurrentGroup++;
-          this._waitForSapRelease(fnPostNextGroup);
-          return;
-        }
-
-        var aFreshSelections = fnBuildFreshSelections(oOriginalGroup, oCurrentHuRow);
-
-        if (!aFreshSelections.length) {
-          aResults.push({
-            success: false,
-            error: {
-              message: "No se encontraron proveedores/pedidos vigentes para la HU en el preview actualizado."
-            },
-            group: oOriginalGroup
-          });
-
-          iCurrentGroup++;
-          fnAddPendingAsSkipped();
-
-          this._finalizeMultipleAnulaciones(sMatDoc, aResults);
-          return;
-        }
-
-        var oRuntimeGroup = {
-          HuVenum: String(oCurrentHuRow.HuVenum || "").trim(),
-          HuExidv: String(oCurrentHuRow.HuExidv || "").trim(),
-          selections: aFreshSelections,
-          originalGroup: oOriginalGroup
-        };
-
-        this._logInfo(
-          "ANULACION_SECUENCIAL.ENVIO",
-          "Enviando HU " + iPosition + " de " + aOriginalGroups.length + " con datos refrescados",
-          {
-            traceId: sSequentialTraceId,
-            position: iPosition,
-            totalHu: aOriginalGroups.length,
-            MatDoc: sMatDoc,
-            HuVenum: oRuntimeGroup.HuVenum,
-            HuExidv: oRuntimeGroup.HuExidv,
-            selections: aFreshSelections
-          }
-        );
-
-        iCurrentGroup++;
-
-        this._postAnulacion(
-          sMatDoc,
-          aFreshSelections,
-          {
-            isBatchItem: true,
-            onComplete: function (oResult) {
-              var sResponseStatus = String(
-                oResult.data && oResult.data.Status
-                  ? oResult.data.Status
-                  : ""
-              ).toUpperCase();
-
-              if (!sResponseStatus) {
-                sResponseStatus = oResult.success === true ? "S" : "E";
-              }
-
-              aResults.push(Object.assign({}, oResult, {
-                group: oRuntimeGroup
-              }));
-
-              this._logInfo(
-                "ANULACION_SECUENCIAL.RESPUESTA",
-                "Respuesta final de HU " + iPosition + " de " + aOriginalGroups.length + ": " + sResponseStatus,
+        _postAllHuAnulacion: function (sMatDoc, aSelections) {
+            var aGroups = this._groupHuSelections(aSelections);
+            var oOriginalGroup = {
+                HuVenum: aGroups.map(function (oGroup) {
+                    return oGroup.HuVenum;
+                }).filter(Boolean).join(" | "),
+                HuExidv: aGroups.map(function (oGroup) {
+                    return oGroup.HuExidv;
+                }).filter(Boolean).join(" | "),
+                selections: aSelections
+            };
+
+            this.getVM().setProperty("/busy", true);
+            this.getVM().setProperty("/detalle", []);
+            this.getVM().setProperty(
+                "/cancellationSummary",
+                this._getEmptyCancellationSummary()
+            );
+
+            this._logInfo(
+                "ANULACION_TOTAL.REFRESH",
+                "Refrescando el MatDoc antes del POST global",
                 {
-                  traceId: sSequentialTraceId,
-                  position: iPosition,
-                  totalHu: aOriginalGroups.length,
-                  HuVenum: oRuntimeGroup.HuVenum,
-                  HuExidv: oRuntimeGroup.HuExidv,
-                  Status: sResponseStatus,
-                  Message:
-                    oResult.data && oResult.data.Message ||
-                    this._getAnulacionResultErrorMessage(oResult)
+                    MatDoc: sMatDoc,
+                    totalHuOriginal: aGroups.length
                 }
-              );
+            );
 
-              if (oResult.success !== true) {
-                this._logError(
-                  "ANULACION_SECUENCIAL.DETENIDA",
-                  "La cola se detuvo en la HU " + iPosition + "; no se enviarán las restantes",
-                  {
+            this._refreshPreviewAfterCancellation(
+                sMatDoc,
+                function (bPreviewUpdated, oRefreshResult) {
+                    if (!bPreviewUpdated) {
+                        this._finalizeMultipleAnulaciones(
+                            sMatDoc,
+                            [{
+                                success: false,
+                                error: {
+                                    message:
+                                        "No fue posible refrescar el MatDoc antes de la anulación total."
+                                },
+                                group: oOriginalGroup,
+                                huCount: aGroups.length
+                            }]
+                        );
+                        return;
+                    }
+
+                    var aLiveSelections =
+                        this._getAllLiveHuSelections(
+                            oRefreshResult.preview || []
+                        );
+                    var aLiveGroups = this._groupHuSelections(
+                        aLiveSelections
+                    );
+                    var oLiveGroup = {
+                        HuVenum: aLiveGroups.map(function (oGroup) {
+                            return oGroup.HuVenum;
+                        }).filter(Boolean).join(" | "),
+                        HuExidv: aLiveGroups.map(function (oGroup) {
+                            return oGroup.HuExidv;
+                        }).filter(Boolean).join(" | "),
+                        selections: aLiveSelections
+                    };
+
+                    if (!aLiveSelections.length) {
+                        this._finalizeMultipleAnulaciones(
+                            sMatDoc,
+                            [{
+                                success: false,
+                                error: {
+                                    message:
+                                        "El preview actualizado no contiene HU disponibles para anular."
+                                },
+                                group: oOriginalGroup,
+                                huCount: aGroups.length
+                            }]
+                        );
+                        return;
+                    }
+
+                    this._logInfo(
+                        "ANULACION_TOTAL.ENVIO",
+                        "Todas las HU están seleccionadas; se enviará un solo POST sin identificadores HU",
+                        {
+                            MatDoc: sMatDoc,
+                            totalHu: aLiveGroups.length,
+                            payload: this._buildAnulacionPayload(
+                                sMatDoc,
+                                aLiveSelections,
+                                true
+                            )
+                        }
+                    );
+
+                    this._postAnulacion(
+                        sMatDoc,
+                        aLiveSelections,
+                        {
+                            isBatchItem: true,
+                            omitHuIdentifiers: true,
+                            onComplete: function (oResult) {
+                                var oFinalResult = Object.assign(
+                                    {},
+                                    oResult,
+                                    {
+                                        group: oLiveGroup,
+                                        huCount: aLiveGroups.length
+                                    }
+                                );
+
+                                this._logInfo(
+                                    "ANULACION_TOTAL.RESPUESTA",
+                                    "Respuesta final del POST global",
+                                    {
+                                        MatDoc: sMatDoc,
+                                        totalHu: aLiveGroups.length,
+                                        response:
+                                            oResult.data || oResult.error
+                                    }
+                                );
+
+                                if (oResult.success !== true) {
+                                    this._finalizeMultipleAnulaciones(
+                                        sMatDoc,
+                                        [oFinalResult]
+                                    );
+                                    return;
+                                }
+
+                                this._waitForSapRelease(function () {
+                                    this._finalizeMultipleAnulaciones(
+                                        sMatDoc,
+                                        [oFinalResult]
+                                    );
+                                }.bind(this));
+                            }.bind(this)
+                        }
+                    );
+                }.bind(this)
+            );
+        },
+
+        _postMultipleAnulaciones: function (sMatDoc, aSelections) {
+            var aGroups = this._groupHuSelections(aSelections);
+            var aResults = [];
+            var iCurrentGroup = 0;
+            var sSequentialTraceId = this._generateTraceId(
+                "ANULACION_SECUENCIAL"
+            );
+
+            this._logInfo(
+                "ANULACION_SECUENCIAL.INICIO",
+                "Inicia la cola: " + aGroups.length +
+                    " HU se enviarán una por una",
+                {
                     traceId: sSequentialTraceId,
-                    HuVenum: oRuntimeGroup.HuVenum,
-                    HuExidv: oRuntimeGroup.HuExidv,
-                    Status: sResponseStatus,
-                    pendingHu: aOriginalGroups.length - iCurrentGroup
-                  }
+                    matDoc: sMatDoc,
+                    totalHu: aGroups.length,
+                    huQueue: aGroups.map(function (oGroup) {
+                        return {
+                            HuVenum: oGroup.HuVenum,
+                            HuExidv: oGroup.HuExidv
+                        };
+                    })
+                }
+            );
+
+            this.getVM().setProperty("/busy", true);
+            this.getVM().setProperty("/detalle", []);
+            this.getVM().setProperty(
+                "/cancellationSummary",
+                this._getEmptyCancellationSummary()
+            );
+
+            var fnAddPendingResults = function (
+                iStartIndex,
+                sMessage
+            ) {
+                aGroups.slice(iStartIndex).forEach(function (
+                    oPendingGroup
+                ) {
+                    aResults.push({
+                        success: false,
+                        skipped: true,
+                        error: { message: sMessage },
+                        group: oPendingGroup
+                    });
+                });
+            };
+
+            var fnPostNextGroup = function () {
+                if (iCurrentGroup >= aGroups.length) {
+                    this._logInfo(
+                        "ANULACION_SECUENCIAL.FIN",
+                        "Finalizó la cola; no quedan HU por enviar",
+                        {
+                            traceId: sSequentialTraceId,
+                            matDoc: sMatDoc,
+                            totalHu: aGroups.length,
+                            results: aResults
+                        }
+                    );
+                    this._finalizeMultipleAnulaciones(
+                        sMatDoc,
+                        aResults
+                    );
+                    return;
+                }
+
+                var oTargetGroup = aGroups[iCurrentGroup];
+                var iPosition = iCurrentGroup + 1;
+
+                this._logInfo(
+                    "ANULACION_SECUENCIAL.REFRESH",
+                    "Consultando el MatDoc antes de reconstruir la HU viva",
+                    {
+                        traceId: sSequentialTraceId,
+                        MatDoc: sMatDoc,
+                        position: iPosition,
+                        totalHu: aGroups.length,
+                        HuVenumOriginal: oTargetGroup.HuVenum,
+                        HuExidvOriginal: oTargetGroup.HuExidv
+                    }
                 );
 
-                fnAddPendingAsSkipped();
-                this._finalizeMultipleAnulaciones(sMatDoc, aResults);
-                return;
-              }
+                this._refreshPreviewAfterCancellation(
+                    sMatDoc,
+                    function (bPreviewUpdated, oRefreshResult) {
+                        if (!bPreviewUpdated) {
+                            aResults.push({
+                                success: false,
+                                error: {
+                                    message:
+                                        "No fue posible refrescar el MatDoc antes de procesar la HU."
+                                },
+                                group: oTargetGroup
+                            });
+                            fnAddPendingResults(
+                                iCurrentGroup + 1,
+                                "No se envió porque falló el refresco del MatDoc."
+                            );
+                            this._finalizeMultipleAnulaciones(
+                                sMatDoc,
+                                aResults
+                            );
+                            return;
+                        }
 
-              this._logInfo(
-                "ANULACION_SECUENCIAL.ESPERA",
-                "Respuesta aceptada; esperando liberación SAP antes de refrescar y continuar",
-                {
-                  traceId: sSequentialTraceId,
-                  completedHu: iPosition,
-                  pendingHu: aOriginalGroups.length - iCurrentGroup
-                }
-              );
+                        var aLivePreview =
+                            oRefreshResult.preview || [];
+                        var oLiveRow = this._findLiveHuRow(
+                            oTargetGroup,
+                            aLivePreview
+                        );
 
-              this._waitForSapRelease(fnPostNextGroup);
-            }.bind(this)
-          }
-        );
-      }.bind(this)
-    );
-  }.bind(this);
+                        if (!oLiveRow) {
+                            this._logInfo(
+                                "ANULACION_SECUENCIAL.HU_YA_ANULADA",
+                                "La HU ya no existe en el preview actualizado; se continúa con la siguiente",
+                                {
+                                    traceId: sSequentialTraceId,
+                                    position: iPosition,
+                                    HuVenum: oTargetGroup.HuVenum,
+                                    HuExidv: oTargetGroup.HuExidv
+                                }
+                            );
+                            aResults.push({
+                                success: true,
+                                alreadyRemoved: true,
+                                data: {
+                                    Status: "W",
+                                    Message:
+                                        "La HU ya no aparece en el preview actualizado."
+                                },
+                                group: oTargetGroup
+                            });
+                            iCurrentGroup++;
+                            fnPostNextGroup();
+                            return;
+                        }
 
-  fnPostNextGroup();
-},
+                        var aLiveSelections =
+                            this._getLiveHuSelections(
+                                oTargetGroup,
+                                aLivePreview
+                            );
 
+                        if (!aLiveSelections.length) {
+                            aResults.push({
+                                success: false,
+                                error: {
+                                    message:
+                                        "La HU existe, pero sus pedidos o proveedor seleccionados ya no pudieron reconstruirse con datos actuales."
+                                },
+                                group: oTargetGroup
+                            });
+                            fnAddPendingResults(
+                                iCurrentGroup + 1,
+                                "No se envió porque no fue posible reconstruir la HU anterior."
+                            );
+                            this._finalizeMultipleAnulaciones(
+                                sMatDoc,
+                                aResults
+                            );
+                            return;
+                        }
 
+                        var oGroup = Object.assign(
+                            {},
+                            oTargetGroup,
+                            {
+                                HuVenum:
+                                    aLiveSelections[0].HuVenum || "",
+                                HuExidv:
+                                    aLiveSelections[0].HuExidv || "",
+                                selections: aLiveSelections
+                            }
+                        );
 
+                        this._logInfo(
+                            "ANULACION_SECUENCIAL.ENVIO",
+                            "Enviando HU " + iPosition +
+                                " de " + aGroups.length,
+                            {
+                                traceId: sSequentialTraceId,
+                                position: iPosition,
+                                totalHu: aGroups.length,
+                                MatDoc: sMatDoc,
+                                HuVenum: oGroup.HuVenum,
+                                HuExidv: oGroup.HuExidv,
+                                payload: this._buildAnulacionPayload(
+                                    sMatDoc,
+                                    oGroup.selections
+                                )
+                            }
+                        );
 
+                        this._postAnulacion(
+                            sMatDoc,
+                            oGroup.selections,
+                            {
+                                isBatchItem: true,
+                                onComplete: function (oResult) {
+                                    var sResponseStatus = String(
+                                        oResult.data &&
+                                        oResult.data.Status
+                                            ? oResult.data.Status
+                                            : (oResult.success === true
+                                                ? "S"
+                                                : "E")
+                                    ).toUpperCase();
 
+                                    aResults.push(Object.assign(
+                                        {},
+                                        oResult,
+                                        { group: oGroup }
+                                    ));
+                                    iCurrentGroup++;
 
+                                    this._logInfo(
+                                        "ANULACION_SECUENCIAL.RESPUESTA",
+                                        "Respuesta final de HU " +
+                                            iPosition + " de " +
+                                            aGroups.length + ": " +
+                                            sResponseStatus,
+                                        {
+                                            traceId:
+                                                sSequentialTraceId,
+                                            position: iPosition,
+                                            HuVenum: oGroup.HuVenum,
+                                            HuExidv: oGroup.HuExidv,
+                                            Status: sResponseStatus,
+                                            Message: oResult.data &&
+                                                oResult.data.Message ||
+                                                this._getAnulacionResultErrorMessage(
+                                                    oResult
+                                                )
+                                        }
+                                    );
 
+                                    if (oResult.success !== true) {
+                                        this._logError(
+                                            "ANULACION_SECUENCIAL.DETENIDA",
+                                            "La cola se detuvo; no se enviarán las HU restantes",
+                                            {
+                                                traceId:
+                                                    sSequentialTraceId,
+                                                HuVenum: oGroup.HuVenum,
+                                                HuExidv: oGroup.HuExidv,
+                                                Status: sResponseStatus,
+                                                pendingHu:
+                                                    aGroups.length -
+                                                    iCurrentGroup
+                                            }
+                                        );
+                                        fnAddPendingResults(
+                                            iCurrentGroup,
+                                            "No se envió porque una HU anterior regresó error."
+                                        );
+                                        this._finalizeMultipleAnulaciones(
+                                            sMatDoc,
+                                            aResults
+                                        );
+                                        return;
+                                    }
 
+                                    this._logInfo(
+                                        "ANULACION_SECUENCIAL.ESPERA",
+                                        "Respuesta aceptada; esperando 2000 ms antes de continuar",
+                                        {
+                                            traceId:
+                                                sSequentialTraceId,
+                                            completedHu:
+                                                iCurrentGroup,
+                                            pendingHu:
+                                                aGroups.length -
+                                                iCurrentGroup
+                                        }
+                                    );
+                                    this._waitForSapRelease(
+                                        fnPostNextGroup
+                                    );
+                                }.bind(this)
+                            }
+                        );
+                    }.bind(this)
+                );
+            }.bind(this);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            fnPostNextGroup();
+        },
 
         _waitForSapRelease: function (fnContinue) {
             setTimeout(fnContinue, 2000);
@@ -3175,11 +3470,12 @@ _postMultipleAnulaciones: function (sMatDoc, aSelections) {
                     var oHeader = this._getDeepPreviewHeader(oData);
                     var aItems = this._getDeepPreviewItems(oHeader);
                     var aGroupedRows = [];
+                    var bValidPreview = !!oHeader &&
+                        String(oHeader.Status || "")
+                            .toUpperCase() !== "E";
 
                     if (
-                        oHeader &&
-                        String(oHeader.Status || "")
-                            .toUpperCase() !== "E" &&
+                        bValidPreview &&
                         aItems.length
                     ) {
                         aGroupedRows = this._buildPreviewRows(
@@ -3206,7 +3502,11 @@ _postMultipleAnulaciones: function (sMatDoc, aSelections) {
                     );
 
                     if (typeof fnComplete === "function") {
-                        fnComplete(true);
+                        fnComplete(bValidPreview, {
+                            header: oHeader,
+                            items: aItems,
+                            preview: aGroupedRows
+                        });
                     }
                 }.bind(this),
                 error: function (oError) {
@@ -3227,7 +3527,12 @@ _postMultipleAnulaciones: function (sMatDoc, aSelections) {
             });
         },
 
-        _finalizeMultipleAnulaciones: function (sMatDoc, aResults) {
+        _finalizeMultipleAnulaciones: function (
+            sMatDoc,
+            aResults,
+            oFinalizeOptions
+        ) {
+            var oOptions = oFinalizeOptions || {};
             var aSuccessResults = (aResults || []).filter(
                 function (oResult) {
                     return oResult.success === true;
@@ -3240,6 +3545,19 @@ _postMultipleAnulaciones: function (sMatDoc, aSelections) {
             );
             var aSuccessfulSelections = [];
             var aRunIds = [];
+            var iSuccessfulHu = aSuccessResults.reduce(
+                function (iTotal, oResult) {
+                    return iTotal + Number(oResult.huCount || 1);
+                },
+                0
+            );
+            var iErrorHu = aErrorResults.reduce(
+                function (iTotal, oResult) {
+                    return iTotal + Number(oResult.huCount || 1);
+                },
+                0
+            );
+            var iTotalHu = iSuccessfulHu + iErrorHu;
 
             aSuccessResults.forEach(function (oResult) {
                 aSuccessfulSelections = aSuccessfulSelections.concat(
@@ -3255,10 +3573,10 @@ _postMultipleAnulaciones: function (sMatDoc, aSelections) {
                 ? (aSuccessResults.length ? "W" : "E")
                 : "S";
             var sMessage = aErrorResults.length
-                ? aSuccessResults.length + " de " +
-                    aResults.length +
+                ? iSuccessfulHu + " de " +
+                    iTotalHu +
                     " HU se anularon correctamente."
-                : aSuccessResults.length +
+                : iSuccessfulHu +
                     " HU se anularon correctamente.";
             var sDetailedMessage =
                 this._buildMultipleAnulacionResultMessage(
@@ -3292,9 +3610,7 @@ _postMultipleAnulaciones: function (sMatDoc, aSelections) {
             );
             this.getVM().setProperty("/selectedSection", "detail");
 
-            this._refreshPreviewAfterCancellation(
-                sMatDoc,
-                function (bPreviewUpdated) {
+            var fnCompleteFinalization = function (bPreviewUpdated) {
                     if (!bPreviewUpdated) {
                         MessageToast.show(
                             "La anulación terminó, pero no fue posible refrescar la vista previa."
@@ -3318,7 +3634,16 @@ _postMultipleAnulaciones: function (sMatDoc, aSelections) {
                     }
 
                     this._getDetalleFinalByMatDoc(sMatDoc);
-                }.bind(this)
+                }.bind(this);
+
+            if (oOptions.previewAlreadyRefreshed) {
+                fnCompleteFinalization(true);
+                return;
+            }
+
+            this._refreshPreviewAfterCancellation(
+                sMatDoc,
+                fnCompleteFinalization
             );
         },
 
@@ -3335,6 +3660,8 @@ _postMultipleAnulaciones: function (sMatDoc, aSelections) {
                 ? aHuSelections
                 : [];
             var oOptions = oExecutionOptions || {};
+            var bOmitHuIdentifiers =
+                oOptions.omitHuIdentifiers === true;
 
             // =========================================================
             // VALIDAR SELECCIONES
@@ -3358,8 +3685,31 @@ _postMultipleAnulaciones: function (sMatDoc, aSelections) {
 
             // El payload de AnulacionSet recibe una sola HU por solicitud.
             // Validamos que todas las selecciones correspondan a la misma HU.
-            var sHuVenum = aSelections[0].HuVenum || "";
-            var sHuExidv = aSelections[0].HuExidv || "";
+            var sHuVenum = bOmitHuIdentifiers
+                ? ""
+                : aSelections[0].HuVenum || "";
+            var sHuExidv = bOmitHuIdentifiers
+                ? ""
+                : aSelections[0].HuExidv || "";
+
+            if (
+                !bOmitHuIdentifiers &&
+                (!sHuVenum || !sHuExidv)
+            ) {
+                var sHuValidationMessage =
+                    "La llamada individual requiere HuVenum y HuExidv.";
+
+                if (typeof oOptions.onComplete === "function") {
+                    oOptions.onComplete({
+                        success: false,
+                        error: { message: sHuValidationMessage },
+                        selections: aSelections
+                    });
+                } else {
+                    MessageBox.warning(sHuValidationMessage);
+                }
+                return;
+            }
 
             var bDifferentHu = aSelections.some(function (oItem) {
                 return (
@@ -3368,7 +3718,7 @@ _postMultipleAnulaciones: function (sMatDoc, aSelections) {
                 );
             });
 
-            if (bDifferentHu) {
+            if (bDifferentHu && !bOmitHuIdentifiers) {
                 this._postMultipleAnulaciones(
                     sMatDoc,
                     aSelections
@@ -3444,7 +3794,8 @@ _postMultipleAnulaciones: function (sMatDoc, aSelections) {
 
             var oPayload = this._buildAnulacionPayload(
                 sMatDoc,
-                aSelections
+                aSelections,
+                bOmitHuIdentifiers
             );
 
             // =========================================================
@@ -3589,9 +3940,9 @@ _postMultipleAnulaciones: function (sMatDoc, aSelections) {
                                     ? oData.Status
                                     : "S"
                             ).toUpperCase();
-                            var bBatchSuccess = !(
-                                sBatchStatus === "E"
-                            );
+                            var bBatchSuccess =
+                                sBatchStatus === "S" ||
+                                sBatchStatus === "W";
 
                             oOptions.onComplete({
                                 success: bBatchSuccess,

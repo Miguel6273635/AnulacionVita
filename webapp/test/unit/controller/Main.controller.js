@@ -242,6 +242,49 @@ sap.ui.define([
 		}, "arma el payload independiente de la segunda HU");
 	});
 
+	QUnit.test("omite completamente los identificadores HU en selección total", function (assert) {
+		var oController = new Controller();
+		var oPayload = oController._buildAnulacionPayload(
+			"5000560953",
+			[{
+				HuVenum: "0001525714",
+				HuExidv: "00000000000707100150",
+				Lifnr: "0050000722",
+				Ebeln: "4700090938"
+			}, {
+				HuVenum: "0001525715",
+				HuExidv: "00000000000707100151",
+				Lifnr: "0050000722",
+				Ebeln: "4700090938"
+			}],
+			true
+		);
+
+		assert.notOk(Object.prototype.hasOwnProperty.call(oPayload, "HuVenum"), "no envía HuVenum");
+		assert.notOk(Object.prototype.hasOwnProperty.call(oPayload, "HuExidv"), "no envía HuExidv");
+		assert.deepEqual(oPayload, {
+			MatDoc: "5000560953",
+			ProveedoresSel: "0050000722",
+			EbelnSel: "4700090938",
+			EbelnsSel: "4700090938"
+		}, "conserva solamente una vez cada proveedor/pedido en el POST global");
+	});
+
+	QUnit.test("localiza una HU viva aunque SAP cambie los ceros de sus identificadores", function (assert) {
+		var oController = new Controller();
+		var oLiveRow = oController._findLiveHuRow({
+			HuVenum: "0001525714",
+			HuExidv: "00000000000707100150"
+		}, [{
+			Message: "HU",
+			HuVenum: "1525714",
+			HuExidv: "707100150"
+		}]);
+
+		assert.ok(oLiveRow, "encuentra la HU por su valor normalizado");
+		assert.strictEqual(oLiveRow.HuVenum, "1525714", "usa el registro actualizado");
+	});
+
 	QUnit.test("selecciona todas las HU y sus pedidos", function (assert) {
 		var oController = new Controller();
 		var aRows = [{
@@ -296,6 +339,16 @@ sap.ui.define([
 				setProperty: function () {}
 			};
 		};
+		oController._refreshPreviewAfterCancellation = function (sMatDoc, fnComplete) {
+			aEvents.push("refresh");
+			fnComplete(true, { preview: [{}] });
+		};
+		oController._findLiveHuRow = function () {
+			return {};
+		};
+		oController._getLiveHuSelections = function (oGroup) {
+			return oGroup.selections;
+		};
 		oController._waitForSapRelease = function (fnContinue) {
 			aEvents.push("espera");
 			fnContinue();
@@ -316,13 +369,71 @@ sap.ui.define([
 		oController._finalizeMultipleAnulaciones = function (sMatDoc, aResults) {
 			aEvents.push("finaliza");
 			assert.deepEqual(aEvents, [
+				"refresh",
 				"post:HU-1",
 				"espera",
+				"refresh",
 				"post:HU-2",
 				"finaliza"
-			], "espera entre éxitos y no dispara la tercera HU");
+			], "refresca antes de cada POST, espera entre éxitos y no dispara la tercera HU");
 			assert.strictEqual(aResults.length, 3, "conserva el resultado de todas las HU");
 			assert.ok(aResults[2].skipped, "marca la tercera HU como no enviada");
+			fnDone();
+		};
+
+		oController._postMultipleAnulaciones(
+			"5000560951",
+			aSelections
+		);
+	});
+
+	QUnit.test("continúa cuando una HU ya no existe en el preview actualizado", function (assert) {
+		var fnDone = assert.async();
+		var oController = new Controller();
+		var aEvents = [];
+		var iRefresh = 0;
+		var aSelections = [{
+			HuVenum: "HU-1",
+			HuExidv: "EX-1"
+		}, {
+			HuVenum: "HU-2",
+			HuExidv: "EX-2"
+		}];
+
+		oController.getVM = function () {
+			return {
+				setProperty: function () {}
+			};
+		};
+		oController._refreshPreviewAfterCancellation = function (sMatDoc, fnComplete) {
+			iRefresh++;
+			aEvents.push("refresh:" + iRefresh);
+			fnComplete(true, { preview: [{ refresh: iRefresh }] });
+		};
+		oController._findLiveHuRow = function (oGroup, aPreview) {
+			return aPreview[0].refresh === 1 ? null : {};
+		};
+		oController._getLiveHuSelections = function (oGroup) {
+			return oGroup.selections;
+		};
+		oController._postAnulacion = function (sMatDoc, aGroup, oOptions) {
+			aEvents.push("post:" + aGroup[0].HuVenum);
+			oOptions.onComplete({
+				success: false,
+				data: { Status: "E" },
+				error: { message: "Error controlado" }
+			});
+		};
+		oController._finalizeMultipleAnulaciones = function (sMatDoc, aResults) {
+			aEvents.push("finaliza");
+			assert.deepEqual(aEvents, [
+				"refresh:1",
+				"refresh:2",
+				"post:HU-2",
+				"finaliza"
+			], "omite la HU ausente y reconstruye la siguiente antes de enviarla");
+			assert.ok(aResults[0].alreadyRemoved, "registra la primera HU como ya anulada");
+			assert.strictEqual(aResults.length, 2, "conserva un resultado por cada intención original");
 			fnDone();
 		};
 
