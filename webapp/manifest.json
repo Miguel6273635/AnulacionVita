@@ -5,10 +5,24 @@
     "type": "application",
     "i18n": "i18n/i18n.properties",
     "applicationVersion": {
-      "version": "0.0.1"
+      "version": "0.0.2"
     },
     "title": "{{appTitle}}",
     "description": "{{appDescription}}",
+    "crossNavigation": {
+      "inbounds": {
+        "anulacion-display": {
+          "semanticObject": "Anulacion",
+          "action": "display",
+          "title": "{{appTitle}}",
+          "icon": "sap-icon://decline",
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          }
+        }
+      }
+    },
     "resources": "resources.json",
     "sourceTemplate": {
       "id": "@sap/generator-fiori:basic",

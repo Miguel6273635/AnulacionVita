@@ -8,8 +8,6 @@
         id="mainPage"
         title="Cancelación de documentos"
         class="customPageBg"
-        busy="{viewModel>/busy}"
-        busyIndicatorDelay="0"
         enableScrolling="true">
 
         <content>
@@ -171,6 +169,83 @@
                         </VBox>
                     </content>
                 </Panel>
+
+                <VBox
+                    visible="{viewModel>/cancellationProgress/active}"
+                    width="100%"
+                    class="cancellationProgressCard">
+
+                    <HBox
+                        alignItems="Center"
+                        justifyContent="SpaceBetween"
+                        wrap="Wrap"
+                        width="100%"
+                        class="cancellationProgressHeader">
+
+                        <HBox
+                            alignItems="Center"
+                            class="cancellationProgressHeading">
+
+                            <HBox
+                                alignItems="Center"
+                                justifyContent="Center"
+                                class="cancellationProgressIconBox">
+                                <core:Icon
+                                    src="sap-icon://synchronize"
+                                    class="cancellationProgressIcon" />
+                            </HBox>
+
+                            <VBox class="cancellationProgressTextBox">
+                                <Text
+                                    text="ANULACIÓN EN PROCESO"
+                                    class="cancellationProgressEyebrow" />
+                                <Title
+                                    text="{viewModel>/cancellationProgress/title}"
+                                    level="H4"
+                                    class="cancellationProgressTitle" />
+                                <Text
+                                    text="{viewModel>/cancellationProgress/message}"
+                                    wrapping="true"
+                                    class="cancellationProgressMessage" />
+                            </VBox>
+                        </HBox>
+
+                        <ObjectStatus
+                            text="{= ${viewModel>/cancellationProgress/currentHu} ? 'HU ' + ${viewModel>/cancellationProgress/currentHu} : 'Preparando' }"
+                            state="{viewModel>/cancellationProgress/state}"
+                            class="cancellationProgressHu" />
+                    </HBox>
+
+                    <ProgressIndicator
+                        percentValue="{viewModel>/cancellationProgress/percent}"
+                        displayValue="{viewModel>/cancellationProgress/displayValue}"
+                        state="{viewModel>/cancellationProgress/state}"
+                        showValue="true"
+                        width="100%"
+                        class="cancellationProgressBar" />
+
+                    <HBox
+                        alignItems="Center"
+                        wrap="Wrap"
+                        class="cancellationProgressStats">
+                        <ObjectStatus
+                            text="{= 'Procesadas: ' + ${viewModel>/cancellationProgress/completed} }"
+                            state="Information"
+                            icon="sap-icon://activity-items" />
+                        <ObjectStatus
+                            text="{= 'Anuladas: ' + ${viewModel>/cancellationProgress/success} }"
+                            state="Success"
+                            icon="sap-icon://accept" />
+                        <ObjectStatus
+                            text="{= 'Con error: ' + ${viewModel>/cancellationProgress/failed} }"
+                            state="Error"
+                            icon="sap-icon://error" />
+                        <ObjectStatus
+                            text="{= 'Pendientes: ' + ${viewModel>/cancellationProgress/pending} }"
+                            state="None"
+                            icon="sap-icon://pending" />
+                    </HBox>
+                </VBox>
 
                 <Panel
                     headerText="Resultado general"

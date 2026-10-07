@@ -327,6 +327,139 @@
     box-shadow: var(--vf-shadow-sm);
 }
 
+/* =========================
+   PROGRESO DE ANULACIÓN
+   ========================= */
+
+.cancellationProgressCard {
+    width: 100%;
+    padding: 1.05rem 1.15rem;
+    box-sizing: border-box;
+    border: 1px solid #a9d3f0;
+    border-radius: 1.15rem;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.17), transparent 18rem),
+        linear-gradient(135deg, #f8fcff 0%, #edf7fe 100%);
+    box-shadow:
+        0 0.7rem 1.6rem rgba(3, 105, 161, 0.11),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.cancellationProgressHeader {
+    gap: 1rem;
+}
+
+.cancellationProgressHeading {
+    flex: 1 1 34rem;
+    min-width: 0;
+    gap: 0.85rem;
+}
+
+.cancellationProgressIconBox {
+    flex: 0 0 auto;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.95rem;
+    color: #ffffff;
+    background: linear-gradient(135deg, #075985 0%, #0a6ed1 100%);
+    box-shadow: 0 0.45rem 1rem rgba(10, 110, 209, 0.22);
+}
+
+.cancellationProgressIcon {
+    color: #ffffff !important;
+    font-size: 1.25rem !important;
+    animation: cancellationProgressSpin 2.4s linear infinite;
+}
+
+.cancellationProgressTextBox {
+    min-width: 0;
+}
+
+.cancellationProgressEyebrow {
+    color: var(--vf-primary-600) !important;
+    font-size: 0.68rem !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.07rem;
+}
+
+.cancellationProgressTitle {
+    margin-top: 0.14rem;
+    color: var(--vf-text-900) !important;
+    font-weight: 900 !important;
+}
+
+.cancellationProgressMessage {
+    margin-top: 0.2rem;
+    color: var(--vf-text-700) !important;
+    line-height: 1.42 !important;
+}
+
+.cancellationProgressHu {
+    flex: 0 0 auto;
+    max-width: 22rem;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid #bfdcf0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.88);
+    font-weight: 850;
+}
+
+.cancellationProgressBar {
+    margin-top: 0.9rem;
+}
+
+.cancellationProgressBar.sapMPI {
+    height: 1.25rem !important;
+    border-radius: 999px !important;
+    overflow: hidden;
+    background: #dcebf6 !important;
+    box-shadow: inset 0 0.08rem 0.24rem rgba(15, 23, 42, 0.11);
+}
+
+.cancellationProgressBar .sapMPIBar {
+    border-radius: 999px !important;
+}
+
+.cancellationProgressBar .sapMPIText {
+    font-size: 0.72rem !important;
+    font-weight: 900 !important;
+}
+
+.cancellationProgressStats {
+    gap: 0.65rem 1.15rem;
+    margin-top: 0.75rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid rgba(169, 211, 240, 0.7);
+}
+
+.cancellationProgressStats .sapMObjStatus {
+    font-weight: 800;
+}
+
+@keyframes cancellationProgressSpin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 768px) {
+    .cancellationProgressCard {
+        padding: 0.9rem;
+    }
+
+    .cancellationProgressHeading {
+        flex-basis: 100%;
+    }
+
+    .cancellationProgressHu {
+        max-width: 100%;
+    }
+}
+
 .cancellationSummaryBox {
     margin-top: 0.85rem;
     padding: 0.9rem 1rem;
@@ -6287,95 +6420,4 @@ body,
     .providerDialogActions .sapMBtnInner {
         width: 100% !important;
     }
-}
-/* =========================================================
-   DIALOG RESULTADO DE ANULACION
-   ========================================================= */
-
-.cancelResultDialog .sapMDialogTitleGroup {
-    border-bottom: 1px solid #e5e7eb !important;
-}
-
-.cancelResultDialog .sapMDialogSection {
-    padding: 0 !important;
-}
-
-.cancelResultDialogContent {
-    padding: 0 !important;
-}
-
-.cancelResultDialogHtml {
-    padding: 1rem 1.25rem 1rem 1.25rem;
-    box-sizing: border-box;
-    background: #ffffff;
-    color: #1f2937;
-    font-family: "72", Arial, sans-serif;
-}
-
-.cancelResultSummary {
-    margin-bottom: 1rem;
-    padding: 0.85rem 1rem;
-    border-radius: 0.75rem;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    font-size: 1rem;
-    line-height: 1.4rem;
-}
-
-.cancelResultSummaryStrong {
-    font-weight: 800;
-    color: #0f172a;
-}
-
-.cancelResultSection {
-    margin-bottom: 1.25rem;
-}
-
-.cancelResultSectionTitle {
-    margin-bottom: 0.75rem;
-    font-size: 1rem;
-    line-height: 1.2rem;
-    font-weight: 800;
-}
-
-.cancelResultSectionTitle.success {
-    color: #15803d;
-}
-
-.cancelResultSectionTitle.warning {
-    color: #b45309;
-}
-
-.cancelResultCard {
-    margin-bottom: 0.75rem;
-    padding: 0.9rem 1rem;
-    border: 1px solid #dbeafe;
-    border-radius: 0.85rem;
-    background: #f8fbff;
-}
-
-.cancelResultLine {
-    margin-bottom: 0.35rem;
-    font-size: 0.96rem;
-    line-height: 1.35rem;
-    word-break: break-word;
-}
-
-.cancelResultLine:last-child {
-    margin-bottom: 0;
-}
-
-.cancelResultLabel {
-    font-weight: 800;
-    color: #1e3a8a;
-}
-
-.cancelResultReason {
-    margin-top: 0.45rem;
-    padding-top: 0.45rem;
-    border-top: 1px dashed #cbd5e1;
-    font-size: 0.95rem;
-    line-height: 1.35rem;
-    color: #7c2d12;
-    word-break: break-word;
 }

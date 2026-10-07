@@ -139,7 +139,15 @@ sap.ui.define([
         },
 
         onBuscarDocumento: function () {
-            var sMatDoc = this.getVM().getProperty("/matDoc");
+            var oVM = this.getVM();
+            var sMatDoc = oVM.getProperty("/matDoc");
+
+            if (oVM.getProperty("/busy")) {
+                MessageToast.show(
+                    "Ya hay una consulta en proceso. Espera su respuesta."
+                );
+                return;
+            }
 
             if (!sMatDoc) {
                 MessageBox.warning("Ingresa un número de documento material.");
@@ -189,11 +197,27 @@ sap.ui.define([
             });
         },
 
+        _getPreviewTimeoutMs: function () {
+            return 180000;
+        },
+
         _getPreview: function (sMatDoc) {
             var oModel = this.getModel();
             var oVM = this.getVM();
             var sTraceId = this._generateTraceId("PREVIEW");
             var sPath = "/AnulacionPreviewHeaderSet";
+            var bRequestFinished = false;
+            var oRequestHandle;
+            var iRequestTimeoutId;
+            var fnFinishRequest = function () {
+                if (bRequestFinished) {
+                    return false;
+                }
+
+                bRequestFinished = true;
+                clearTimeout(iRequestTimeoutId);
+                return true;
+            };
 
             oVM.setProperty("/busy", true);
             this._resetResultadoConsulta();
@@ -204,7 +228,56 @@ sap.ui.define([
                 path: sPath
             });
 
-            oModel.read(sPath, {
+            iRequestTimeoutId = setTimeout(function () {
+                if (!fnFinishRequest()) {
+                    return;
+                }
+
+                var sTimeoutMessage =
+                    "SAP no respondió en 180 segundos. Revisa la destination QS4_PP y la solicitud AnulacionPreviewHeaderSet en Network.";
+
+                oVM.setProperty("/busy", false);
+                oVM.setProperty("/canCancel", false);
+                oVM.setProperty("/resultado", {
+                    Status: "E",
+                    Message: sTimeoutMessage
+                });
+                oVM.setProperty("/resultadoState", "Error");
+
+                this._logError(
+                    "_getPreview.timeout",
+                    "Tiempo de espera agotado al consultar la vista previa",
+                    {
+                        traceId: sTraceId,
+                        matDoc: sMatDoc,
+                        path: sPath,
+                        timeoutMs: this._getPreviewTimeoutMs()
+                    }
+                );
+
+                this._showStatusMessageDialog(
+                    sTimeoutMessage,
+                    "Sin respuesta de SAP"
+                );
+
+                try {
+                    if (
+                        oRequestHandle &&
+                        typeof oRequestHandle.abort === "function"
+                    ) {
+                        oRequestHandle.abort();
+                    }
+                } catch (oAbortError) {
+                    this._logWarn(
+                        "_getPreview.abort",
+                        "La solicitud vencida no pudo abortarse, pero la pantalla ya fue liberada",
+                        this._serializeError(oAbortError)
+                    );
+                }
+            }.bind(this), this._getPreviewTimeoutMs());
+
+            try {
+                oRequestHandle = oModel.read(sPath, {
                 filters: [
                     new Filter(
                         "MatDoc",
@@ -219,15 +292,24 @@ sap.ui.define([
                 },
 
                 success: function (oData) {
-                    var oHeader = this._getDeepPreviewHeader(oData);
-                    var aItems = this._getDeepPreviewItems(oHeader);
+                    if (!fnFinishRequest()) {
+                        return;
+                    }
 
-                    this._logInfo("_getPreview.success", "Respuesta recibida", {
-                        traceId: sTraceId,
-                        header: oHeader,
-                        totalItems: aItems.length,
-                        items: aItems
-                    });
+                    try {
+                        var oHeader = this._getDeepPreviewHeader(oData);
+                        var aItems = this._getDeepPreviewItems(oHeader);
+
+                        this._logInfo(
+                            "_getPreview.success",
+                            "Respuesta recibida",
+                            {
+                                traceId: sTraceId,
+                                header: oHeader,
+                                totalItems: aItems.length,
+                                items: aItems
+                            }
+                        );
 
                     if (!oHeader) {
                         oVM.setProperty("/resultado", {
@@ -296,12 +378,35 @@ sap.ui.define([
                     this._evaluatePreviewBeforeCancel(aGroupedRows);
                     oVM.setProperty("/busy", false);
 
-                    MessageToast.show(
-                        "Vista previa cargada correctamente."
-                    );
+                        MessageToast.show(
+                            "Vista previa cargada correctamente."
+                        );
+                    } catch (oProcessingError) {
+                        oVM.setProperty("/busy", false);
+                        oVM.setProperty("/canCancel", false);
+
+                        this._logError(
+                            "_getPreview.processingError",
+                            "La respuesta se recibió, pero no pudo procesarse",
+                            {
+                                traceId: sTraceId,
+                                error:
+                                    this._serializeError(oProcessingError)
+                            }
+                        );
+
+                        this._showODataError(
+                            "La respuesta de SAP no pudo procesarse.",
+                            oProcessingError
+                        );
+                    }
                 }.bind(this),
 
                 error: function (oError) {
+                    if (!fnFinishRequest()) {
+                        return;
+                    }
+
                     oVM.setProperty("/busy", false);
                     oVM.setProperty("/canCancel", false);
 
@@ -319,7 +424,27 @@ sap.ui.define([
                         oError
                     );
                 }.bind(this)
-            });
+                });
+            } catch (oReadError) {
+                if (!fnFinishRequest()) {
+                    return;
+                }
+
+                oVM.setProperty("/busy", false);
+                oVM.setProperty("/canCancel", false);
+                this._logError(
+                    "_getPreview.readError",
+                    "No fue posible iniciar la solicitud OData",
+                    {
+                        traceId: sTraceId,
+                        error: this._serializeError(oReadError)
+                    }
+                );
+                this._showODataError(
+                    "No fue posible iniciar la consulta a SAP.",
+                    oReadError
+                );
+            }
         },
 
         _showStatusMessageDialog: function (sMessage, sTitle) {
@@ -2393,14 +2518,9 @@ sap.ui.define([
             oVM.setProperty("/busy", true);
             this._oPendingCancellation = null;
 
-            if (oPending.allHuSelected) {
-                this._postAllHuAnulacion(
-                    oPending.matDoc,
-                    oPending.huSelections || []
-                );
-                return;
-            }
-
+            // El backend recibe una sola HU por POST. Incluso cuando todas
+            // están seleccionadas, se procesan de forma secuencial para poder
+            // reconciliar individualmente cualquier error de comunicación.
             this._postMultipleAnulaciones(
                 oPending.matDoc,
                 oPending.huSelections || []
@@ -2974,6 +3094,38 @@ sap.ui.define([
             return sMessage || "SAP no devolvió el motivo.";
         },
 
+        _getHttpStatusCode: function (oError) {
+            var iStatusCode = Number(
+                oError && (
+                    oError.statusCode ||
+                    oError.status ||
+                    oError.response && (
+                        oError.response.statusCode ||
+                        oError.response.status
+                    )
+                )
+            );
+
+            return Number.isFinite(iStatusCode) ? iStatusCode : 0;
+        },
+
+        _isCsrfError: function (oError) {
+            return this._getHttpStatusCode(oError) === 403;
+        },
+
+        _isMessageTypeXError: function (oError) {
+            return this._getHttpStatusCode(oError) === 500 &&
+                String(
+                    oError && oError.responseText || ""
+                ).toUpperCase().indexOf("MESSAGE_TYPE_X") !== -1;
+        },
+
+        _getMessageTypeXFunctionalMessage: function () {
+            return "No se pudo completar la anulación de la HU porque SAP no logró generar el movimiento 102. " +
+                "El proceso se detuvo para evitar inconsistencias. Favor de volver a consultar el documento y " +
+                "reintentar las HUs pendientes. Si el problema persiste, reportar el caso con el documento material y la HU.";
+        },
+
         _buildMultipleAnulacionResultMessage: function (
             sSummary,
             aSuccessResults,
@@ -2987,7 +3139,25 @@ sap.ui.define([
                         ? "HU anulada:\n"
                         : "HU anuladas:\n") +
                     aSuccessResults.map(function (oResult) {
-                        return this._formatHuAnulacionResult(oResult);
+                        var sResult =
+                            this._formatHuAnulacionResult(oResult);
+                        var sStatus = String(
+                            oResult.data && oResult.data.Status || ""
+                        ).toUpperCase();
+                        var sWarning = String(
+                            oResult.data && oResult.data.Message || ""
+                        ).trim();
+
+                        if (
+                            oResult.technicalWarning === true ||
+                            sStatus === "W"
+                        ) {
+                            sResult += "\n  Advertencia: " +
+                                (sWarning ||
+                                    "La HU fue procesada con advertencia.");
+                        }
+
+                        return sResult;
                     }.bind(this)).join("\n")
                 );
             }
@@ -3181,6 +3351,32 @@ sap.ui.define([
                 "/cancellationSummary",
                 this._getEmptyCancellationSummary()
             );
+            this._startCancellationProgress(aGroups.length);
+
+            var fnUpdateProgressFromResults = function (oChanges) {
+                var aProcessedResults = aResults.filter(function (
+                    oResult
+                ) {
+                    return oResult.skipped !== true;
+                });
+                var iSuccessfulHu = aProcessedResults.filter(function (
+                    oResult
+                ) {
+                    return oResult.success === true;
+                }).length;
+
+                this._updateCancellationProgress(Object.assign(
+                    {
+                        active: true,
+                        total: aGroups.length,
+                        completed: aProcessedResults.length,
+                        success: iSuccessfulHu,
+                        failed:
+                            aProcessedResults.length - iSuccessfulHu
+                    },
+                    oChanges || {}
+                ));
+            }.bind(this);
 
             var fnAddPendingResults = function (
                 iStartIndex,
@@ -3198,7 +3394,7 @@ sap.ui.define([
                 });
             };
 
-            var fnPostNextGroup = function () {
+            var fnPostNextGroup = function (oPreparedRefreshResult) {
                 if (iCurrentGroup >= aGroups.length) {
                     this._logInfo(
                         "ANULACION_SECUENCIAL.FIN",
@@ -3220,6 +3416,17 @@ sap.ui.define([
                 var oTargetGroup = aGroups[iCurrentGroup];
                 var iPosition = iCurrentGroup + 1;
 
+                fnUpdateProgressFromResults({
+                    current: iPosition,
+                    currentHu:
+                        oTargetGroup.HuExidv || oTargetGroup.HuVenum,
+                    title: "Preparando HU " + iPosition + " de " +
+                        aGroups.length,
+                    message:
+                        "Consultando el preview actualizado antes de enviar la HU.",
+                    state: "Information"
+                });
+
                 this._logInfo(
                     "ANULACION_SECUENCIAL.REFRESH",
                     "Consultando el MatDoc antes de reconstruir la HU viva",
@@ -3233,26 +3440,29 @@ sap.ui.define([
                     }
                 );
 
-                this._refreshPreviewAfterCancellation(
-                    sMatDoc,
-                    function (bPreviewUpdated, oRefreshResult) {
+                var fnProcessRefreshedPreview = function (
+                    bPreviewUpdated,
+                    oRefreshResult
+                ) {
                         if (!bPreviewUpdated) {
                             aResults.push({
                                 success: false,
+                                technicalError: true,
                                 error: {
                                     message:
                                         "No fue posible refrescar el MatDoc antes de procesar la HU."
                                 },
                                 group: oTargetGroup
                             });
-                            fnAddPendingResults(
-                                iCurrentGroup + 1,
-                                "No se envió porque falló el refresco del MatDoc."
-                            );
-                            this._finalizeMultipleAnulaciones(
-                                sMatDoc,
-                                aResults
-                            );
+                            fnUpdateProgressFromResults({
+                                title: "No se pudo preparar la HU " +
+                                    iPosition + " de " + aGroups.length,
+                                message:
+                                    "No fue posible actualizar el documento. Se continuará con la siguiente HU seleccionada.",
+                                state: "Warning"
+                            });
+                            iCurrentGroup++;
+                            fnPostNextGroup();
                             return;
                         }
 
@@ -3284,6 +3494,13 @@ sap.ui.define([
                                 },
                                 group: oTargetGroup
                             });
+                            fnUpdateProgressFromResults({
+                                title: "HU " + iPosition + " de " +
+                                    aGroups.length + " ya procesada",
+                                message:
+                                    "La HU ya no aparece en el preview actualizado. Preparando la siguiente.",
+                                state: "Warning"
+                            });
                             iCurrentGroup++;
                             fnPostNextGroup();
                             return;
@@ -3298,20 +3515,22 @@ sap.ui.define([
                         if (!aLiveSelections.length) {
                             aResults.push({
                                 success: false,
+                                technicalError: true,
                                 error: {
                                     message:
                                         "La HU existe, pero sus pedidos o proveedor seleccionados ya no pudieron reconstruirse con datos actuales."
                                 },
                                 group: oTargetGroup
                             });
-                            fnAddPendingResults(
-                                iCurrentGroup + 1,
-                                "No se envió porque no fue posible reconstruir la HU anterior."
-                            );
-                            this._finalizeMultipleAnulaciones(
-                                sMatDoc,
-                                aResults
-                            );
+                            fnUpdateProgressFromResults({
+                                title: "No se pudo reconstruir la HU " +
+                                    iPosition + " de " + aGroups.length,
+                                message:
+                                    "Los datos actuales de la HU no permiten enviarla. Se continuará con la siguiente.",
+                                state: "Warning"
+                            });
+                            iCurrentGroup++;
+                            fnPostNextGroup();
                             return;
                         }
 
@@ -3345,6 +3564,17 @@ sap.ui.define([
                             }
                         );
 
+                        fnUpdateProgressFromResults({
+                            current: iPosition,
+                            currentHu:
+                                oGroup.HuExidv || oGroup.HuVenum,
+                            title: "Anulando HU " + iPosition + " de " +
+                                aGroups.length,
+                            message:
+                                "Solicitud enviada a SAP. Esperando la confirmación del movimiento 102.",
+                            state: "Information"
+                        });
+
                         this._postAnulacion(
                             sMatDoc,
                             oGroup.selections,
@@ -3357,15 +3587,61 @@ sap.ui.define([
                                             ? oResult.data.Status
                                             : (oResult.success === true
                                                 ? "S"
-                                                : "E")
+                                                : "TECHNICAL")
                                     ).toUpperCase();
+                                    var bFunctionalError =
+                                        sResponseStatus === "E" &&
+                                        oResult.technicalError !== true;
+                                    var bMessageTypeX =
+                                        oResult.messageTypeX === true ||
+                                        this._isMessageTypeXError(
+                                            oResult.error
+                                        );
+                                    var fnContinueQueue = function (
+                                        oNextRefreshResult
+                                    ) {
+                                        var oLastResult =
+                                            aResults[aResults.length - 1] || {};
+                                        var iSuccessfulHu =
+                                            aResults.filter(function (
+                                                oStoredResult
+                                            ) {
+                                                return oStoredResult.success ===
+                                                    true;
+                                            }).length;
 
-                                    aResults.push(Object.assign(
-                                        {},
-                                        oResult,
-                                        { group: oGroup }
-                                    ));
-                                    iCurrentGroup++;
+                                        fnUpdateProgressFromResults({
+                                            title: oLastResult.success === true
+                                                ? iSuccessfulHu + " de " +
+                                                    aGroups.length +
+                                                    " HU anuladas"
+                                                : "Resultado validado para la HU " +
+                                                    iPosition + " de " +
+                                                    aGroups.length,
+                                            message:
+                                                "Esperando 30 segundos para que SAP libere el documento antes de continuar.",
+                                            state: oLastResult.success === true
+                                                ? "Success"
+                                                : "Warning"
+                                        });
+                                        iCurrentGroup++;
+                                        this._waitForSapRelease(
+                                            function () {
+                                                fnPostNextGroup(
+                                                    oNextRefreshResult
+                                                );
+                                            }
+                                        );
+                                    }.bind(this);
+                                    var fnStoreResult = function (
+                                        oStoredResult
+                                    ) {
+                                        aResults.push(Object.assign(
+                                            {},
+                                            oStoredResult,
+                                            { group: oGroup }
+                                        ));
+                                    };
 
                                     this._logInfo(
                                         "ANULACION_SECUENCIAL.RESPUESTA",
@@ -3388,10 +3664,24 @@ sap.ui.define([
                                         }
                                     );
 
-                                    if (oResult.success !== true) {
+                                    if (bFunctionalError) {
+                                        fnStoreResult(Object.assign(
+                                            {},
+                                            oResult,
+                                            { functionalError: true }
+                                        ));
+                                        fnUpdateProgressFromResults({
+                                            title: "La HU " + iPosition +
+                                                " de " + aGroups.length +
+                                                " no pudo anularse",
+                                            message:
+                                                "SAP devolvió un error funcional. El proceso se detuvo para proteger las HUs pendientes.",
+                                            state: "Error"
+                                        });
+                                        iCurrentGroup++;
                                         this._logError(
                                             "ANULACION_SECUENCIAL.DETENIDA",
-                                            "La cola se detuvo; no se enviarán las HU restantes",
+                                            "SAP devolvió Status E; no se enviarán las HU restantes",
                                             {
                                                 traceId:
                                                     sSequentialTraceId,
@@ -3414,34 +3704,345 @@ sap.ui.define([
                                         return;
                                     }
 
+                                    if (oResult.success !== true) {
+                                        fnUpdateProgressFromResults({
+                                            title: "Verificando la HU " +
+                                                iPosition + " de " +
+                                                aGroups.length,
+                                            message:
+                                                "SAP devolvió un error técnico. Consultando el preview antes de decidir el resultado.",
+                                            state: "Warning"
+                                        });
+                                        this._logWarn(
+                                            "ANULACION_SECUENCIAL.RECONCILIACION",
+                                            "El POST tuvo un error técnico; se consultará el preview antes de decidir el resultado",
+                                            {
+                                                traceId:
+                                                    sSequentialTraceId,
+                                                HuVenum: oGroup.HuVenum,
+                                                HuExidv: oGroup.HuExidv,
+                                                error: this._serializeError(
+                                                    oResult.error
+                                                )
+                                            }
+                                        );
+
+                                        this._reconcileHuAfterTechnicalError(
+                                            sMatDoc,
+                                            oGroup,
+                                            function (oReconciliation) {
+                                                if (oReconciliation.cancelled) {
+                                                    fnStoreResult({
+                                                        success: true,
+                                                        technicalWarning: true,
+                                                        reconciled: true,
+                                                        reconciliationAttempts:
+                                                            oReconciliation.attempts,
+                                                        originalError:
+                                                            oResult.error,
+                                                        data: {
+                                                            Status: "W",
+                                                            Message:
+                                                                "SAP procesó la HU, aunque el POST regresó un error técnico. La HU desapareció del preview después de " +
+                                                                oReconciliation.elapsedMs / 1000 +
+                                                                " segundos."
+                                                        }
+                                                    });
+                                                } else {
+                                                    fnStoreResult(Object.assign(
+                                                        {},
+                                                        oResult,
+                                                        {
+                                                            success: false,
+                                                            technicalError:
+                                                                true,
+                                                            reconciled:
+                                                                oReconciliation.previewUpdated,
+                                                            reconciliationAttempts:
+                                                                oReconciliation.attempts,
+                                                            originalError:
+                                                                oResult.error,
+                                                            error: {
+                                                                message:
+                                                                    bMessageTypeX
+                                                                        ? this._getMessageTypeXFunctionalMessage()
+                                                                        : oReconciliation.huStillPresent
+                                                                        ? "La HU continúa apareciendo en el preview después de " +
+                                                                            oReconciliation.elapsedMs / 1000 +
+                                                                            " segundos y " +
+                                                                            oReconciliation.attempts +
+                                                                            " intentos de reconciliación."
+                                                                        : "No fue posible confirmar el resultado del POST después de " +
+                                                                            oReconciliation.attempts +
+                                                                            " intentos de reconciliación durante " +
+                                                                            oReconciliation.elapsedMs / 1000 +
+                                                                            " segundos. " +
+                                                                            this._getAnulacionResultErrorMessage(
+                                                                                oResult
+                                                                            )
+                                                            }
+                                                        }
+                                                    ));
+                                                }
+
+                                                fnUpdateProgressFromResults({
+                                                    title:
+                                                        oReconciliation.cancelled
+                                                            ? aResults.filter(function (
+                                                                oStoredResult
+                                                            ) {
+                                                                return oStoredResult.success ===
+                                                                    true;
+                                                            }).length +
+                                                                " de " +
+                                                                aGroups.length +
+                                                                " HU anuladas"
+                                                            : "La HU " +
+                                                                iPosition +
+                                                                " de " +
+                                                                aGroups.length +
+                                                                " no fue anulada",
+                                                    message:
+                                                        oReconciliation.cancelled
+                                                            ? "La HU desapareció del preview y quedó confirmada con advertencia técnica."
+                                                            : "La HU continúa pendiente después de la reconciliación.",
+                                                    state:
+                                                        oReconciliation.cancelled
+                                                            ? "Warning"
+                                                            : "Error"
+                                                });
+
+                                                if (bMessageTypeX) {
+                                                    iCurrentGroup++;
+                                                    fnAddPendingResults(
+                                                        iCurrentGroup,
+                                                        "No se envió porque el proceso se detuvo para evitar inconsistencias. Vuelva a consultar el documento antes de reintentar."
+                                                    );
+                                                    fnUpdateProgressFromResults({
+                                                        title:
+                                                            "Proceso detenido por respuesta técnica de SAP",
+                                                        message:
+                                                            "No se enviarán las HUs restantes. Vuelva a consultar el documento antes de reintentar.",
+                                                        state: "Error"
+                                                    });
+                                                    this._logError(
+                                                        "ANULACION_SECUENCIAL.DETENIDA_MESSAGE_TYPE_X",
+                                                        "SAP devolvió HTTP 500 / MESSAGE_TYPE_X; la cola se detuvo después de reconciliar la HU",
+                                                        {
+                                                            traceId:
+                                                                sSequentialTraceId,
+                                                            MatDoc: sMatDoc,
+                                                            HuVenum:
+                                                                oGroup.HuVenum,
+                                                            HuExidv:
+                                                                oGroup.HuExidv,
+                                                            cancelled:
+                                                                oReconciliation.cancelled,
+                                                            pendingHu:
+                                                                aGroups.length -
+                                                                iCurrentGroup
+                                                        }
+                                                    );
+                                                    this._finalizeMultipleAnulaciones(
+                                                        sMatDoc,
+                                                        aResults,
+                                                        {
+                                                            previewAlreadyRefreshed:
+                                                                oReconciliation.previewUpdated === true
+                                                        }
+                                                    );
+                                                    return;
+                                                }
+
+                                                fnContinueQueue(
+                                                    oReconciliation.cancelled
+                                                        ? oReconciliation.refreshResult
+                                                        : null
+                                                );
+                                            }.bind(this)
+                                        );
+                                        return;
+                                    }
+
+                                    fnStoreResult(oResult);
+                                    fnUpdateProgressFromResults({
+                                        title: aResults.filter(function (
+                                            oStoredResult
+                                        ) {
+                                            return oStoredResult.success ===
+                                                true;
+                                        }).length + " de " +
+                                            aGroups.length +
+                                            " HU anuladas",
+                                        message:
+                                            "La HU fue aceptada por SAP. Actualizando el preview antes de continuar.",
+                                        state: "Success"
+                                    });
                                     this._logInfo(
                                         "ANULACION_SECUENCIAL.ESPERA",
-                                        "Respuesta aceptada; esperando 2000 ms antes de continuar",
+                                        "Respuesta aceptada; refrescando el preview antes de esperar 30000 ms",
                                         {
                                             traceId:
                                                 sSequentialTraceId,
                                             completedHu:
-                                                iCurrentGroup,
+                                                iCurrentGroup + 1,
                                             pendingHu:
                                                 aGroups.length -
-                                                iCurrentGroup
+                                                iCurrentGroup - 1
                                         }
                                     );
-                                    this._waitForSapRelease(
-                                        fnPostNextGroup
+
+                                    this._refreshPreviewAfterCancellation(
+                                        sMatDoc,
+                                        function (
+                                            bPostPreviewUpdated,
+                                            oPostRefreshResult
+                                        ) {
+                                            if (!bPostPreviewUpdated) {
+                                                this._logWarn(
+                                                    "ANULACION_SECUENCIAL.POST_REFRESH",
+                                                    "La HU fue aceptada, pero el preview posterior no pudo actualizarse; se volverá a consultar antes de la siguiente HU",
+                                                    {
+                                                        traceId:
+                                                            sSequentialTraceId,
+                                                        HuVenum:
+                                                            oGroup.HuVenum,
+                                                        HuExidv:
+                                                            oGroup.HuExidv
+                                                    }
+                                                );
+                                            }
+
+                                            fnContinueQueue(
+                                                bPostPreviewUpdated
+                                                    ? oPostRefreshResult
+                                                    : null
+                                            );
+                                        }.bind(this)
                                     );
                                 }.bind(this)
                             }
                         );
-                    }.bind(this)
+                }.bind(this);
+
+                if (oPreparedRefreshResult) {
+                    fnProcessRefreshedPreview(
+                        true,
+                        oPreparedRefreshResult
+                    );
+                    return;
+                }
+
+                this._refreshPreviewAfterCancellation(
+                    sMatDoc,
+                    fnProcessRefreshedPreview
                 );
             }.bind(this);
 
             fnPostNextGroup();
         },
 
+        _getSapReleaseDelayMs: function () {
+            return 30000;
+        },
+
         _waitForSapRelease: function (fnContinue) {
-            setTimeout(fnContinue, 2000);
+            setTimeout(fnContinue, this._getSapReleaseDelayMs());
+        },
+
+        _getTechnicalReconciliationScheduleMs: function () {
+            return [15000, 30000, 60000, 120000, 180000];
+        },
+
+        _waitForTechnicalReconciliation: function (iDelayMs, fnContinue) {
+            setTimeout(fnContinue, iDelayMs);
+        },
+
+        _reconcileHuAfterTechnicalError: function (
+            sMatDoc,
+            oGroup,
+            fnComplete
+        ) {
+            var aSchedule =
+                this._getTechnicalReconciliationScheduleMs();
+            var iAttemptIndex = 0;
+            var iPreviousElapsedMs = 0;
+            var fnRunAttempt;
+            var fnScheduleNext = function () {
+                var iTargetElapsedMs = aSchedule[iAttemptIndex];
+                var iDelayMs = Math.max(
+                    0,
+                    iTargetElapsedMs - iPreviousElapsedMs
+                );
+
+                iPreviousElapsedMs = iTargetElapsedMs;
+                this._waitForTechnicalReconciliation(
+                    iDelayMs,
+                    fnRunAttempt
+                );
+            }.bind(this);
+
+            fnRunAttempt = function () {
+                var iAttemptNumber = iAttemptIndex + 1;
+                var iElapsedMs = aSchedule[iAttemptIndex];
+
+                this._logInfo(
+                    "ANULACION_SECUENCIAL.RECONCILIACION_INTENTO",
+                    "Consultando preview después del error técnico",
+                    {
+                        MatDoc: sMatDoc,
+                        HuVenum: oGroup.HuVenum,
+                        HuExidv: oGroup.HuExidv,
+                        attempt: iAttemptNumber,
+                        elapsedMs: iElapsedMs
+                    }
+                );
+
+                this._refreshPreviewAfterCancellation(
+                    sMatDoc,
+                    function (bPreviewUpdated, oRefreshResult) {
+                        var aPreview = bPreviewUpdated &&
+                            oRefreshResult &&
+                            oRefreshResult.preview || [];
+                        var oLiveHu = bPreviewUpdated
+                            ? this._findLiveHuRow(oGroup, aPreview)
+                            : null;
+
+                        if (bPreviewUpdated && !oLiveHu) {
+                            fnComplete({
+                                cancelled: true,
+                                previewUpdated: true,
+                                huStillPresent: false,
+                                attempts: iAttemptNumber,
+                                elapsedMs: iElapsedMs,
+                                refreshResult: oRefreshResult
+                            });
+                            return;
+                        }
+
+                        iAttemptIndex++;
+
+                        if (iAttemptIndex < aSchedule.length) {
+                            fnScheduleNext();
+                            return;
+                        }
+
+                        fnComplete({
+                            cancelled: false,
+                            previewUpdated: bPreviewUpdated,
+                            huStillPresent:
+                                bPreviewUpdated && !!oLiveHu,
+                            attempts: iAttemptNumber,
+                            elapsedMs: iElapsedMs,
+                            error: bPreviewUpdated
+                                ? null
+                                : oRefreshResult
+                        });
+                    }.bind(this)
+                );
+            }.bind(this);
+
+            fnScheduleNext();
         },
 
         _refreshPreviewAfterCancellation: function (
@@ -3558,6 +4159,13 @@ sap.ui.define([
                 0
             );
             var iTotalHu = iSuccessfulHu + iErrorHu;
+            var bHasWarnings = aSuccessResults.some(function (oResult) {
+                return oResult.technicalWarning === true ||
+                    oResult.alreadyRemoved === true ||
+                    String(
+                        oResult.data && oResult.data.Status || ""
+                    ).toUpperCase() === "W";
+            });
 
             aSuccessResults.forEach(function (oResult) {
                 aSuccessfulSelections = aSuccessfulSelections.concat(
@@ -3571,7 +4179,7 @@ sap.ui.define([
 
             var sStatus = aErrorResults.length
                 ? (aSuccessResults.length ? "W" : "E")
-                : "S";
+                : (bHasWarnings ? "W" : "S");
             var sMessage = aErrorResults.length
                 ? iSuccessfulHu + " de " +
                     iTotalHu +
@@ -3611,6 +4219,9 @@ sap.ui.define([
             this.getVM().setProperty("/selectedSection", "detail");
 
             var fnCompleteFinalization = function (bPreviewUpdated) {
+                    this._finishCancellationProgress();
+                    this.getVM().setProperty("/busy", false);
+
                     if (!bPreviewUpdated) {
                         MessageToast.show(
                             "La anulación terminó, pero no fue posible refrescar la vista previa."
@@ -3618,14 +4229,13 @@ sap.ui.define([
                     }
 
                     if (!aSuccessResults.length) {
-                        this.getVM().setProperty("/busy", false);
                         MessageBox.error(sDetailedMessage, {
                             title: "Resultado de anulación"
                         });
                         return;
                     }
 
-                    if (aErrorResults.length) {
+                    if (aErrorResults.length || bHasWarnings) {
                         MessageBox.warning(sDetailedMessage, {
                             title: "Resultado de anulación"
                         });
@@ -3892,11 +4502,12 @@ sap.ui.define([
             // ENVÍO A SAP
             // =========================================================
 
-            oModel.create(
-                sPath,
-                oPayload,
-                {
-                    success: function (oData) {
+            var fnSendRequest = function (bCsrfRetried) {
+                oModel.create(
+                    sPath,
+                    oPayload,
+                    {
+                    success: function (oData, oResponse) {
                         console.group(
                             "========== RESPUESTA ANULACION SAP =========="
                         );
@@ -3938,14 +4549,26 @@ sap.ui.define([
                             var sBatchStatus = String(
                                 oData && oData.Status
                                     ? oData.Status
-                                    : "S"
+                                    : ""
                             ).toUpperCase();
+                            var iHttpStatus =
+                                this._getHttpStatusCode(oResponse);
+                            var bCreated =
+                                !iHttpStatus || iHttpStatus === 201;
                             var bBatchSuccess =
-                                sBatchStatus === "S" ||
-                                sBatchStatus === "W";
+                                bCreated && (
+                                    sBatchStatus === "S" ||
+                                    sBatchStatus === "W"
+                                );
 
                             oOptions.onComplete({
                                 success: bBatchSuccess,
+                                functionalError: sBatchStatus === "E",
+                                technicalError:
+                                    !bBatchSuccess &&
+                                    sBatchStatus !== "E",
+                                csrfRetried: bCsrfRetried,
+                                httpStatus: iHttpStatus || null,
                                 data: oData || {},
                                 error: bBatchSuccess
                                     ? null
@@ -4028,7 +4651,71 @@ sap.ui.define([
                         }
                     }.bind(this),
 
-                    error: function (oError) {
+                    error: function fnRequestError(
+                        oError,
+                        bRefreshFailed
+                    ) {
+                        var bAlreadyRetried =
+                            bCsrfRetried || bRefreshFailed === true;
+
+                        if (
+                            !bAlreadyRetried &&
+                            this._isCsrfError(oError) &&
+                            typeof oModel.refreshSecurityToken ===
+                                "function"
+                        ) {
+                            this._logWarn(
+                                "_postAnulacion.csrf",
+                                "SAP respondió 403; se refrescará el token CSRF y se reintentará una sola vez",
+                                {
+                                    traceId: sTraceId,
+                                    payload: oPayload,
+                                    error: this._serializeError(oError)
+                                }
+                            );
+                            oModel.refreshSecurityToken(
+                                function () {
+                                    fnSendRequest(true);
+                                },
+                                function (oRefreshError) {
+                                    fnRequestError.call(
+                                        this,
+                                        oRefreshError || oError,
+                                        true
+                                    );
+                                }.bind(this),
+                                true
+                            );
+                            return;
+                        }
+
+                        var bMessageTypeX =
+                            this._isMessageTypeXError(oError);
+                        var oSerializedError =
+                            this._serializeError(oError);
+
+                        if (bMessageTypeX) {
+                            this._logError(
+                                "_postAnulacion.MESSAGE_TYPE_X",
+                                "SAP MM-IM terminó el movimiento 102 con MESSAGE_TYPE_X",
+                                {
+                                    traceId: sTraceId,
+                                    timestamp: new Date().toISOString(),
+                                    MatDoc: sMatDoc,
+                                    HuVenum: oPayload.HuVenum,
+                                    HuExidv: oPayload.HuExidv,
+                                    PO: oPayload.EbelnsSel,
+                                    Proveedor:
+                                        oPayload.ProveedoresSel,
+                                    httpStatus:
+                                        this._getHttpStatusCode(oError),
+                                    sapError: "MESSAGE_TYPE_X",
+                                    responseText:
+                                        oSerializedError.responseText
+                                }
+                            );
+                        }
+
                         console.group(
                             "========== ERROR ANULACION SAP =========="
                         );
@@ -4053,7 +4740,7 @@ sap.ui.define([
 
                         console.error(
                             "ERROR SERIALIZADO:",
-                            this._serializeError(oError)
+                            oSerializedError
                         );
 
                         console.groupEnd();
@@ -4064,13 +4751,17 @@ sap.ui.define([
                             {
                                 traceId: sTraceId,
                                 payload: oPayload,
-                                error: this._serializeError(oError)
+                                error: oSerializedError
                             }
                         );
 
                         if (typeof oOptions.onComplete === "function") {
                             oOptions.onComplete({
                                 success: false,
+                                functionalError: false,
+                                technicalError: true,
+                                messageTypeX: bMessageTypeX,
+                                csrfRetried: bAlreadyRetried,
                                 error: oError,
                                 payload: oPayload,
                                 selections: aSelections
@@ -4084,12 +4775,17 @@ sap.ui.define([
                         );
 
                         this._showODataError(
-                            "Error al anular el documento.",
-                            oError
+                            bMessageTypeX
+                                ? this._getMessageTypeXFunctionalMessage()
+                                : "Error al anular el documento.",
+                            bMessageTypeX ? null : oError
                         );
                     }.bind(this)
-                }
-            );
+                    }
+                );
+            }.bind(this);
+
+            fnSendRequest(false);
         },
 
         _getDetalleFinalByRunId: function (sRunId) {
@@ -4270,6 +4966,83 @@ sap.ui.define([
 
             return sStatus || "Sin ejecutar";
         },
+
+        _getEmptyCancellationProgress: function () {
+            return {
+                active: false,
+                current: 0,
+                total: 0,
+                completed: 0,
+                success: 0,
+                failed: 0,
+                pending: 0,
+                percent: 0,
+                displayValue: "0 de 0 HU procesadas",
+                title: "Preparando la anulación",
+                message:
+                    "Validando las HUs seleccionadas antes de iniciar.",
+                state: "Information",
+                currentHu: ""
+            };
+        },
+
+        _startCancellationProgress: function (iTotalHu) {
+            var iTotal = Math.max(0, Number(iTotalHu) || 0);
+            var oProgress = this._getEmptyCancellationProgress();
+
+            oProgress.active = true;
+            oProgress.total = iTotal;
+            oProgress.pending = iTotal;
+            oProgress.displayValue = "0 de " + iTotal +
+                " HU procesadas";
+
+            this.getVM().setProperty(
+                "/cancellationProgress",
+                oProgress
+            );
+        },
+
+        _updateCancellationProgress: function (oChanges) {
+            var oVM = this.getVM();
+            var oCurrent = typeof oVM.getProperty === "function"
+                ? oVM.getProperty("/cancellationProgress")
+                : null;
+            var oProgress = Object.assign(
+                {},
+                this._getEmptyCancellationProgress(),
+                oCurrent || {},
+                oChanges || {}
+            );
+            var iTotal = Math.max(
+                0,
+                Number(oProgress.total) || 0
+            );
+            var iCompleted = Math.min(
+                iTotal,
+                Math.max(0, Number(oProgress.completed) || 0)
+            );
+
+            oProgress.total = iTotal;
+            oProgress.completed = iCompleted;
+            oProgress.pending = Math.max(0, iTotal - iCompleted);
+            oProgress.percent = iTotal
+                ? Math.round(iCompleted / iTotal * 100)
+                : 0;
+            oProgress.displayValue = iCompleted + " de " +
+                iTotal + " HU procesadas";
+
+            oVM.setProperty(
+                "/cancellationProgress",
+                oProgress
+            );
+        },
+
+        _finishCancellationProgress: function () {
+            this._updateCancellationProgress({
+                active: false
+            });
+        },
+
         _getInitialState: function () {
     return {
         matDoc: "",
@@ -4285,6 +5058,7 @@ sap.ui.define([
 
         resultadoState: "None",
         cancellationSummary: this._getEmptyCancellationSummary(),
+        cancellationProgress: this._getEmptyCancellationProgress(),
         preview: [],
         previewDisplay: [],
         previewHeader: {},
