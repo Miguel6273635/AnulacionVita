@@ -131,7 +131,7 @@
                                         liveChange=".onMatDocLiveChange"
                                         submit=".onBuscarDocumento"
                                         width="100%"
-                                        maxLength="20"
+                                        maxLength="10"
                                         class="modernInput" />
                                 </VBox>
 

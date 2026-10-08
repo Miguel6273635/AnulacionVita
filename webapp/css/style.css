@@ -368,7 +368,26 @@
 .cancellationProgressIcon {
     color: #ffffff !important;
     font-size: 1.25rem !important;
-    animation: cancellationProgressSpin 2.4s linear infinite;
+    display: inline-block;
+    transform-origin: 50% 50%;
+    animation: cancellationProgressSpin 1s linear infinite;
+    will-change: transform;
+}
+
+@keyframes cancellationProgressSpin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cancellationProgressIcon {
+        animation-duration: 2s;
+    }
 }
 
 .cancellationProgressTextBox {
@@ -434,16 +453,6 @@
 
 .cancellationProgressStats .sapMObjStatus {
     font-weight: 800;
-}
-
-@keyframes cancellationProgressSpin {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
 }
 
 @media (max-width: 768px) {

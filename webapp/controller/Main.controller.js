@@ -5,7 +5,8 @@ sap.ui.define([
     "sap/ui/model/FilterOperator",
     "sap/m/MessageBox",
     "sap/m/MessageToast",
-    "sap/ui/core/Fragment"
+    "sap/ui/core/Fragment",
+    "sap/base/Log"
 ], function (
     Controller,
     JSONModel,
@@ -13,7 +14,8 @@ sap.ui.define([
     FilterOperator,
     MessageBox,
     MessageToast,
-    Fragment
+    Fragment,
+    Log
 ) {
     "use strict";
 
@@ -65,16 +67,45 @@ sap.ui.define([
                 Math.floor(Math.random() * 100000);
         },
 
+        _stringifyLogData: function (oData) {
+            if (!oData) {
+                return "";
+            }
+
+            try {
+                var sDetails = JSON.stringify(oData);
+
+                return sDetails.length > 12000
+                    ? sDetails.slice(0, 12000) + "...[truncado]"
+                    : sDetails;
+            } catch (oSerializationError) {
+                return "No fue posible serializar el detalle técnico: " +
+                    String(oSerializationError.message || "");
+            }
+        },
+
         _logInfo: function (sStep, sMessage, oData) {
-            console.log("[INFO][" + sStep + "] " + sMessage, oData || "");
+            Log.info(
+                "[" + sStep + "] " + sMessage,
+                this._stringifyLogData(oData),
+                "z.anulacion.anulacion.controller.Main"
+            );
         },
 
         _logWarn: function (sStep, sMessage, oData) {
-            console.warn("[WARN][" + sStep + "] " + sMessage, oData || "");
+            Log.warning(
+                "[" + sStep + "] " + sMessage,
+                this._stringifyLogData(oData),
+                "z.anulacion.anulacion.controller.Main"
+            );
         },
 
         _logError: function (sStep, sMessage, oData) {
-            console.error("[ERROR][" + sStep + "] " + sMessage, oData || "");
+            Log.error(
+                "[" + sStep + "] " + sMessage,
+                this._stringifyLogData(oData),
+                "z.anulacion.anulacion.controller.Main"
+            );
         },
 
         _serializeError: function (oError) {
@@ -122,14 +153,40 @@ sap.ui.define([
             });
         },
 
+        _normalizeMatDocInput: function (vValue) {
+            return String(
+                vValue === null || vValue === undefined ? "" : vValue
+            ).replace(/\D/g, "").slice(0, 10);
+        },
+
+        _isValidMatDoc: function (vValue) {
+            return /^\d{10}$/.test(String(vValue || "").trim());
+        },
+
         onMatDocLiveChange: function (oEvent) {
             var sOriginal = oEvent.getParameter("value") || "";
-            var sSoloNumeros = sOriginal.replace(/\D/g, "");
+            var sMatDoc = this._normalizeMatDocInput(sOriginal);
+            var oSource = oEvent.getSource && oEvent.getSource();
+            var oVM = this.getVM();
+            var oPreviewHeader = oVM.getProperty("/previewHeader") || {};
+            var sPreviewMatDoc = String(
+                oPreviewHeader.MatDoc || ""
+            ).trim();
 
-            this.getVM().setProperty("/matDoc", sSoloNumeros);
+            if (
+                oSource &&
+                typeof oSource.setValue === "function" &&
+                sOriginal !== sMatDoc
+            ) {
+                oSource.setValue(sMatDoc);
+            }
 
-            if (!sSoloNumeros) {
-                this.getVM().setProperty("/canCancel", false);
+            oVM.setProperty("/matDoc", sMatDoc);
+
+            // Una vista previa sólo autoriza a anular exactamente el documento
+            // que SAP confirmó. Cualquier edición obliga a consultarlo de nuevo.
+            if (!sMatDoc || sMatDoc !== sPreviewMatDoc) {
+                oVM.setProperty("/canCancel", false);
             }
         },
 
@@ -140,7 +197,11 @@ sap.ui.define([
 
         onBuscarDocumento: function () {
             var oVM = this.getVM();
-            var sMatDoc = oVM.getProperty("/matDoc");
+            var sMatDoc = this._normalizeMatDocInput(
+                oVM.getProperty("/matDoc")
+            );
+
+            oVM.setProperty("/matDoc", sMatDoc);
 
             if (oVM.getProperty("/busy")) {
                 MessageToast.show(
@@ -154,9 +215,9 @@ sap.ui.define([
                 return;
             }
 
-            if (sMatDoc.length < 6) {
+            if (!this._isValidMatDoc(sMatDoc)) {
                 MessageBox.warning(
-                    "El documento material capturado parece incompleto."
+                    "El documento material debe contener exactamente 10 dígitos."
                 );
                 return;
             }
@@ -199,6 +260,10 @@ sap.ui.define([
 
         _getPreviewTimeoutMs: function () {
             return 180000;
+        },
+
+        _getAnulacionTimeoutMs: function () {
+            return 540000;
         },
 
         _getPreview: function (sMatDoc) {
@@ -364,12 +429,25 @@ sap.ui.define([
                         return;
                     }
 
+                    var sCanonicalMatDoc = String(
+                        oHeader.MatDoc || ""
+                    ).trim();
+
+                    if (!this._isValidMatDoc(sCanonicalMatDoc)) {
+                        throw new Error(
+                            "SAP devolvió un documento material inválido. Se esperaban exactamente 10 dígitos."
+                        );
+                    }
+
                     var aPreviewItems = this._mapDeepPreviewItems(
                         oHeader,
                         aItems
                     );
                     var aGroupedRows = this._buildPreviewRows(aPreviewItems);
 
+                    // El valor confirmado por SAP pasa a ser la fuente oficial
+                    // para la confirmación y el POST de anulación.
+                    oVM.setProperty("/matDoc", sCanonicalMatDoc);
                     oVM.setProperty("/previewHeader", oHeader);
                     oVM.setProperty("/previewItems", aItems);
                     oVM.setProperty("/preview", aGroupedRows);
@@ -2404,7 +2482,11 @@ sap.ui.define([
 
         onAnularDocumento: function () {
             var oVM = this.getVM();
-            var sMatDoc = oVM.getProperty("/matDoc");
+            var sCapturedMatDoc = String(
+                oVM.getProperty("/matDoc") || ""
+            ).trim();
+            var oPreviewHeader = oVM.getProperty("/previewHeader") || {};
+            var sMatDoc = String(oPreviewHeader.MatDoc || "").trim();
             var bCanCancel = oVM.getProperty("/canCancel");
             var aPreview = oVM.getProperty("/preview") || [];
             var oSummary = oVM.getProperty("/summary") || {};
@@ -2413,9 +2495,20 @@ sap.ui.define([
                 return;
             }
 
-            if (!sMatDoc) {
+            if (!this._isValidMatDoc(sCapturedMatDoc)) {
                 MessageBox.warning(
-                    "Primero captura un documento material."
+                    "El documento material debe contener exactamente 10 dígitos."
+                );
+                return;
+            }
+
+            if (
+                !this._isValidMatDoc(sMatDoc) ||
+                sCapturedMatDoc !== sMatDoc
+            ) {
+                oVM.setProperty("/canCancel", false);
+                MessageBox.warning(
+                    "El documento cambió después de la consulta. Vuelve a buscarlo antes de anular."
                 );
                 return;
             }
@@ -2959,6 +3052,14 @@ sap.ui.define([
             aSelections,
             bOmitHuIdentifiers
         ) {
+            var sValidatedMatDoc = String(sMatDoc || "").trim();
+
+            if (!this._isValidMatDoc(sValidatedMatDoc)) {
+                throw new Error(
+                    "No se puede enviar la anulación: MatDoc debe contener exactamente 10 dígitos."
+                );
+            }
+
             var aItems = Array.isArray(aSelections)
                 ? aSelections
                 : [];
@@ -2986,7 +3087,7 @@ sap.ui.define([
                 .filter(Boolean)
                 .join(";");
             var oPayload = {
-                MatDoc: sMatDoc,
+                MatDoc: sValidatedMatDoc,
                 ProveedoresSel: aPayloadItems
                     .map(function (oItem) {
                         return String(oItem.Lifnr || "").trim();
@@ -4257,6 +4358,121 @@ sap.ui.define([
             );
         },
 
+        _sendODataCreateWithTimeout: function (
+            oModel,
+            sPath,
+            oPayload,
+            oRequestOptions
+        ) {
+            var oOptions = oRequestOptions || {};
+            var iTimeoutMs = Math.max(
+                1,
+                Number(oOptions.timeoutMs) ||
+                    this._getAnulacionTimeoutMs()
+            );
+            var bFinished = false;
+            var oRequestHandle;
+            var iTimeoutId;
+
+            var fnComplete = function (fnCallback, aArguments) {
+                if (bFinished) {
+                    return;
+                }
+
+                bFinished = true;
+                clearTimeout(iTimeoutId);
+
+                if (typeof fnCallback === "function") {
+                    fnCallback.apply(
+                        this,
+                        aArguments || []
+                    );
+                }
+            }.bind(this);
+
+            iTimeoutId = setTimeout(function () {
+                if (bFinished) {
+                    return;
+                }
+
+                bFinished = true;
+                clearTimeout(iTimeoutId);
+
+                try {
+                    if (
+                        oRequestHandle &&
+                        typeof oRequestHandle.abort === "function"
+                    ) {
+                        oRequestHandle.abort();
+                    }
+                } catch (oAbortError) {
+                    this._logWarn(
+                        "_sendODataCreateWithTimeout.abort",
+                        "No fue posible abortar la solicitud vencida.",
+                        this._serializeError(oAbortError)
+                    );
+                }
+
+                var oTimeoutError = {
+                    message:
+                        "SAP no respondió dentro de los 9 minutos configurados.",
+                    statusCode: 0,
+                    statusText: "CLIENT_TIMEOUT",
+                    responseText: "",
+                    isTimeout: true
+                };
+
+                this._logError(
+                    "_sendODataCreateWithTimeout.timeout",
+                    "El POST de anulación agotó el tiempo de espera.",
+                    {
+                        path: sPath,
+                        timeoutMs: iTimeoutMs,
+                        payload: oPayload
+                    }
+                );
+
+                if (typeof oOptions.error === "function") {
+                    oOptions.error.call(this, oTimeoutError);
+                }
+            }.bind(this), iTimeoutMs);
+
+            // Cede el hilo al navegador para que UI5 pinte el avance antes
+            // de abrir la conexión larga contra SAP.
+            setTimeout(function () {
+                if (bFinished) {
+                    return;
+                }
+
+                try {
+                    oRequestHandle = oModel.create(
+                        sPath,
+                        oPayload,
+                        {
+                            async: true,
+                            success: function (oData, oResponse) {
+                                fnComplete(
+                                    oOptions.success,
+                                    [oData, oResponse]
+                                );
+                            },
+                            error: function (oError) {
+                                fnComplete(
+                                    oOptions.error,
+                                    [oError]
+                                );
+                            }
+                        }
+                    );
+                } catch (oCreateError) {
+                    fnComplete(
+                        oOptions.error,
+                        [oCreateError]
+                    );
+                }
+            }.bind(this), 50);
+        },
+
         _postAnulacion: function (
             sMatDoc,
             aHuSelections,
@@ -4408,10 +4624,6 @@ sap.ui.define([
                 bOmitHuIdentifiers
             );
 
-            // =========================================================
-            // LOG COMPLETO DEL POST Y DEL JSON QUE SE ENVIARÁ A SAP
-            // =========================================================
-
             var sServiceUrl =
                 oModel && oModel.sServiceUrl
                     ? oModel.sServiceUrl
@@ -4421,64 +4633,18 @@ sap.ui.define([
                 sServiceUrl.replace(/\/$/, "") +
                 "/AnulacionSet";
 
-            console.group(
-                "========== JSON ENVIADO A SAP =========="
-            );
-
-            console.log("MÉTODO:");
-            console.log("POST");
-
-            console.log("URI ODATA:");
-            console.log(sPostUri);
-
-            console.log("DOCUMENTO MATERIAL:");
-            console.log(sMatDoc);
-
-            console.log("HU VENUM:");
-            console.log(sHuVenum);
-
-            console.log("HU EXIDV:");
-            console.log(sHuExidv);
-
-            console.log("CANTIDAD DE PROVEEDORES:");
-            console.log(aSelections.length);
-
-            console.log("PROVEEDORES CONCATENADOS:");
-            console.log(sProveedoresSel);
-
-            console.log("PEDIDOS CONCATENADOS:");
-            console.log(sEbelnsSel);
-
-            console.log("SELECCIONES ORIGINALES:");
-            console.table(aSelections);
-
-            console.log("OBJETO PAYLOAD:");
-            console.log(oPayload);
-
-            console.log("JSON EXACTO ENVIADO:");
-            console.log(
-                JSON.stringify(
-                    oPayload,
-                    null,
-                    2
-                )
-            );
-
-            console.groupEnd();
-
-            console.log(
-                "[POST ANULACION][JSON]",
-                JSON.stringify(oPayload, null, 2)
-            );
-
             this._logInfo(
-                "_postAnulacion",
-                "Inicia solicitud de anulación",
+                "_postAnulacion.request",
+                "Enviando una HU a SAP.",
                 {
                     traceId: sTraceId,
+                    method: "POST",
+                    uri: sPostUri,
                     path: sPath,
-                    payload: oPayload,
-                    huSelections: aSelections
+                    MatDoc: sMatDoc,
+                    HuVenum: sHuVenum,
+                    HuExidv: sHuExidv,
+                    payload: oPayload
                 }
             );
 
@@ -4503,47 +4669,27 @@ sap.ui.define([
             // =========================================================
 
             var fnSendRequest = function (bCsrfRetried) {
-                oModel.create(
+                this._sendODataCreateWithTimeout(
+                    oModel,
                     sPath,
                     oPayload,
                     {
+                    timeoutMs: this._getAnulacionTimeoutMs(),
                     success: function (oData, oResponse) {
-                        console.group(
-                            "========== RESPUESTA ANULACION SAP =========="
+                        this._logInfo(
+                            "_postAnulacion.success",
+                            "SAP respondió al POST de anulación.",
+                            {
+                                traceId: sTraceId,
+                                MatDoc: sMatDoc,
+                                HuVenum: sHuVenum,
+                                HuExidv: sHuExidv,
+                                httpStatus:
+                                    this._getHttpStatusCode(oResponse),
+                                Status: oData && oData.Status,
+                                Message: oData && oData.Message
+                            }
                         );
-
-                        console.log("MÉTODO:");
-                        console.log("POST");
-
-                        console.log("URI ODATA:");
-                        console.log(sPostUri);
-
-                        console.log("JSON QUE SE ENVIÓ:");
-                        console.log(
-                            JSON.stringify(
-                                oPayload,
-                                null,
-                                2
-                            )
-                        );
-
-                        console.log("RESPUESTA COMPLETA SAP:");
-                        console.log(oData);
-
-                        console.log("RESPUESTA SAP EN JSON:");
-                        try {
-                            console.log(
-                                JSON.stringify(
-                                    oData,
-                                    null,
-                                    2
-                                )
-                            );
-                        } catch (oResponseJsonError) {
-                            console.log(oData);
-                        }
-
-                        console.groupEnd();
 
                         if (typeof oOptions.onComplete === "function") {
                             var sBatchStatus = String(
@@ -4716,40 +4862,18 @@ sap.ui.define([
                             );
                         }
 
-                        console.group(
-                            "========== ERROR ANULACION SAP =========="
-                        );
-
-                        console.error("MÉTODO:");
-                        console.error("POST");
-
-                        console.error("URI ODATA:");
-                        console.error(sPostUri);
-
-                        console.error("JSON QUE SE INTENTÓ ENVIAR:");
-                        console.error(
-                            JSON.stringify(
-                                oPayload,
-                                null,
-                                2
-                            )
-                        );
-
-                        console.error("ERROR COMPLETO:");
-                        console.error(oError);
-
-                        console.error(
-                            "ERROR SERIALIZADO:",
-                            oSerializedError
-                        );
-
-                        console.groupEnd();
-
                         this._logError(
                             "_postAnulacion.error",
                             "Error al ejecutar la anulación",
                             {
                                 traceId: sTraceId,
+                                method: "POST",
+                                uri: sPostUri,
+                                MatDoc: sMatDoc,
+                                HuVenum: sHuVenum,
+                                HuExidv: sHuExidv,
+                                httpStatus:
+                                    this._getHttpStatusCode(oError),
                                 payload: oPayload,
                                 error: oSerializedError
                             }
