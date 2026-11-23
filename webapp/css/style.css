@@ -782,7 +782,7 @@
 .huHorizontalSummary {
     width: 100% !important;
     gap: 0 !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     background: #ffffff !important;
     border: 1px solid #d6e5f0 !important;
     border-left: 0.22rem solid #0a6ed1 !important;
@@ -818,6 +818,8 @@
 }
 
 .huHorizontalProviderFact {
+    flex: 1 1 24rem !important;
+    width: auto !important;
     min-width: 16rem !important;
     background: #fbfdff !important;
 }
@@ -847,14 +849,16 @@
 }
 
 .huHorizontalProviderList {
+    width: 100% !important;
     gap: 0.45rem !important;
     margin-top: 0.15rem !important;
 }
 
 .huHorizontalProviderItem {
     gap: 0.42rem !important;
-    min-width: 13rem !important;
-    max-width: 24rem !important;
+    flex: 1 1 11rem !important;
+    min-width: 11rem !important;
+    max-width: 18rem !important;
 }
 
 .relatedDocumentsCount {
@@ -991,7 +995,7 @@
 }
 
 /* =========================
-   FLUJO HU > PEDIDO > MATERIAL
+   FLUJO HU > PEDIDO COMPRA > PEDIDO VENTA > MATERIAL
    ========================= */
 
 .huFlowCell {
@@ -1261,6 +1265,76 @@
     font-weight: 750 !important;
 }
 
+.huFlowSalesOrder {
+    gap: 0.55rem !important;
+    min-height: 2.55rem !important;
+    margin: 0.42rem 0.65rem 0.42rem 3.55rem !important;
+    padding: 0.42rem 0.58rem !important;
+    box-sizing: border-box !important;
+    background: linear-gradient(135deg, #f5f1ff 0%, #fbf9ff 100%) !important;
+    border: 1px solid #d9cdf7 !important;
+    border-left: 0.2rem solid #7c3aed !important;
+    border-radius: 0.58rem !important;
+}
+
+.huFlowSalesOrderIconBox {
+    flex: 0 0 2rem !important;
+    width: 2rem !important;
+    height: 2rem !important;
+    background: #eee7ff !important;
+    border: 1px solid #d4c4fa !important;
+    border-radius: 0.5rem !important;
+}
+
+.huFlowSalesOrderIcon {
+    color: #6d28d9 !important;
+    font-size: 0.95rem !important;
+}
+
+.huFlowSalesOrderTextBox {
+    min-width: 0 !important;
+}
+
+.huFlowSalesOrderLabel {
+    color: #70598c !important;
+    font-size: 0.6rem !important;
+    font-weight: 850 !important;
+    letter-spacing: 0.018rem !important;
+    line-height: 1.1 !important;
+    text-transform: uppercase !important;
+}
+
+.huFlowSalesOrderNumber {
+    margin-top: 0.08rem !important;
+    color: #4c1d95 !important;
+    font-family: "72Mono", Consolas, monospace !important;
+    font-size: 0.8rem !important;
+    font-weight: 900 !important;
+}
+
+.huFlowSalesOrderState {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 6.6rem !important;
+    min-width: 6.6rem !important;
+    padding: 0.12rem 0.48rem !important;
+    box-sizing: border-box !important;
+    background: #ffffff !important;
+    border: 1px solid #d9cdf7 !important;
+    border-radius: 999px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+}
+
+.huFlowSalesOrderState .sapMObjStatusText {
+    color: #6d28d9 !important;
+    font-size: 0.64rem !important;
+    font-weight: 850 !important;
+    line-height: 1.15rem !important;
+    white-space: nowrap !important;
+}
+
 .huFlowOrderPrompt {
     gap: 0.42rem !important;
     min-height: 2.2rem !important;
@@ -1315,6 +1389,21 @@
     box-shadow: none !important;
 }
 
+.huFlowMaterialScroll {
+    width: 100% !important;
+    border-top: 1px solid #e2ebf2;
+    background: #ffffff;
+}
+
+.huFlowMaterialScroll .sapMScrollContScroll {
+    padding-bottom: 0.25rem;
+}
+
+.huFlowMaterialScroll .huFlowMaterialTable {
+    width: 82rem !important;
+    min-width: 82rem !important;
+}
+
 .huFlowMaterialTable .sapMListTbl {
     width: 100% !important;
     border-collapse: separate !important;
@@ -1329,7 +1418,7 @@
 
 .huFlowMaterialTable .sapMListTblHeaderCell .sapMText {
     color: #4f6e5c !important;
-    font-size: 0.59rem !important;
+    font-size: 0.64rem !important;
     font-weight: 900 !important;
     letter-spacing: 0.016rem !important;
     white-space: nowrap !important;
@@ -1337,10 +1426,50 @@
 }
 
 .huFlowMaterialTable .sapMListTblCell {
-    padding: 0.46rem 0.45rem !important;
+    min-height: 3rem !important;
+    padding: 0.62rem 0.6rem !important;
     background: #ffffff !important;
     border-bottom: 1px solid #edf3ef !important;
     vertical-align: middle !important;
+}
+
+.huFlowMaterialSelectionCell {
+    min-width: 10rem !important;
+    gap: 0.45rem !important;
+}
+
+.huFlowMaterialSelectionCell .sapMCb {
+    flex: 0 0 auto !important;
+}
+
+.huFlowAuxiliaryTag {
+    margin-top: 0.2rem !important;
+}
+
+.huFlowAuxiliaryTag .sapMObjStatusText {
+    display: inline-flex !important;
+    padding: 0.12rem 0.48rem !important;
+    color: #0a6ed1 !important;
+    background: #eaf5ff !important;
+    border: 1px solid #b9dcf5 !important;
+    border-radius: 999px !important;
+    font-size: 0.66rem !important;
+    font-weight: 800 !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+}
+
+.huFlowDocumentStack {
+    gap: 0.12rem !important;
+}
+
+.huFlowDocumentStack .sapMText {
+    color: #35566d !important;
+    font-family: "72Mono", Consolas, monospace !important;
+    font-size: 0.65rem !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
 }
 
 .huFlowMaterialTableRow:last-child .sapMListTblCell {
@@ -1369,13 +1498,13 @@
 .huFlowMaterialTable .huFlowMaterialNumber {
     color: #173b57 !important;
     font-family: "72Mono", Consolas, monospace !important;
-    font-size: 0.68rem !important;
+    font-size: 0.72rem !important;
     font-weight: 850 !important;
 }
 
 .huFlowMaterialTable .huFlowMaterialDescription {
     color: #314f64 !important;
-    font-size: 0.68rem !important;
+    font-size: 0.72rem !important;
     font-weight: 700 !important;
     line-height: 1.25 !important;
 }
@@ -1384,7 +1513,7 @@
 .huFlowMaterialTable .huFlowUnit {
     color: #4f6d82 !important;
     font-family: "72Mono", Consolas, monospace !important;
-    font-size: 0.66rem !important;
+    font-size: 0.7rem !important;
     font-weight: 750 !important;
 }
 
@@ -1484,6 +1613,14 @@
 @media (max-width: 900px) {
     .huFlowCell {
         min-width: 0 !important;
+    }
+
+    .huFlowSalesOrder {
+        margin-left: 1rem !important;
+    }
+
+    .huFlowSalesOrderState {
+        display: none !important;
     }
 
     .huFlowOrderState {
@@ -3082,6 +3219,17 @@ body,
     border-radius: 999px;
 
     font-weight: 900;
+}
+
+.dataSectionCancelButton {
+    margin-left: 0.55rem !important;
+}
+
+.dataSectionCancelButton .sapMBtnInner {
+    min-width: 10.5rem !important;
+    min-height: 2.35rem !important;
+    border-radius: 0.65rem !important;
+    font-weight: 800 !important;
 }
 
 /* =========================================================

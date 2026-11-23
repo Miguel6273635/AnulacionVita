@@ -108,6 +108,112 @@ sap.ui.define([
             );
         },
 
+        _debugEccTraffic: function (sTitle, oData, aRows) {
+            var oVM = this.getVM && this.getVM();
+            var bEnabled = !oVM ||
+                oVM.getProperty("/debugEccTraffic") !== false;
+
+            if (
+                !bEnabled ||
+                typeof window === "undefined" ||
+                !window.console
+            ) {
+                return;
+            }
+
+            var oConsole = window.console;
+            var sLabel = "[ECC DEBUG] " + String(sTitle || "TRÁFICO");
+
+            if (typeof oConsole.group === "function") {
+                oConsole.group(sLabel);
+            } else {
+                oConsole.log(sLabel);
+            }
+
+            oConsole.log("Objeto:", oData);
+
+            try {
+                oConsole.log(
+                    "JSON copiable:\n" + JSON.stringify(oData, null, 2)
+                );
+            } catch (oStringifyError) {
+                oConsole.warn(
+                    "No fue posible convertir el objeto a JSON.",
+                    oStringifyError
+                );
+            }
+
+            if (
+                Array.isArray(aRows) &&
+                typeof oConsole.table === "function"
+            ) {
+                oConsole.table(aRows);
+            }
+
+            if (typeof oConsole.groupEnd === "function") {
+                oConsole.groupEnd();
+            }
+
+            if (
+                oVM &&
+                oVM.getProperty("/debugBreakOnEccTraffic") === true
+            ) {
+                oConsole.warn(
+                    "Activa un breakpoint manual en _debugEccTraffic para detener la ejecución."
+                );
+            }
+        },
+
+        _logPostPayload: function (
+            sTraceId,
+            sPostUri,
+            oPayload,
+            bCsrfRetried
+        ) {
+            var sPayload = JSON.stringify(oPayload, null, 2);
+            var sMessage = [
+                "[ANULACION POST]",
+                "TraceId: " + sTraceId,
+                "URL: " + sPostUri,
+                "Reintento CSRF: " + (bCsrfRetried ? "sí" : "no"),
+                "Payload:",
+                sPayload
+            ].join("\n");
+
+            // LOG DE SOPORTE: se deja explícito para comprobar en DevTools
+            // el JSON exacto inmediatamente antes de enviarlo a SAP.
+            if (
+                typeof window !== "undefined" &&
+                window.console &&
+                typeof window.console.log === "function"
+            ) {
+                window.console.log(sMessage);
+            }
+
+            this._debugEccTraffic(
+                "POST - PAYLOAD ENVIADO",
+                {
+                    traceId: sTraceId,
+                    method: "POST",
+                    url: sPostUri,
+                    csrfRetried: bCsrfRetried === true,
+                    payload: oPayload
+                }
+            );
+
+            this._logInfo(
+                "_postAnulacion.payload",
+                "Payload exacto preparado para SAP.",
+                {
+                    traceId: sTraceId,
+                    method: "POST",
+                    uri: sPostUri,
+                    csrfRetried: bCsrfRetried === true,
+                    payload: oPayload
+                }
+            );
+        },
+
         _serializeError: function (oError) {
             var oOut = {
                 message: "",
@@ -163,6 +269,16 @@ sap.ui.define([
             return /^\d{10}$/.test(String(vValue || "").trim());
         },
 
+        _normalizeMatYearInput: function (vValue) {
+            return String(
+                vValue === null || vValue === undefined ? "" : vValue
+            ).replace(/\D/g, "").slice(0, 4);
+        },
+
+        _isValidMatYear: function (vValue) {
+            return /^\d{4}$/.test(String(vValue || "").trim());
+        },
+
         onMatDocLiveChange: function (oEvent) {
             var sOriginal = oEvent.getParameter("value") || "";
             var sMatDoc = this._normalizeMatDocInput(sOriginal);
@@ -190,6 +306,31 @@ sap.ui.define([
             }
         },
 
+        onMatYearLiveChange: function (oEvent) {
+            var sOriginal = oEvent.getParameter("value") || "";
+            var sMatYear = this._normalizeMatYearInput(sOriginal);
+            var oSource = oEvent.getSource && oEvent.getSource();
+            var oVM = this.getVM();
+            var oPreviewHeader = oVM.getProperty("/previewHeader") || {};
+            var sPreviewYear = String(
+                oPreviewHeader.MatYear || ""
+            ).trim();
+
+            if (
+                oSource &&
+                typeof oSource.setValue === "function" &&
+                sOriginal !== sMatYear
+            ) {
+                oSource.setValue(sMatYear);
+            }
+
+            oVM.setProperty("/matYear", sMatYear);
+
+            if (!sMatYear || sMatYear !== sPreviewYear) {
+                oVM.setProperty("/canCancel", false);
+            }
+        },
+
         onLimpiar: function () {
             this.getVM().setData(this._getInitialState());
             MessageToast.show("La información fue limpiada.");
@@ -200,8 +341,12 @@ sap.ui.define([
             var sMatDoc = this._normalizeMatDocInput(
                 oVM.getProperty("/matDoc")
             );
+            var sMatYear = this._normalizeMatYearInput(
+                oVM.getProperty("/matYear")
+            );
 
             oVM.setProperty("/matDoc", sMatDoc);
+            oVM.setProperty("/matYear", sMatYear);
 
             if (oVM.getProperty("/busy")) {
                 MessageToast.show(
@@ -222,7 +367,14 @@ sap.ui.define([
                 return;
             }
 
-            this._getPreview(sMatDoc);
+            if (!this._isValidMatYear(sMatYear)) {
+                MessageBox.warning(
+                    "El ejercicio debe contener exactamente 4 dígitos."
+                );
+                return;
+            }
+
+            this._getPreview(sMatDoc, sMatYear);
         },
 
         _resetResultadoConsulta: function () {
@@ -235,6 +387,21 @@ sap.ui.define([
             oVM.setProperty("/expandedPreviewGroups", {});
             oVM.setProperty("/detalle", []);
             oVM.setProperty("/canCancel", false);
+            oVM.setProperty("/materialSelectionCount", 0);
+            oVM.setProperty("/backendPlanValidated", false);
+            oVM.setProperty("/eccPlan", {
+                validated: false,
+                matDoc: "",
+                year: "",
+                movementType: "",
+                huFound: 0,
+                huAffected: 0,
+                cancelPositions: 0,
+                preservePositions: 0,
+                pendingPositions: 0,
+                cancelQuantity: 0,
+                unit: ""
+            });
             oVM.setProperty("/lastRunId", "");
 
             oVM.setProperty("/resultado", {
@@ -266,11 +433,24 @@ sap.ui.define([
             return 540000;
         },
 
-        _getPreview: function (sMatDoc) {
+        _isMatDocOnlyMode: function () {
+            var oView = typeof this.getView === "function"
+                ? this.getView()
+                : null;
+            var oVM = oView && typeof oView.getModel === "function"
+                ? oView.getModel("viewModel")
+                : null;
+
+            return !!(
+                oVM && oVM.getProperty("/matDocOnlyMode") === true
+            );
+        },
+
+        _getPreview: function (sMatDoc, sMatYear) {
             var oModel = this.getModel();
             var oVM = this.getVM();
             var sTraceId = this._generateTraceId("PREVIEW");
-            var sPath = "/AnulacionPreviewHeaderSet";
+            var sPath = "/AnulacionSet";
             var bRequestFinished = false;
             var oRequestHandle;
             var iRequestTimeoutId;
@@ -290,6 +470,7 @@ sap.ui.define([
             this._logInfo("_getPreview", "Inicia consulta de vista previa", {
                 traceId: sTraceId,
                 matDoc: sMatDoc,
+                matYear: sMatYear,
                 path: sPath
             });
 
@@ -299,7 +480,7 @@ sap.ui.define([
                 }
 
                 var sTimeoutMessage =
-                    "SAP no respondió en 180 segundos. Revisa la destination QS4_PP y la solicitud AnulacionPreviewHeaderSet en Network.";
+                    "SAP no respondió en 180 segundos. Revisa la destination QS4_PP y la solicitud AnulacionSet en Network.";
 
                 oVM.setProperty("/busy", false);
                 oVM.setProperty("/canCancel", false);
@@ -315,6 +496,7 @@ sap.ui.define([
                     {
                         traceId: sTraceId,
                         matDoc: sMatDoc,
+                        matYear: sMatYear,
                         path: sPath,
                         timeoutMs: this._getPreviewTimeoutMs()
                     }
@@ -348,12 +530,17 @@ sap.ui.define([
                         "MatDoc",
                         FilterOperator.EQ,
                         sMatDoc
+                    ),
+                    new Filter(
+                        "MatYear",
+                        FilterOperator.EQ,
+                        sMatYear
                     )
                 ],
 
                 urlParameters: {
                     "sap-client": "300",
-                    "$expand": "ToItems"
+                    "$format": "json"
                 },
 
                 success: function (oData) {
@@ -364,6 +551,17 @@ sap.ui.define([
                     try {
                         var oHeader = this._getDeepPreviewHeader(oData);
                         var aItems = this._getDeepPreviewItems(oHeader);
+
+                        this._debugEccTraffic(
+                            "GET Preview - RESPUESTA RECIBIDA",
+                            {
+                                traceId: sTraceId,
+                                rawResponse: oData,
+                                header: oHeader,
+                                items: aItems
+                            },
+                            aItems
+                        );
 
                         this._logInfo(
                             "_getPreview.success",
@@ -445,9 +643,28 @@ sap.ui.define([
                     );
                     var aGroupedRows = this._buildPreviewRows(aPreviewItems);
 
+                    // CONTRATO AnulacionSet: la selección es individual.
+                    // Sólo las filas de mercancía con GR/posición muestran
+                    // checkbox; auxiliares de embalaje son informativos.
+                    if (oVM.getProperty("/matDocOnlyMode") === true) {
+                        var oEccScope = this._applyContractSelectionRules(
+                            aGroupedRows
+                        );
+
+                        oVM.setProperty("/eccPlan", oEccScope);
+                        oVM.setProperty(
+                            "/backendPlanValidated",
+                            oEccScope.selectablePositions > 0
+                        );
+                    }
+
                     // El valor confirmado por SAP pasa a ser la fuente oficial
                     // para la confirmación y el POST de anulación.
                     oVM.setProperty("/matDoc", sCanonicalMatDoc);
+                    oVM.setProperty(
+                        "/matYear",
+                        String(oHeader.MatYear || sMatYear || "").trim()
+                    );
                     oVM.setProperty("/previewHeader", oHeader);
                     oVM.setProperty("/previewItems", aItems);
                     oVM.setProperty("/preview", aGroupedRows);
@@ -565,6 +782,42 @@ sap.ui.define([
                 : [];
 
             if (aHeaders.length) {
+                // Compatibilidad con la respuesta plana de
+                // AnulacionPreviewSet: la envolvemos como Header/ToItems
+                // para procesarla igual que el $expand del HeaderSet.
+                if (
+                    !aHeaders[0].ToItems &&
+                    (
+                        aHeaders[0].SeqNo !== undefined ||
+                        aHeaders[0].GrMatDoc !== undefined
+                    )
+                ) {
+                    return {
+                        MatDoc: String(
+                            aHeaders[0].MatDoc ||
+                            aHeaders[0].GrMatDoc ||
+                            ""
+                        ).trim(),
+                        MatYear: String(
+                            aHeaders[0].MatYear ||
+                            aHeaders[0].GrYear ||
+                            ""
+                        ).trim(),
+                        Status: String(
+                            aHeaders[0].Status || "S"
+                        ).trim(),
+                        Message: String(
+                            aHeaders[0].Message ||
+                            "Vista previa de anulación"
+                        ).trim(),
+                        HuCount: 0,
+                        ItemCount: aHeaders.length,
+                        ToItems: {
+                            results: aHeaders
+                        }
+                    };
+                }
+
                 return aHeaders[0];
             }
 
@@ -902,8 +1155,54 @@ sap.ui.define([
                 SeqNo: oItem.SeqNo,
                 GrMatDoc: String(oItem.GrMatDoc || "").trim(),
                 GrYear: String(oItem.GrYear || "").trim(),
+                // ZEILE debe venir de ECC. SeqNo no se usa como sustituto.
+                Zeile: String(
+                    oItem.ZEILE ||
+                    oItem.Zeile ||
+                    oItem.GrItem ||
+                    oItem.MatDocItem ||
+                    ""
+                ).trim(),
+                Vepos: String(
+                    oItem.VEPOS ||
+                    oItem.Vepos ||
+                    oItem.HuItem ||
+                    ""
+                ).trim(),
+                Bwart: String(
+                    oItem.BWART ||
+                    oItem.Bwart ||
+                    oItem.MovementType ||
+                    ""
+                ).trim(),
+                PlanValidated:
+                    oItem.PlanValidated === true ||
+                    String(oItem.PlanValidated || "")
+                        .trim()
+                        .toUpperCase() === "X" ||
+                    String(oItem.PlanValidated || "")
+                        .trim()
+                        .toUpperCase() === "TRUE",
+                SelectionStatus: String(
+                    oItem.SelectionStatus ||
+                    oItem.ScopeStatus ||
+                    oItem.PositionStatus ||
+                    ""
+                ).trim(),
+                Ebeln: String(oItem.Ebeln || "").trim(),
+                Ebelp: String(oItem.Ebelp || "").trim(),
+                Lifnr: String(oItem.Lifnr || "").trim(),
                 SoVbeln: String(oItem.SoVbeln || "").trim(),
+                SoPosnr: String(oItem.SoPosnr || "").trim(),
                 DelivVbeln: String(oItem.DelivVbeln || "").trim(),
+                DelivPosnr: String(oItem.DelivPosnr || "").trim(),
+                InbDelivVbeln: String(
+                    oItem.InbDelivVbeln || ""
+                ).trim(),
+                InbDelivPosnr: String(
+                    oItem.InbDelivPosnr || ""
+                ).trim(),
+                Tknum: String(oItem.Tknum || "").trim(),
                 Charg: String(oItem.Charg || "").trim(),
                 Menge: oItem.Menge === null ||
                     oItem.Menge === undefined
@@ -941,8 +1240,19 @@ sap.ui.define([
                     : String(oDetail.SeqNo),
                 oDetail.GrMatDoc,
                 oDetail.GrYear,
+                oDetail.Zeile,
+                oDetail.Vepos,
+                oDetail.Bwart,
+                oDetail.SelectionStatus,
+                oDetail.PlanValidated ? "X" : "",
+                oDetail.Ebeln,
+                oDetail.Ebelp,
+                oDetail.Lifnr,
                 oDetail.SoVbeln,
+                oDetail.SoPosnr,
                 oDetail.DelivVbeln,
+                oDetail.DelivPosnr,
+                oDetail.Tknum,
                 oDetail.Charg,
                 oDetail.Menge,
                 oDetail.Meins,
@@ -957,6 +1267,11 @@ sap.ui.define([
                         : String(oExistingDetail.SeqNo),
                     oExistingDetail.GrMatDoc || "",
                     oExistingDetail.GrYear || "",
+                    oExistingDetail.Zeile || "",
+                    oExistingDetail.Vepos || "",
+                    oExistingDetail.Bwart || "",
+                    oExistingDetail.SelectionStatus || "",
+                    oExistingDetail.PlanValidated ? "X" : "",
                     oExistingDetail.SoVbeln || "",
                     oExistingDetail.DelivVbeln || "",
                     oExistingDetail.Charg || "",
@@ -975,8 +1290,13 @@ sap.ui.define([
             [
                 "GrMatDoc",
                 "GrYear",
+                "Zeile",
+                "Vepos",
+                "Bwart",
+                "SelectionStatus",
                 "SoVbeln",
                 "DelivVbeln",
+                "InbDelivVbeln",
                 "Charg",
                 "Menge",
                 "Meins",
@@ -993,7 +1313,7 @@ sap.ui.define([
                             return sValue || "-";
                         })
                         .join(" / ");
-                }.bind(this)
+                }
             );
 
             oProvider.DisplayMatnr = aDetails
@@ -1080,7 +1400,12 @@ sap.ui.define([
             ).trim();
         },
 
-        _buildMaterialDetails: function (aRawDetails) {
+        _buildMaterialDetails: function (aRawDetails, oMaterialContext) {
+            var sSourceBasePath = String(
+                oMaterialContext &&
+                oMaterialContext.sourceBasePath || ""
+            ).trim();
+
             return (aRawDetails || []).map(
                 function (oDetail, iMaterialIndex) {
                     var sDescription = String(
@@ -1096,7 +1421,65 @@ sap.ui.define([
 
                     return {
                         MaterialPosition: iMaterialIndex + 1,
+                        MaterialSelected:
+                            oDetail.MaterialSelected === true,
+                        MaterialSelectable:
+                            oDetail.MaterialSelectable !== false,
+                        MaterialSourcePath: sSourceBasePath
+                            ? sSourceBasePath + "/" + iMaterialIndex
+                            : "",
                         Matnr: sMatnr,
+                        SeqNo: oDetail.SeqNo,
+                        GrMatDoc: String(
+                            oDetail.GrMatDoc || ""
+                        ).trim(),
+                        GrYear: String(
+                            oDetail.GrYear || ""
+                        ).trim(),
+                        Zeile: String(
+                            oDetail.Zeile || ""
+                        ).trim(),
+                        Vepos: String(
+                            oDetail.Vepos || ""
+                        ).trim(),
+                        Bwart: String(
+                            oDetail.Bwart || ""
+                        ).trim(),
+                        SelectionStatus: String(
+                            oDetail.SelectionStatus || ""
+                        ).trim(),
+                        PlanValidated:
+                            oDetail.PlanValidated === true,
+                        Ebelp: String(
+                            oDetail.Ebelp || ""
+                        ).trim(),
+                        Ebeln: String(
+                            oDetail.Ebeln ||
+                            oMaterialContext && oMaterialContext.Ebeln ||
+                            ""
+                        ).trim(),
+                        SoPosnr: String(
+                            oDetail.SoPosnr || ""
+                        ).trim(),
+                        DelivPosnr: String(
+                            oDetail.DelivPosnr || ""
+                        ).trim(),
+                        InbDelivVbeln: String(
+                            oDetail.InbDelivVbeln || ""
+                        ).trim(),
+                        InbDelivPosnr: String(
+                            oDetail.InbDelivPosnr || ""
+                        ).trim(),
+                        Tknum: String(
+                            oDetail.Tknum || ""
+                        ).trim(),
+                        PositionActionText: String(
+                            oDetail.PositionActionText ||
+                            "Pendiente de validar"
+                        ).trim(),
+                        PositionActionState: String(
+                            oDetail.PositionActionState || "Warning"
+                        ).trim(),
                         DisplayMatnr:
                             this._getLastTenDigits(sMatnr),
                         Maktx: sDescription ||
@@ -1116,6 +1499,611 @@ sap.ui.define([
             );
         },
 
+        _getSelectedMaterials: function (aPreview) {
+            var aSelectedMaterials = [];
+
+            (aPreview || []).forEach(function (oRow) {
+                if (!this._isHU(oRow)) {
+                    return;
+                }
+
+                var fnAppendSelected = function (aDetails, oContext) {
+                    (aDetails || []).forEach(function (oDetail) {
+                        if (oDetail.MaterialSelected !== true) {
+                            return;
+                        }
+
+                        var sMatnr = String(
+                            oDetail.Matnr || ""
+                        ).trim();
+
+                        aSelectedMaterials.push({
+                            HuVenum: String(
+                                oRow.HuVenum || ""
+                            ).trim(),
+                            HuExidv: String(
+                                oRow.HuExidv || ""
+                            ).trim(),
+                            Ebeln: String(
+                                oContext && oContext.Ebeln || ""
+                            ).trim(),
+                            Ebelp: String(
+                                oDetail.Ebelp || ""
+                            ).trim(),
+                            Lifnr: String(
+                                oDetail.Lifnr ||
+                                oContext && oContext.Lifnr ||
+                                ""
+                            ).trim(),
+                            GrMatDoc: String(
+                                oDetail.GrMatDoc || ""
+                            ).trim(),
+                            GrYear: String(
+                                oDetail.GrYear || ""
+                            ).trim(),
+                            Zeile: String(
+                                oDetail.Zeile || ""
+                            ).trim(),
+                            Vepos: String(
+                                oDetail.Vepos || ""
+                            ).trim(),
+                            Bwart: String(
+                                oDetail.Bwart || ""
+                            ).trim(),
+                            SelectionStatus: String(
+                                oDetail.SelectionStatus || ""
+                            ).trim(),
+                            PlanValidated:
+                                oDetail.PlanValidated === true,
+                            SoVbeln: String(
+                                oDetail.SoVbeln ||
+                                oContext && oContext.SoVbeln ||
+                                ""
+                            ).trim(),
+                            SoPosnr: String(
+                                oDetail.SoPosnr || ""
+                            ).trim(),
+                            DelivVbeln: String(
+                                oDetail.DelivVbeln ||
+                                oContext && oContext.DelivVbeln ||
+                                ""
+                            ).trim(),
+                            DelivPosnr: String(
+                                oDetail.DelivPosnr || ""
+                            ).trim(),
+                            Tknum: String(
+                                oDetail.Tknum || ""
+                            ).trim(),
+                            SeqNo: oDetail.SeqNo,
+                            Matnr: sMatnr,
+                            DisplayMatnr:
+                                this._getLastTenDigits(sMatnr),
+                            Maktx: String(
+                                oDetail.Maktx ||
+                                "Sin nombre disponible"
+                            ).trim(),
+                            Charg: String(
+                                oDetail.Charg || ""
+                            ).trim(),
+                            Menge: String(
+                                oDetail.Menge || ""
+                            ).trim(),
+                            Meins: String(
+                                oDetail.Meins || ""
+                            ).trim()
+                        });
+                    }.bind(this));
+                }.bind(this);
+
+                fnAppendSelected(oRow.huMaterialDetails || [], null);
+
+                (oRow.providerOptions || []).forEach(
+                    function (oProvider) {
+                        fnAppendSelected(
+                            oProvider.itemDetails || [],
+                            oProvider
+                        );
+                    }
+                );
+            }.bind(this));
+
+            return aSelectedMaterials;
+        },
+
+        _getHuMaterialEntries: function (oRow) {
+            var aMaterialEntries = [];
+
+            Array.prototype.push.apply(
+                aMaterialEntries,
+                oRow && oRow.huMaterialDetails || []
+            );
+
+            (oRow && oRow.providerOptions || []).forEach(
+                function (oProvider) {
+                    Array.prototype.push.apply(
+                        aMaterialEntries,
+                        oProvider.itemDetails || []
+                    );
+                }
+            );
+
+            return aMaterialEntries;
+        },
+
+        _getMaterialSelectionKey: function (sMatnr) {
+            var sValue = String(sMatnr || "").trim();
+            var sWithoutLeadingZeros = sValue.replace(/^0+/, "");
+
+            return sWithoutLeadingZeros || sValue;
+        },
+
+        _getEccMatDocSelectionKey: function (oDetail) {
+            var sMatDoc = String(
+                oDetail && oDetail.GrMatDoc || ""
+            ).trim();
+            var sYear = String(
+                oDetail && oDetail.GrYear || ""
+            ).trim();
+
+            if (!sMatDoc || !sYear || sYear === "0000") {
+                return "";
+            }
+
+            return sMatDoc + "|" + sYear;
+        },
+
+        _setMaterialSelectionByMatDoc: function (
+            aPreview,
+            sGrMatDoc,
+            sGrYear,
+            bSelected
+        ) {
+            var sScopeKey = this._getEccMatDocSelectionKey({
+                GrMatDoc: sGrMatDoc,
+                GrYear: sGrYear
+            });
+            var iMatches = 0;
+            var mHuMatches = {};
+
+            if (!sScopeKey) {
+                return { matches: 0, huCount: 0 };
+            }
+
+            (aPreview || []).forEach(function (oRow) {
+                if (!this._isHU(oRow)) {
+                    return;
+                }
+
+                this._getHuMaterialEntries(oRow).forEach(
+                    function (oDetail) {
+                        if (
+                            this._getEccMatDocSelectionKey(oDetail) !==
+                            sScopeKey ||
+                            oDetail.MaterialSelectable !== true
+                        ) {
+                            return;
+                        }
+
+                        oDetail.MaterialSelected = bSelected;
+                        iMatches++;
+                        mHuMatches[this._getHuKey(oRow)] = true;
+                    }.bind(this)
+                );
+            }.bind(this));
+
+            return {
+                matches: iMatches,
+                huCount: Object.keys(mHuMatches).length
+            };
+        },
+
+        _normalizeEccSelectionStatus: function (sStatus) {
+            var sValue = String(sStatus || "").trim().toUpperCase();
+
+            if (
+                sValue === "ANULAR" ||
+                sValue === "CANCEL" ||
+                sValue === "A"
+            ) {
+                return "ANULAR";
+            }
+
+            if (
+                sValue === "CONSERVAR" ||
+                sValue === "KEEP" ||
+                sValue === "C"
+            ) {
+                return "CONSERVAR";
+            }
+
+            return "PENDIENTE";
+        },
+
+        _applyContractSelectionRules: function (aPreview) {
+            var mFoundHu = {};
+            var mAffectedHu = {};
+            var iSelectablePositions = 0;
+            var iSelectedPositions = 0;
+            var iPreservePositions = 0;
+            var iAuxiliaryPositions = 0;
+            var fSelectedQuantity = 0;
+            var sUnit = "";
+
+            (aPreview || []).forEach(function (oRow) {
+                if (!this._isHU(oRow)) {
+                    return;
+                }
+
+                var sHuKey = this._getHuKey(oRow);
+                mFoundHu[sHuKey] = true;
+
+                this._getHuMaterialEntries(oRow).forEach(
+                    function (oDetail) {
+                        var bMerchandise = !!(
+                            String(oDetail.GrMatDoc || "").trim() &&
+                            String(oDetail.GrYear || "").trim() &&
+                            String(oDetail.Zeile || "").trim() &&
+                            String(oDetail.Vepos || "").trim()
+                        );
+                        var sIncomingStatus =
+                            this._normalizeEccSelectionStatus(
+                                oDetail.SelectionStatus
+                            );
+                        var bSelected = bMerchandise && (
+                            typeof oDetail.MaterialSelected === "boolean"
+                                ? oDetail.MaterialSelected
+                                : sIncomingStatus === "ANULAR"
+                        );
+
+                        oDetail.MaterialSelectable = bMerchandise;
+                        oDetail.MaterialSelected = bSelected;
+
+                        if (!bMerchandise) {
+                            oDetail.PositionAction = "AUXILIAR";
+                            oDetail.PositionActionText = "Auxiliar";
+                            oDetail.PositionActionState = "Information";
+                            iAuxiliaryPositions++;
+                            return;
+                        }
+
+                        iSelectablePositions++;
+
+                        if (bSelected) {
+                            oDetail.PositionAction = "ANULAR";
+                            oDetail.PositionActionText = "Anular";
+                            oDetail.PositionActionState = "Error";
+                            iSelectedPositions++;
+                            mAffectedHu[sHuKey] = true;
+                            sUnit = sUnit || String(
+                                oDetail.Meins || ""
+                            ).trim();
+                            fSelectedQuantity += Number(
+                                String(oDetail.Menge || "0")
+                                    .replace(",", ".")
+                            ) || 0;
+                        } else {
+                            oDetail.PositionAction = "CONSERVAR";
+                            oDetail.PositionActionText = "Conservar";
+                            oDetail.PositionActionState = "Success";
+                            iPreservePositions++;
+                        }
+                    }.bind(this)
+                );
+            }.bind(this));
+
+            return {
+                error: "",
+                validated: iSelectablePositions > 0,
+                huFound: Object.keys(mFoundHu).length,
+                huAffected: Object.keys(mAffectedHu).length,
+                selectablePositions: iSelectablePositions,
+                cancelPositions: iSelectedPositions,
+                preservePositions: iPreservePositions,
+                pendingPositions: 0,
+                auxiliaryPositions: iAuxiliaryPositions,
+                cancelQuantity: fSelectedQuantity,
+                unit: sUnit,
+                matches: iSelectedPositions,
+                huCount: Object.keys(mAffectedHu).length
+            };
+        },
+
+        _isEccPlanValidated: function (oHeader) {
+            var vValidated = oHeader && (
+                oHeader.PlanValidated ||
+                oHeader.PlanValidado
+            );
+            var sValidated = String(vValidated || "")
+                .trim()
+                .toUpperCase();
+
+            return vValidated === true ||
+                sValidated === "X" ||
+                sValidated === "S" ||
+                sValidated === "TRUE";
+        },
+
+        _applyEccMatDocSelection: function (
+            aPreview,
+            sRequestedMatDoc,
+            oHeader
+        ) {
+            var sRequested = String(sRequestedMatDoc || "").trim();
+            var bHeaderValidated = this._isEccPlanValidated(oHeader);
+            var mFoundHu = {};
+            var mAffectedHu = {};
+            var mYears = {};
+            var iCancelPositions = 0;
+            var iPreservePositions = 0;
+            var iPendingPositions = 0;
+            var iTotalPositions = 0;
+            var iValidatedPositions = 0;
+            var fCancelQuantity = 0;
+            var sUnit = "";
+            var sMovementType = "";
+
+            (aPreview || []).forEach(function (oRow) {
+                if (!this._isHU(oRow)) {
+                    return;
+                }
+
+                var sHuKey = this._getHuKey(oRow);
+                mFoundHu[sHuKey] = true;
+
+                this._getHuMaterialEntries(oRow).forEach(
+                    function (oDetail) {
+                        var sBackendStatus =
+                            this._normalizeEccSelectionStatus(
+                                oDetail.SelectionStatus
+                            );
+                        var sDetailMatDoc = String(
+                            oDetail.GrMatDoc || ""
+                        ).trim();
+                        var sDetailYear = String(
+                            oDetail.GrYear || ""
+                        ).trim();
+                        var sMovement = String(
+                            oDetail.Bwart || ""
+                        ).trim();
+                        var sZeile = String(
+                            oDetail.Zeile || ""
+                        ).trim();
+                        var sVepos = String(
+                            oDetail.Vepos || ""
+                        ).trim();
+
+                        var bExactPositionIdentified =
+                            sDetailMatDoc === sRequested &&
+                            !!sDetailYear &&
+                            sDetailYear !== "0000" &&
+                            sMovement === "101" &&
+                            !!sZeile &&
+                            !!sVepos;
+                        var bBelongsToRequestedMatDoc =
+                            sDetailMatDoc === sRequested;
+                        var sPositionStatus =
+                            bExactPositionIdentified &&
+                            sBackendStatus !== "CONSERVAR"
+                                ? "ANULAR"
+                                : bBelongsToRequestedMatDoc
+                                    ? "PENDIENTE"
+                                    : "CONSERVAR";
+
+                        iTotalPositions++;
+
+                        if (bExactPositionIdentified) {
+                            iValidatedPositions++;
+                        }
+
+                        oDetail.PositionAction = sPositionStatus;
+                        // ECC define qué posición es anulable; el usuario
+                        // realiza la selección explícita desde la tabla.
+                        oDetail.MaterialSelected = false;
+                        oDetail.MaterialSelectable =
+                            sPositionStatus === "ANULAR";
+
+                        if (sPositionStatus === "ANULAR") {
+                            oDetail.PositionActionText = "Anular";
+                            oDetail.PositionActionState = "Error";
+                            iCancelPositions++;
+                            mAffectedHu[sHuKey] = true;
+                            mYears[sDetailYear] = true;
+                            sMovementType = sMovementType || sMovement;
+                            sUnit = sUnit || String(
+                                oDetail.Meins || ""
+                            ).trim();
+                            fCancelQuantity += Number(
+                                String(oDetail.Menge || "0")
+                                    .replace(",", ".")
+                            ) || 0;
+                        } else if (sPositionStatus === "CONSERVAR") {
+                            oDetail.PositionActionText = "Conservar";
+                            oDetail.PositionActionState = "Success";
+                            iPreservePositions++;
+                        } else {
+                            oDetail.PositionActionText =
+                                "Pendiente de validar";
+                            oDetail.PositionActionState = "Warning";
+                            iPendingPositions++;
+                        }
+                    }.bind(this)
+                );
+            }.bind(this));
+
+            var aYears = Object.keys(mYears).filter(Boolean);
+            var bAllPositionsValidated =
+                iTotalPositions > 0 &&
+                iValidatedPositions === iTotalPositions;
+            var bValidated =
+                (bHeaderValidated || bAllPositionsValidated) &&
+                iCancelPositions > 0 &&
+                iPendingPositions === 0 &&
+                aYears.length === 1 &&
+                sMovementType === "101";
+
+            if (!bValidated) {
+                (aPreview || []).forEach(function (oRow) {
+                    if (!this._isHU(oRow)) {
+                        return;
+                    }
+
+                    this._getHuMaterialEntries(oRow).forEach(
+                        function (oDetail) {
+                            oDetail.MaterialSelected = false;
+                        }
+                    );
+                }.bind(this));
+            }
+
+            return {
+                error: bValidated
+                    ? ""
+                    : "ECC todavía no confirmó el plan físico completo (MBLNR/MJAHR/ZEILE/VENUM/VEPOS).",
+                validated: bValidated,
+                matDoc: sRequested,
+                year: aYears.length === 1 ? aYears[0] : "",
+                movementType: sMovementType,
+                huFound: Object.keys(mFoundHu).length,
+                huAffected: Object.keys(mAffectedHu).length,
+                cancelPositions: iCancelPositions,
+                preservePositions: iPreservePositions,
+                pendingPositions: iPendingPositions,
+                cancelQuantity: fCancelQuantity,
+                unit: sUnit,
+                matches: iCancelPositions,
+                huCount: Object.keys(mAffectedHu).length
+            };
+        },
+
+        // LEGACY: se conserva para poder regresar al comportamiento anterior,
+        // pero el flujo actual ya no propaga selecciones por MATNR.
+        _setMaterialSelectionByNumber: function (
+            aPreview,
+            sMatnr,
+            bSelected
+        ) {
+            var sMaterialKey =
+                this._getMaterialSelectionKey(sMatnr);
+            var iMatches = 0;
+            var mHuMatches = {};
+
+            if (!sMaterialKey) {
+                return { matches: 0, huCount: 0 };
+            }
+
+            (aPreview || []).forEach(function (oRow) {
+                if (!this._isHU(oRow)) {
+                    return;
+                }
+
+                this._getHuMaterialEntries(oRow).forEach(
+                    function (oDetail) {
+                        if (
+                            this._getMaterialSelectionKey(
+                                oDetail.Matnr
+                            ) !== sMaterialKey
+                        ) {
+                            return;
+                        }
+
+                        oDetail.MaterialSelected = bSelected;
+                        iMatches++;
+                        mHuMatches[this._getHuKey(oRow)] = true;
+                    }.bind(this)
+                );
+            }.bind(this));
+
+            return {
+                matches: iMatches,
+                huCount: Object.keys(mHuMatches).length
+            };
+        },
+
+        _setHuMaterialSelection: function (
+            aPreview,
+            sPreviewPath,
+            bSelected
+        ) {
+            var oTargetRow = null;
+            var mMatDocScopes = {};
+            var iMatches = 0;
+            var mHuMatches = {};
+
+            (aPreview || []).some(function (oRow, iIndex) {
+                if (
+                    this._isHU(oRow) &&
+                    "/preview/" + iIndex === sPreviewPath
+                ) {
+                    oTargetRow = oRow;
+                    return true;
+                }
+
+                return false;
+            }.bind(this));
+
+            if (!oTargetRow) {
+                return { materialCount: 0, matches: 0, huCount: 0 };
+            }
+
+            this._getHuMaterialEntries(oTargetRow).forEach(
+                function (oDetail) {
+                    var sScopeKey =
+                        this._getEccMatDocSelectionKey(oDetail);
+
+                    if (
+                        sScopeKey &&
+                        oDetail.MaterialSelectable !== false
+                    ) {
+                        mMatDocScopes[sScopeKey] = {
+                            GrMatDoc: oDetail.GrMatDoc,
+                            GrYear: oDetail.GrYear
+                        };
+                    }
+                }.bind(this)
+            );
+
+            Object.keys(mMatDocScopes).forEach(
+                function (sScopeKey) {
+                    var oScope = mMatDocScopes[sScopeKey];
+                    var oResult = this._setMaterialSelectionByMatDoc(
+                        aPreview,
+                        oScope.GrMatDoc,
+                        oScope.GrYear,
+                        bSelected
+                    );
+
+                    iMatches += oResult.matches;
+
+                    if (oResult.huCount) {
+                        (aPreview || []).forEach(function (oRow) {
+                            if (!this._isHU(oRow)) {
+                                return;
+                            }
+
+                            var bHasScope =
+                                this._getHuMaterialEntries(oRow).some(
+                                    function (oDetail) {
+                                        return this._getEccMatDocSelectionKey(
+                                            oDetail
+                                        ) === sScopeKey;
+                                    }.bind(this)
+                                );
+
+                            if (bHasScope) {
+                                mHuMatches[this._getHuKey(oRow)] = true;
+                            }
+                        }.bind(this));
+                    }
+                }.bind(this)
+            );
+
+            return {
+                materialCount: Object.keys(mMatDocScopes).length,
+                matches: iMatches,
+                huCount: Object.keys(mHuMatches).length
+            };
+        },
+
         _buildHuFlowOptions: function (oRow, sPreviewPath) {
             var mSelectedKeys = {};
 
@@ -1132,7 +2120,16 @@ sap.ui.define([
                         ? oOption.itemDetails
                         : [oOption];
                     var aMaterialDetails =
-                        this._buildMaterialDetails(aRawDetails);
+                        this._buildMaterialDetails(
+                            aRawDetails,
+                            {
+                                sourceBasePath: sPreviewPath +
+                                    "/providerOptions/" +
+                                    iOptionIndex +
+                                    "/itemDetails",
+                                Ebeln: oOption.Ebeln || ""
+                            }
+                        );
 
                     return Object.assign({}, oOption, {
                         HuPreviewPath: sPreviewPath,
@@ -1288,8 +2285,18 @@ sap.ui.define([
                         "/preview/" + oEntry.previewIndex;
                     var aHuMaterialDetails =
                         this._buildMaterialDetails(
-                            oEntry.row.huMaterialDetails || []
+                            oEntry.row.huMaterialDetails || [],
+                            {
+                                sourceBasePath: sPreviewPath +
+                                    "/huMaterialDetails"
+                            }
                         );
+                    var aAllHuMaterials =
+                        this._getHuMaterialEntries(oEntry.row);
+                    var iSelectedHuMaterials =
+                        aAllHuMaterials.filter(function (oDetail) {
+                            return oDetail.MaterialSelected === true;
+                        }).length;
                     var bCanExpandHuFlow =
                         this._isHU(oEntry.row) &&
                         (
@@ -1313,6 +2320,14 @@ sap.ui.define([
                         HuFlowToggleTooltip: bHuFlowExpanded
                             ? "Ocultar detalle de esta HU"
                             : "Mostrar detalle de esta HU",
+                        HuMaterialSelected:
+                            aAllHuMaterials.length > 0 &&
+                            iSelectedHuMaterials ===
+                                aAllHuMaterials.length,
+                        HuMaterialPartiallySelected:
+                            iSelectedHuMaterials > 0 &&
+                            iSelectedHuMaterials <
+                                aAllHuMaterials.length,
                         HasHuMaterialDetails:
                             aHuMaterialDetails.length > 0,
                         HuMaterialDetails: aHuMaterialDetails,
@@ -1341,9 +2356,14 @@ sap.ui.define([
                 return oFallbackRow.DisplayStatusText;
             }
 
+            if (this._isMatDocOnlyMode()) {
+                return oFallbackRow.DisplayStatusText || "Encontrado";
+            }
+
             var aHuRows = (aDocumentRows || []).map(function (oEntry) {
                 return oEntry.row;
             });
+
             var aSelectedHu = aHuRows.filter(function (oRow) {
                 return oRow.HuSelected === true;
             });
@@ -1376,9 +2396,14 @@ sap.ui.define([
                 return oFallbackRow.DisplayStatusState;
             }
 
+            if (this._isMatDocOnlyMode()) {
+                return oFallbackRow.DisplayStatusState || "Success";
+            }
+
             var aHuRows = (aDocumentRows || []).map(function (oEntry) {
                 return oEntry.row;
             });
+
             var aSelectedHu = aHuRows.filter(function (oRow) {
                 return oRow.HuSelected === true;
             });
@@ -1501,6 +2526,43 @@ sap.ui.define([
 
             var oVM = this.getVM();
             var aPreview = oVM.getProperty("/preview") || [];
+
+            if (oVM.getProperty("/matDocOnlyMode") === true) {
+                var oMaterialResult = this._setHuMaterialSelection(
+                    aPreview,
+                    sSelectedPath,
+                    bSelected
+                );
+
+                if (!oMaterialResult.materialCount) {
+                    MessageToast.show(
+                        "Esta HU no contiene números de material para seleccionar."
+                    );
+                    return;
+                }
+
+                var iSelectedMaterials =
+                    this._getSelectedMaterials(aPreview).length;
+
+                oVM.setProperty("/preview", aPreview);
+                oVM.setProperty(
+                    "/materialSelectionCount",
+                    iSelectedMaterials
+                );
+                this._refreshPreviewDisplay();
+                this._evaluatePreviewBeforeCancel(aPreview);
+
+                MessageToast.show(
+                    bSelected
+                        ? oMaterialResult.materialCount +
+                            " MatDoc seleccionado; se marcaron todas sus posiciones en " +
+                            oMaterialResult.huCount + " HU."
+                        : "Se eliminó la selección completa del MatDoc de esta HU."
+                );
+                return;
+            }
+
+            // FLUJO ANTERIOR CONSERVADO: selección de HU y pedidos.
             var bUpdated = this._updateHuSelection(
                 aPreview,
                 sSelectedPath,
@@ -1690,6 +2752,114 @@ sap.ui.define([
             );
         },
 
+        onSelectMaterial: function (oEvent) {
+            var oContext = oEvent
+                .getSource()
+                .getBindingContext("viewModel");
+            var oMaterial = oContext && oContext.getObject();
+            var sSourcePath = oMaterial &&
+                oMaterial.MaterialSourcePath;
+            var bSelected =
+                oEvent.getParameter("selected") !== false;
+
+            if (!sSourcePath) {
+                return;
+            }
+
+            var oVM = this.getVM();
+            var aPreview = oVM.getProperty("/preview") || [];
+
+            var oSourceMaterial = oVM.getProperty(sSourcePath);
+
+            if (
+                !oSourceMaterial ||
+                oSourceMaterial.MaterialSelectable !== true
+            ) {
+                MessageToast.show(
+                    "Esta fila es auxiliar y no puede seleccionarse manualmente."
+                );
+                this._refreshPreviewDisplay();
+                return;
+            }
+
+            // CONTRATO UI: cada mercancía se selecciona de forma
+            // individual. No se propaga por MatDoc, material, lote, HU o pedido.
+            oVM.setProperty(
+                sSourcePath + "/MaterialSelected",
+                bSelected
+            );
+            oVM.setProperty(
+                sSourcePath + "/PositionAction",
+                bSelected ? "ANULAR" : "CONSERVAR"
+            );
+            oVM.setProperty(
+                sSourcePath + "/PositionActionText",
+                bSelected ? "Anular" : "Conservar"
+            );
+            oVM.setProperty(
+                sSourcePath + "/PositionActionState",
+                bSelected ? "Error" : "Success"
+            );
+
+            oVM.setProperty(
+                "/preview",
+                aPreview
+            );
+
+            var oSelectionSummary =
+                this._applyContractSelectionRules(aPreview);
+            oVM.setProperty("/eccPlan", oSelectionSummary);
+
+            var aSelectedMaterials =
+                this._getSelectedMaterials(aPreview);
+            var iSelectedMaterials = aSelectedMaterials.length;
+
+            if (aSelectedMaterials.length) {
+                try {
+                    this._debugEccTraffic(
+                        "POST PROFUNDO - VISTA PREVIA (NO ENVIADO)",
+                        {
+                            endpoint: "/AnulacionPreviewHeaderSet",
+                            payload: this._buildDeepAnulacionPayload(
+                                oVM.getProperty("/matDoc"),
+                                aSelectedMaterials,
+                                oVM.getProperty("/previewItems") || [],
+                                oVM.getProperty("/previewHeader") || {},
+                                oVM.getProperty("/matYear")
+                            )
+                        },
+                        aSelectedMaterials
+                    );
+                } catch (oPreviewPayloadError) {
+                    this._logWarn(
+                        "onSelectMaterial.payloadPreview",
+                        "La selección todavía no forma un payload profundo válido.",
+                        {
+                            error: oPreviewPayloadError.message,
+                            selections: aSelectedMaterials
+                        }
+                    );
+                }
+            }
+
+            oVM.setProperty(
+                "/materialSelectionCount",
+                iSelectedMaterials
+            );
+            this._refreshPreviewDisplay();
+            this._evaluatePreviewBeforeCancel(aPreview);
+
+            MessageToast.show(
+                bSelected
+                    ? "Posición " +
+                        (oMaterial.Zeile || "-") +
+                        " marcada para ANULAR."
+                    : "Posición " +
+                        (oMaterial.Zeile || "-") +
+                        " marcada para CONSERVAR."
+            );
+        },
+
         onToggleOrderMaterials: function (oEvent) {
             var oContext = oEvent
                 .getSource()
@@ -1845,6 +3015,10 @@ sap.ui.define([
                 return "Advertencia";
             }
 
+            if (this._isMatDocOnlyMode() && this._isHU(oRow)) {
+                return "Encontrado";
+            }
+
             if (
                 this._isHU(oRow) &&
                 oRow.HuSelectionRequired &&
@@ -1895,6 +3069,10 @@ sap.ui.define([
 
             if (oRow.Status === "W") {
                 return "Warning";
+            }
+
+            if (this._isMatDocOnlyMode() && this._isHU(oRow)) {
+                return "Success";
             }
 
             if (
@@ -2065,6 +3243,15 @@ sap.ui.define([
                 }
             }.bind(this));
 
+            // RETORNO AL FLUJO ANTERIOR:
+            // al cambiar /matDocOnlyMode a false se vuelven a calcular
+            // las selecciones y pendientes de HU/pedido como antes.
+            if (this._isMatDocOnlyMode()) {
+                iSelectedHu = iHU;
+                iHuPendientes = 0;
+                bHuSelectionPending = false;
+            }
+
             this.getVM().setProperty("/summary", {
                 total: iTotal,
                 hu: iHU,
@@ -2139,47 +3326,145 @@ sap.ui.define([
         },
 
         _evaluatePreviewBeforeCancel: function (aResults) {
-            var oSummary = this.getVM().getProperty("/summary");
-
+            var oVM = this.getVM();
+            var bMatDocOnlyMode =
+                oVM.getProperty("/matDocOnlyMode") === true;
+            var bPrevalidationOnly =
+                oVM.getProperty("/backendPrevalidationOnly") === true;
             var bHasErrors = (aResults || []).some(function (oItem) {
                 return oItem.Status === "E";
             });
+            var aHuRows = (aResults || []).filter(function (oItem) {
+                return this._isHU(oItem);
+            }.bind(this));
+            var aSelectedHu = aHuRows.filter(function (oItem) {
+                return !oItem.HuSelectionRequired ||
+                    oItem.HuSelected === true;
+            });
+            var bHuSelectionPending = aHuRows.length > 0 &&
+                !aSelectedHu.length;
+            var bProviderSelectionPending = aSelectedHu.some(
+                function (oItem) {
+                    return oItem.providerSelectionRequired &&
+                        !(oItem.selectedProviders || []).length;
+                }
+            );
 
             if (bHasErrors) {
-                this.getVM().setProperty("/resultado", {
+                oVM.setProperty("/resultado", {
                     Status: "E",
                     Message:
                         "La vista previa contiene errores. Revisa el detalle antes de anular."
                 });
 
-                this.getVM().setProperty("/resultadoState", "Error");
-                this.getVM().setProperty("/canCancel", false);
+                oVM.setProperty("/resultadoState", "Error");
+                oVM.setProperty("/canCancel", false);
                 return;
             }
 
-            if (oSummary.huPendientes > 0) {
-                var sPendingMessage = oSummary.huSelectionPending > 0
-                    ? "Vista previa obtenida correctamente. Seleccione una o varias HU para continuar."
-                    : "Vista previa obtenida correctamente. Seleccione los pedidos de compra de cada HU elegida.";
-
-                this.getVM().setProperty("/resultado", {
+            if (bPrevalidationOnly) {
+                oVM.setProperty("/canCancel", false);
+                oVM.setProperty("/resultado", {
                     Status: "W",
-                    Message: sPendingMessage
+                    Message:
+                        "ECC está en fase de prevalidación. La consulta puede revisarse, pero la anulación real permanece bloqueada."
                 });
-
-                this.getVM().setProperty("/resultadoState", "Warning");
-                this.getVM().setProperty("/canCancel", false);
+                oVM.setProperty("/resultadoState", "Warning");
                 return;
             }
 
-            this.getVM().setProperty("/resultado", {
+            if (
+                bMatDocOnlyMode &&
+                oVM.getProperty("/backendPlanValidated") !== true
+            ) {
+                oVM.setProperty("/canCancel", false);
+                oVM.setProperty("/resultado", {
+                    Status: "W",
+                    Message:
+                        "ECC no confirmó el plan completo del documento material."
+                });
+                oVM.setProperty("/resultadoState", "Warning");
+                return;
+            }
+
+            if (bMatDocOnlyMode) {
+                var aSelectedMaterials =
+                    this._getSelectedMaterials(aResults);
+                var iSelectedMaterials = aSelectedMaterials.length;
+
+                oVM.setProperty(
+                    "/materialSelectionCount",
+                    iSelectedMaterials
+                );
+
+                if (!iSelectedMaterials) {
+                    oVM.setProperty("/resultado", {
+                        Status: "W",
+                        Message:
+                            "ECC no confirmó posiciones del MatDoc para continuar."
+                    });
+                    oVM.setProperty("/resultadoState", "Warning");
+                    oVM.setProperty("/canCancel", false);
+                    return;
+                }
+
+                oVM.setProperty("/resultado", {
+                    Status: "S",
+                    Message: iSelectedMaterials === 1
+                        ? "1 mercancía seleccionada. El payload está listo para revisión."
+                        : iSelectedMaterials +
+                            " mercancías seleccionadas. El payload está listo para revisión."
+                });
+                oVM.setProperty("/resultadoState", "Success");
+                oVM.setProperty("/canCancel", true);
+                return;
+            }
+
+            // FLUJO ANTERIOR CONSERVADO:
+            // con /matDocOnlyMode = false vuelve a exigir la selección
+            // de HU, proveedor y pedido sin recuperar código eliminado.
+
+            if (!aHuRows.length) {
+                oVM.setProperty("/resultado", {
+                    Status: "W",
+                    Message:
+                        "No se encontraron HUs disponibles para anular."
+                });
+                oVM.setProperty("/resultadoState", "Warning");
+                oVM.setProperty("/canCancel", false);
+                return;
+            }
+
+            if (bHuSelectionPending) {
+                oVM.setProperty("/resultado", {
+                    Status: "W",
+                    Message:
+                        "Selecciona al menos una HU para continuar."
+                });
+                oVM.setProperty("/resultadoState", "Warning");
+                oVM.setProperty("/canCancel", false);
+                return;
+            }
+
+            if (bProviderSelectionPending) {
+                oVM.setProperty("/resultado", {
+                    Status: "W",
+                    Message:
+                        "Selecciona al menos un pedido para cada HU elegida."
+                });
+                oVM.setProperty("/resultadoState", "Warning");
+                oVM.setProperty("/canCancel", false);
+                return;
+            }
+
+            oVM.setProperty("/resultado", {
                 Status: "S",
                 Message:
-                    "Vista previa obtenida correctamente. Revisa los objetos relacionados antes de anular."
+                    "Vista previa cargada. Revisa la selección antes de anular."
             });
 
-            this.getVM().setProperty("/resultadoState", "Success");
-            this.getVM().setProperty("/canCancel", true);
+            oVM.setProperty("/resultadoState", "Success");
+            oVM.setProperty("/canCancel", true);
         },
 
         _getProviderDialogInfoText: function (oRow, iOptionCount) {
@@ -2485,11 +3770,19 @@ sap.ui.define([
             var sCapturedMatDoc = String(
                 oVM.getProperty("/matDoc") || ""
             ).trim();
+            var sCapturedMatYear = String(
+                oVM.getProperty("/matYear") || ""
+            ).trim();
             var oPreviewHeader = oVM.getProperty("/previewHeader") || {};
             var sMatDoc = String(oPreviewHeader.MatDoc || "").trim();
+            var sMatYear = String(
+                oPreviewHeader.MatYear || ""
+            ).trim();
             var bCanCancel = oVM.getProperty("/canCancel");
-            var aPreview = oVM.getProperty("/preview") || [];
             var oSummary = oVM.getProperty("/summary") || {};
+            var aPreview = oVM.getProperty("/preview") || [];
+            var bMatDocOnlyMode =
+                oVM.getProperty("/matDocOnlyMode") === true;
 
             if (oVM.getProperty("/busy")) {
                 return;
@@ -2502,57 +3795,128 @@ sap.ui.define([
                 return;
             }
 
-            if (
-                !this._isValidMatDoc(sMatDoc) ||
-                sCapturedMatDoc !== sMatDoc
-            ) {
-                oVM.setProperty("/canCancel", false);
+            if (!this._isValidMatYear(sCapturedMatYear)) {
                 MessageBox.warning(
-                    "El documento cambió después de la consulta. Vuelve a buscarlo antes de anular."
+                    "El ejercicio debe contener exactamente 4 dígitos."
                 );
                 return;
             }
 
-            if (oSummary.huPendientes > 0) {
+            if (
+                !this._isValidMatDoc(sMatDoc) ||
+                sCapturedMatDoc !== sMatDoc ||
+                sCapturedMatYear !== sMatYear
+            ) {
+                oVM.setProperty("/canCancel", false);
                 MessageBox.warning(
-                    oSummary.huSelectionPending > 0
-                        ? "Seleccione al menos una HU antes de anular."
-                        : "Seleccione los pedidos de compra de cada HU elegida antes de anular."
+                    "El documento o el ejercicio cambió después de la consulta. Vuelve a buscarlo antes de anular."
                 );
                 return;
             }
 
             if (!bCanCancel) {
                 MessageBox.warning(
-                    "Primero consulta la vista previa antes de anular."
+                    bMatDocOnlyMode
+                        ? "ECC debe confirmar al menos una posición del MatDoc antes de anular."
+                        : "Revisa la selección de HUs y pedidos antes de anular."
                 );
                 return;
             }
+
+            if (bMatDocOnlyMode) {
+                var aSelectedMaterials =
+                    this._getSelectedMaterials(aPreview);
+
+                if (!aSelectedMaterials.length) {
+                    oVM.setProperty("/canCancel", false);
+                    MessageBox.warning(
+                        "ECC no confirmó posiciones del MatDoc para anular."
+                    );
+                    return;
+                }
+
+                var aConfirmationMaterials =
+                    aSelectedMaterials.map(
+                        function (oMaterial, iIndex) {
+                            return Object.assign({}, oMaterial, {
+                                Sequence: iIndex + 1
+                            });
+                        }
+                    );
+
+                // MODO ACTUAL QAS: el usuario selecciona materiales como
+                // referencia, pero el backend recibe únicamente el MatDoc.
+                // El flujo anterior de HU/pedidos permanece debajo y vuelve
+                // a utilizarse cambiando /matDocOnlyMode a false.
+                this._oPendingCancellation = {
+                    matDoc: sMatDoc,
+                    matDocOnly: true,
+                    huSelections: [],
+                    selectedMaterials: aConfirmationMaterials
+                };
+
+                oVM.setProperty("/confirmationDialog", {
+                    matDoc: sMatDoc,
+                    matDocOnly: true,
+                    total: oSummary.total || 0,
+                    hu: oSummary.hu || 0,
+                    huSeleccionadas: 0,
+                    material: oSummary.material || 0,
+                    otros: oSummary.otros || 0,
+                    selectionCount: aConfirmationMaterials.length,
+                    selections: [],
+                    materialSelections: aConfirmationMaterials
+                });
+
+                this._openCancellationConfirmation();
+                return;
+            }
+
+            // FLUJO ANTERIOR CONSERVADO: selección manual de HU y pedidos.
 
             var aHuSelections = this._annotateHuSelectionScope(
                 aPreview,
                 this._getHuSelections(aPreview)
             );
-            var bAllHuSelected = this._isFullHuSelection(
+            var aHuGroups = this._groupHuSelections(aHuSelections);
+
+            if (!aHuSelections.length) {
+                MessageBox.warning(
+                    "Selecciona al menos una HU y un pedido para continuar."
+                );
+                return;
+            }
+
+            var bFullHuSelection = this._isFullHuSelection(
                 aPreview,
                 aHuSelections
+            );
+            var aConfirmationSelections = aHuSelections.map(
+                function (oSelection, iIndex) {
+                    return Object.assign({}, oSelection, {
+                        Sequence: iIndex + 1,
+                        DisplayMatnr: oSelection.DisplayMatnr ||
+                            this._getLastTenDigits(oSelection.Matnr)
+                    });
+                }.bind(this)
             );
 
             this._oPendingCancellation = {
                 matDoc: sMatDoc,
                 huSelections: aHuSelections,
-                allHuSelected: bAllHuSelected
+                fullHuSelection: bFullHuSelection
             };
 
             this.getVM().setProperty("/confirmationDialog", {
                 matDoc: sMatDoc,
+                matDocOnly: false,
                 total: oSummary.total || 0,
                 hu: oSummary.hu || 0,
+                huSeleccionadas: aHuGroups.length,
                 material: oSummary.material || 0,
                 otros: oSummary.otros || 0,
-                selectionCount: aHuSelections.length,
-                allHuSelected: bAllHuSelected,
-                selections: aHuSelections
+                selectionCount: aConfirmationSelections.length,
+                selections: aConfirmationSelections
             });
 
             this._openCancellationConfirmation();
@@ -2611,12 +3975,33 @@ sap.ui.define([
             oVM.setProperty("/busy", true);
             this._oPendingCancellation = null;
 
-            // El backend recibe una sola HU por POST. Incluso cuando todas
-            // están seleccionadas, se procesan de forma secuencial para poder
-            // reconciliar individualmente cualquier error de comunicación.
-            this._postMultipleAnulaciones(
+            if (oPending.matDocOnly) {
+                this._postAnulacion(
+                    oPending.matDoc,
+                    oPending.selectedMaterials || [],
+                    {
+                        matDocOnly: true,
+                        deepSelection: true,
+                        omitHuIdentifiers: true
+                    }
+                );
+                return;
+            }
+
+            // FLUJO ANTERIOR CONSERVADO: si se desactiva el modo sólo
+            // MatDoc, vuelve a procesar la selección HU/pedido existente.
+
+            if (oPending.fullHuSelection) {
+                this._postAllHuAnulacion(
+                    oPending.matDoc,
+                    oPending.huSelections
+                );
+                return;
+            }
+
+            this._postAnulacion(
                 oPending.matDoc,
-                oPending.huSelections || []
+                oPending.huSelections
             );
         },
 
@@ -3047,6 +4432,168 @@ sap.ui.define([
             }.bind(this), []);
         },
 
+        _buildMatDocOnlyPayload: function (sMatDoc) {
+            var sValidatedMatDoc = String(sMatDoc || "").trim();
+
+            if (!this._isValidMatDoc(sValidatedMatDoc)) {
+                throw new Error(
+                    "No se puede enviar la anulación: MatDoc debe contener exactamente 10 dígitos."
+                );
+            }
+
+            return {
+                MatDoc: sValidatedMatDoc,
+                HuVenum: "",
+                HuExidv: "",
+                ProveedoresSel: "",
+                EbelnSel: "",
+                EbelnsSel: ""
+            };
+        },
+
+        _buildDeepAnulacionPayload: function (
+            sMatDoc,
+            aSelections,
+            aAllItems,
+            oHeader,
+            sRequestedYear
+        ) {
+            var sValidatedMatDoc = String(sMatDoc || "").trim();
+            var aSelectedItems = Array.isArray(aSelections)
+                ? aSelections
+                : [];
+            var aPhysicalItems = Array.isArray(aAllItems)
+                ? aAllItems
+                : [];
+            var oPreviewHeader = oHeader || {};
+
+            if (!this._isValidMatDoc(sValidatedMatDoc)) {
+                throw new Error(
+                    "No se puede enviar la anulación: MatDoc debe contener exactamente 10 dígitos."
+                );
+            }
+
+            if (!aSelectedItems.length) {
+                throw new Error(
+                    "Selecciona al menos una mercancía para anular."
+                );
+            }
+
+            if (!aPhysicalItems.length) {
+                throw new Error(
+                    "El GET no contiene posiciones físicas para preparar ToItems."
+                );
+            }
+
+            var fnItemKey = function (oItem) {
+                return [
+                    oItem.SeqNo === null ||
+                    oItem.SeqNo === undefined
+                        ? ""
+                        : String(oItem.SeqNo),
+                    String(oItem.HuVenum || "").trim(),
+                    String(oItem.HuExidv || "").trim(),
+                    String(oItem.Vepos || "").trim(),
+                    String(oItem.GrMatDoc || "").trim(),
+                    String(oItem.GrYear || "").trim(),
+                    String(oItem.Zeile || "").trim()
+                ].join("|");
+            };
+            var mSelectedKeys = {};
+
+            aSelectedItems.forEach(function (oItem) {
+                mSelectedKeys[fnItemKey(oItem)] = true;
+            });
+
+            var aToItems = aPhysicalItems.map(function (oRawItem) {
+                var oPostItem = {};
+
+                Object.keys(oRawItem || {}).forEach(function (sProperty) {
+                    if (
+                        sProperty === "__metadata" ||
+                        sProperty === "ToItems"
+                    ) {
+                        return;
+                    }
+
+                    oPostItem[sProperty] = oRawItem[sProperty];
+                });
+
+                var bMerchandise = !!(
+                    String(oRawItem.GrMatDoc || "").trim() &&
+                    String(oRawItem.GrYear || "").trim() &&
+                    String(oRawItem.Zeile || "").trim() &&
+                    String(oRawItem.Vepos || "").trim()
+                );
+
+                oPostItem.SelectionStatus = bMerchandise
+                    ? (mSelectedKeys[fnItemKey(oRawItem)]
+                        ? "ANULAR"
+                        : "CONSERVAR")
+                    : "";
+
+                // CONTRATO POST: las posiciones enviadas ya fueron revisadas
+                // por el usuario en BTP, por lo que siempre se confirman a ECC.
+                // El valor original recibido en el GET se conserva únicamente
+                // en el modelo de la pantalla y no se replica en el POST.
+                oPostItem.PlanValidated = true;
+
+                return oPostItem;
+            });
+            var sMatYear = String(
+                sRequestedYear ||
+                oPreviewHeader.MatYear ||
+                aPhysicalItems[0].MatYear ||
+                aPhysicalItems[0].GrYear ||
+                ""
+            ).trim();
+
+            if (!this._isValidMatYear(sMatYear)) {
+                throw new Error(
+                    "No se puede preparar el POST: MatYear debe contener 4 dígitos."
+                );
+            }
+
+            var mHu = {};
+            aPhysicalItems.forEach(function (oItem) {
+                var sHuKey = [
+                    String(oItem.HuVenum || "").trim(),
+                    String(oItem.HuExidv || "").trim()
+                ].join("|");
+
+                if (sHuKey !== "|") {
+                    mHu[sHuKey] = true;
+                }
+            });
+            var fnFirstValue = function (sProperty) {
+                var oMatch = aPhysicalItems.find(function (oItem) {
+                    return String(oItem[sProperty] || "").trim();
+                });
+
+                return String(
+                    oPreviewHeader[sProperty] ||
+                    oMatch && oMatch[sProperty] ||
+                    ""
+                ).trim();
+            };
+
+            return {
+                MatDoc: sValidatedMatDoc,
+                MatYear: sMatYear,
+                Plant: fnFirstValue("Plant"),
+                StgeLoc: fnFirstValue("StgeLoc"),
+                HuCount: Object.keys(mHu).length,
+                ItemCount: aToItems.length,
+                Tknum: fnFirstValue("Tknum"),
+                Status: "",
+                BapiMessage: "",
+                ToItems: aToItems
+            };
+        },
+
+        // FLUJO ANTERIOR CONSERVADO:
+        // este constructor sigue disponible para volver a enviar una HU o
+        // una selección de pedidos cuando /matDocOnlyMode sea false.
         _buildAnulacionPayload: function (
             sMatDoc,
             aSelections,
@@ -4156,17 +5703,26 @@ sap.ui.define([
                 "PREVIEW_AFTER_ANULACION"
             );
 
-            oModel.read("/AnulacionPreviewHeaderSet", {
+            var sMatYear = String(
+                oVM.getProperty("/matYear") || ""
+            ).trim();
+
+            oModel.read("/AnulacionSet", {
                 filters: [
                     new Filter(
                         "MatDoc",
                         FilterOperator.EQ,
                         sMatDoc
+                    ),
+                    new Filter(
+                        "MatYear",
+                        FilterOperator.EQ,
+                        sMatYear
                     )
                 ],
                 urlParameters: {
                     "sap-client": "300",
-                    "$expand": "ToItems"
+                    "$format": "json"
                 },
                 success: function (oData) {
                     var oHeader = this._getDeepPreviewHeader(oData);
@@ -4183,6 +5739,7 @@ sap.ui.define([
                         aGroupedRows = this._buildPreviewRows(
                             this._mapDeepPreviewItems(oHeader, aItems)
                         );
+                        this._applyContractSelectionRules(aGroupedRows);
                     }
 
                     oVM.setProperty("/previewHeader", oHeader || {});
@@ -4373,6 +5930,7 @@ sap.ui.define([
             var bFinished = false;
             var oRequestHandle;
             var iTimeoutId;
+            var oVM = this.getVM && this.getVM();
 
             var fnComplete = function (fnCallback, aArguments) {
                 if (bFinished) {
@@ -4445,6 +6003,38 @@ sap.ui.define([
                 }
 
                 try {
+                    // BREAKPOINT TEMPORAL DE SOPORTE:
+                    // con DevTools abierto, la ejecución se detiene aquí antes
+                    // de que UI5 envíe el POST. Revisar oPayload y pulsar F8
+                    // para continuar. Cambiar /debugBreakBeforePost a false
+                    // cuando termine la prueba.
+                    if (
+                        oVM &&
+                        oVM.getProperty("/debugBreakBeforePost") === true
+                    ) {
+                        if (
+                            typeof window !== "undefined" &&
+                            window.console
+                        ) {
+                            window.console.log(
+                                "[ANULACION POST] Detenido antes de enviar",
+                                {
+                                    method: "POST",
+                                    endpoint: sPath,
+                                    payload: oPayload,
+                                    payloadJson: JSON.stringify(
+                                        oPayload,
+                                        null,
+                                        2
+                                    )
+                                }
+                            );
+                        }
+
+                        // eslint-disable-next-line no-debugger
+                        debugger;
+                    }
+
                     oRequestHandle = oModel.create(
                         sPath,
                         oPayload,
@@ -4470,7 +6060,68 @@ sap.ui.define([
                         [oCreateError]
                     );
                 }
-            }.bind(this), 50);
+            }, 50);
+        },
+
+        _validateCancellationResponse: function (oData) {
+            var sStatus = String(
+                oData && oData.Status || ""
+            ).trim().toUpperCase();
+            var sMessage = String(
+                oData && (
+                    oData.BapiMessage ||
+                    oData.Message
+                ) || ""
+            ).trim();
+            var sReverseMatDoc = String(
+                oData && (
+                    oData.ReverseMatDoc ||
+                    oData.ReversalMatDoc
+                ) || ""
+            ).trim();
+            var sReverseYear = String(
+                oData && (
+                    oData.ReverseMatYear ||
+                    oData.ReversalYear
+                ) || ""
+            ).trim();
+            var sReverseMovement = String(
+                oData && (
+                    oData.ReverseMovement ||
+                    oData.ReversalMovement
+                ) || ""
+            ).trim();
+
+            if (sStatus !== "S") {
+                return {
+                    success: false,
+                    status: sStatus || "E",
+                    message: sMessage ||
+                        "SAP no confirmó la anulación."
+                };
+            }
+
+            if (
+                !sReverseMatDoc ||
+                !sReverseYear ||
+                sReverseMovement !== "102"
+            ) {
+                return {
+                    success: false,
+                    status: "W",
+                    message:
+                        "SAP respondió la solicitud, pero no devolvió un documento de reversa 102 confirmado."
+                };
+            }
+
+            return {
+                success: true,
+                status: "S",
+                message: sMessage || "Anulación MM confirmada.",
+                reverseMatDoc: sReverseMatDoc,
+                reverseYear: sReverseYear,
+                reverseMovement: sReverseMovement
+            };
         },
 
         _postAnulacion: function (
@@ -4481,19 +6132,24 @@ sap.ui.define([
             var oModel = this.getModel();
             var sTraceId =
                 this._generateTraceId("POST_ANULACION");
-            var sPath = "/AnulacionSet";
             var aSelections = Array.isArray(aHuSelections)
                 ? aHuSelections
                 : [];
             var oOptions = oExecutionOptions || {};
+            var bDeepSelection =
+                oOptions.deepSelection === true;
+            var sPath = bDeepSelection
+                ? "/AnulacionPreviewHeaderSet"
+                : "/AnulacionSet";
             var bOmitHuIdentifiers =
                 oOptions.omitHuIdentifiers === true;
+            var bMatDocOnly = oOptions.matDocOnly === true;
 
             // =========================================================
             // VALIDAR SELECCIONES
             // =========================================================
 
-            if (!aSelections.length) {
+            if ((!bMatDocOnly || bDeepSelection) && !aSelections.length) {
                 var sEmptySelectionMessage =
                     "No se encontraron proveedores seleccionados para la HU.";
 
@@ -4519,6 +6175,7 @@ sap.ui.define([
                 : aSelections[0].HuExidv || "";
 
             if (
+                !bDeepSelection &&
                 !bOmitHuIdentifiers &&
                 (!sHuVenum || !sHuExidv)
             ) {
@@ -4544,7 +6201,11 @@ sap.ui.define([
                 );
             });
 
-            if (bDifferentHu && !bOmitHuIdentifiers) {
+            if (
+                !bDeepSelection &&
+                bDifferentHu &&
+                !bOmitHuIdentifiers
+            ) {
                 this._postMultipleAnulaciones(
                     sMatDoc,
                     aSelections
@@ -4574,7 +6235,7 @@ sap.ui.define([
                 })
                 .join(";");
 
-            if (!sProveedoresSel) {
+            if (!bMatDocOnly && !sProveedoresSel) {
                 var sProviderValidationMessage =
                     "No se encontraron números de proveedor para enviar a la anulación.";
 
@@ -4590,7 +6251,7 @@ sap.ui.define([
                 return;
             }
 
-            if (!sEbelnsSel) {
+            if (!bMatDocOnly && !sEbelnsSel) {
                 var sOrderValidationMessage =
                     "No se encontraron pedidos de compra para enviar a la anulación.";
 
@@ -4618,11 +6279,41 @@ sap.ui.define([
             // }
             // =========================================================
 
-            var oPayload = this._buildAnulacionPayload(
-                sMatDoc,
-                aSelections,
-                bOmitHuIdentifiers
-            );
+            // MODO ACTUAL QAS: el contrato permite enviar únicamente MatDoc
+            // y requiere conservar vacíos los campos opcionales. Para volver
+            // al flujo anterior basta desactivar /matDocOnlyMode.
+            var oPayload;
+
+            try {
+                oPayload = bDeepSelection
+                    ? this._buildDeepAnulacionPayload(
+                        sMatDoc,
+                        aSelections,
+                        this.getVM().getProperty("/previewItems") || [],
+                        this.getVM().getProperty("/previewHeader") || {},
+                        this.getVM().getProperty("/matYear")
+                    )
+                    : bMatDocOnly
+                        ? this._buildMatDocOnlyPayload(sMatDoc)
+                        : this._buildAnulacionPayload(
+                            sMatDoc,
+                            aSelections,
+                            bOmitHuIdentifiers
+                        );
+            } catch (oPayloadError) {
+                this.getVM().setProperty("/busy", false);
+                this._logError(
+                    "_postAnulacion.payload",
+                    "No fue posible construir el payload.",
+                    {
+                        traceId: sTraceId,
+                        error: oPayloadError.message,
+                        selections: aSelections
+                    }
+                );
+                MessageBox.error(oPayloadError.message);
+                return;
+            }
 
             var sServiceUrl =
                 oModel && oModel.sServiceUrl
@@ -4631,11 +6322,15 @@ sap.ui.define([
 
             var sPostUri =
                 sServiceUrl.replace(/\/$/, "") +
-                "/AnulacionSet";
+                sPath;
 
             this._logInfo(
                 "_postAnulacion.request",
-                "Enviando una HU a SAP.",
+                bDeepSelection
+                    ? "Enviando cabecera y posiciones seleccionadas a SAP."
+                    : bMatDocOnly
+                    ? "Enviando el MatDoc completo a SAP."
+                    : "Enviando una HU a SAP.",
                 {
                     traceId: sTraceId,
                     method: "POST",
@@ -4669,6 +6364,13 @@ sap.ui.define([
             // =========================================================
 
             var fnSendRequest = function (bCsrfRetried) {
+                this._logPostPayload(
+                    sTraceId,
+                    sPostUri,
+                    oPayload,
+                    bCsrfRetried
+                );
+
                 this._sendODataCreateWithTimeout(
                     oModel,
                     sPath,
@@ -4676,6 +6378,17 @@ sap.ui.define([
                     {
                     timeoutMs: this._getAnulacionTimeoutMs(),
                     success: function (oData, oResponse) {
+                        this._debugEccTraffic(
+                            "POST - RESPUESTA RECIBIDA",
+                            {
+                                traceId: sTraceId,
+                                httpStatus:
+                                    this._getHttpStatusCode(oResponse),
+                                response: oData,
+                                rawResponse: oResponse
+                            }
+                        );
+
                         this._logInfo(
                             "_postAnulacion.success",
                             "SAP respondió al POST de anulación.",
@@ -4687,11 +6400,16 @@ sap.ui.define([
                                 httpStatus:
                                     this._getHttpStatusCode(oResponse),
                                 Status: oData && oData.Status,
-                                Message: oData && oData.Message
+                                Message: oData && (
+                                    oData.BapiMessage ||
+                                    oData.Message
+                                )
                             }
                         );
 
                         if (typeof oOptions.onComplete === "function") {
+                            var oBatchValidation =
+                                this._validateCancellationResponse(oData);
                             var sBatchStatus = String(
                                 oData && oData.Status
                                     ? oData.Status
@@ -4702,10 +6420,8 @@ sap.ui.define([
                             var bCreated =
                                 !iHttpStatus || iHttpStatus === 201;
                             var bBatchSuccess =
-                                bCreated && (
-                                    sBatchStatus === "S" ||
-                                    sBatchStatus === "W"
-                                );
+                                bCreated &&
+                                oBatchValidation.success === true;
 
                             oOptions.onComplete({
                                 success: bBatchSuccess,
@@ -4719,8 +6435,8 @@ sap.ui.define([
                                 error: bBatchSuccess
                                     ? null
                                     : {
-                                        message: oData.Message ||
-                                            "SAP rechazó la anulación de la HU."
+                                        message:
+                                            oBatchValidation.message
                                     },
                                 payload: oPayload,
                                 selections: aSelections
@@ -4728,15 +6444,10 @@ sap.ui.define([
                             return;
                         }
 
-                        var sStatus =
-                            oData && oData.Status
-                                ? oData.Status
-                                : "S";
-
-                        var sMessage =
-                            oData && oData.Message
-                                ? oData.Message
-                                : "Proceso de anulación ejecutado.";
+                        var oValidation =
+                            this._validateCancellationResponse(oData);
+                        var sStatus = oValidation.status;
+                        var sMessage = oValidation.message;
 
                         var sRunId =
                             oData && oData.RunId
@@ -4768,7 +6479,7 @@ sap.ui.define([
 
                         this.getVM().setProperty(
                             "/cancellationSummary",
-                            sStatus === "S"
+                            oValidation.success === true
                                 ? this._buildCancellationSummary(
                                     sMatDoc,
                                     aSelections,
@@ -4783,7 +6494,11 @@ sap.ui.define([
                         );
 
                         MessageToast.show(
-                            "Solicitud de anulación enviada correctamente."
+                            oValidation.success
+                                ? "Movimiento 102 confirmado: " +
+                                    oValidation.reverseMatDoc + " / " +
+                                    oValidation.reverseYear
+                                : sMessage
                         );
 
                         if (sRunId) {
@@ -5170,7 +6885,25 @@ sap.ui.define([
         _getInitialState: function () {
     return {
         matDoc: "",
+        matYear: String(new Date().getFullYear()),
+        // Diagnóstico temporal: muestra GET, payload POST y respuesta POST
+        // en la consola del navegador. Cambiar la segunda bandera a true
+        // para detenerse automáticamente en cada punto con DevTools abierto.
+        debugEccTraffic: true,
+        debugBreakOnEccTraffic: false,
+        // BREAKPOINT TEMPORAL: true detiene la ejecución justo antes del POST.
+        // Después de revisar el payload y presionar F8, cambiar a false.
+        debugBreakBeforePost: true,
+        // MODO ACTUAL QAS: true = selección individual de mercancías y
+        // preparación de cabecera + ToItems para AnulacionPreviewHeaderSet.
+        // Para regresar al flujo anterior de HU/pedidos, cambiar a false.
+        matDocOnlyMode: true,
+        // POST profundo habilitado para el contrato confirmado de
+        // AnulacionPreviewHeaderSet. Cambiar a true para volver a bloquearlo.
+        backendPrevalidationOnly: false,
+        backendPlanValidated: false,
         canCancel: false,
+        materialSelectionCount: 0,
         busy: false,
         lastRunId: "",
         selectedSection: "preview",
@@ -5187,6 +6920,19 @@ sap.ui.define([
         previewDisplay: [],
         previewHeader: {},
         previewItems: [],
+        eccPlan: {
+            validated: false,
+            matDoc: "",
+            year: "",
+            movementType: "",
+            huFound: 0,
+            huAffected: 0,
+            cancelPositions: 0,
+            preservePositions: 0,
+            pendingPositions: 0,
+            cancelQuantity: 0,
+            unit: ""
+        },
         expandedPreviewGroups: {},
         detalle: [],
 
@@ -5226,13 +6972,15 @@ sap.ui.define([
 
         confirmationDialog: {
             matDoc: "",
+            matDocOnly: true,
             total: 0,
             hu: 0,
             huSeleccionadas: 0,
             material: 0,
             otros: 0,
             selectionCount: 0,
-            selections: []
+            selections: [],
+            materialSelections: []
         }
     };
 },

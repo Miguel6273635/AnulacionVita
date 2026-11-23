@@ -10,10 +10,15 @@
                 <Property Name="MatDoc" Type="Edm.String" Nullable="false" MaxLength="10" sap:unicode="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
                 <Property Name="MatYear" Type="Edm.String" Nullable="false" MaxLength="4" sap:unicode="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
                 <Property Name="Material" Type="Edm.String" MaxLength="18" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
-                <Property Name="Plant" Type="Edm.String" MaxLength="4" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
-                <Property Name="StgeLoc" Type="Edm.String" MaxLength="4" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
-                <Property Name="Status" Type="Edm.String" MaxLength="1" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Plant" Type="Edm.String" MaxLength="4" sap:unicode="false" sap:creatable="true" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="StgeLoc" Type="Edm.String" MaxLength="4" sap:unicode="false" sap:creatable="true" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="HuCount" Type="Edm.Int32" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="ItemCount" Type="Edm.Int32" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Tknum" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="BapiMessage" Type="Edm.String" MaxLength="255" sap:unicode="true" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Status" Type="Edm.String" MaxLength="1" sap:unicode="false" sap:creatable="true" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
                 <Property Name="Message" Type="Edm.String" MaxLength="255" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <NavigationProperty Name="ToItems" Relationship="ZGP_ANULACION_SRV.AnulacionToItems" FromRole="AnulacionFromRole" ToRole="AnulacionToItemsRole"/>
             </EntityType>
             <EntityType Name="AnulacionDetalle" sap:content-version="1">
                 <Key>
@@ -29,10 +34,111 @@
                 <Property Name="Message" Type="Edm.String" Nullable="false" MaxLength="255" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
                 <Property Name="RunId" Type="Edm.String" Nullable="false" MaxLength="32" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
                 <Property Name="SeqNo" Type="Edm.Int32" Nullable="false" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="HuVenum" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="HuExidv" Type="Edm.String" MaxLength="20" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Lifnr" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Name1" Type="Edm.String" MaxLength="35" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Ebeln" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="ProveedorCount" Type="Edm.Int32" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Charg" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Menge" Type="Edm.Decimal" Precision="13" Scale="3" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Meins" Type="Edm.String" MaxLength="3" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Matnr" Type="Edm.String" MaxLength="18" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="MultiProveedor" Type="Edm.String" MaxLength="1" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
             </EntityType>
+            <EntityType Name="AnulacionPreviewHeader" sap:content-version="1">
+                <Key>
+                    <PropertyRef Name="MatDoc"/>
+                </Key>
+                <Property Name="MatDoc" Type="Edm.String" Nullable="false" MaxLength="10" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="MatYear" Type="Edm.String" MaxLength="4" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Plant" Type="Edm.String" MaxLength="4" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="StgeLoc" Type="Edm.String" MaxLength="4" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Tknum" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Status" Type="Edm.String" MaxLength="1" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="BapiMessage" Type="Edm.String" MaxLength="255" sap:unicode="true" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Message" Type="Edm.String" MaxLength="255" sap:unicode="false" sap:creatable="false" sap:updatable="false"/>
+                <Property Name="HuCount" Type="Edm.Int32" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="ItemCount" Type="Edm.Int32" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <NavigationProperty Name="ToItems" Relationship="ZGP_ANULACION_SRV.AnulacionPreviewHeaderToItems" FromRole="AnulacionPreviewHeaderFromRole" ToRole="AnulacionPreviewHeaderToItemsRole"/>
+            </EntityType>   
+            <EntityType Name="AnulacionPreview" sap:content-version="1">
+                <Key>
+                    <PropertyRef Name="MatDoc"/>
+                    <PropertyRef Name="SeqNo"/>
+                </Key>
+                <Property Name="MatDoc" Type="Edm.String" Nullable="false" MaxLength="10" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="MatYear" Type="Edm.String" MaxLength="4" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="SeqNo" Type="Edm.Int32" Nullable="false" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="HuVenum" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="HuExidv" Type="Edm.String" MaxLength="20" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Lifnr" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Name1" Type="Edm.String" MaxLength="35" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Ebeln" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Ebelp" Type="Edm.String" MaxLength="5" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="GrMatDoc" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="GrYear" Type="Edm.String" MaxLength="4" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="SoVbeln" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="SoPosnr" Type="Edm.String" MaxLength="6" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="DelivVbeln" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="DelivPosnr" Type="Edm.String" MaxLength="6" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Budat" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Vbtyp" Type="Edm.String" MaxLength="4" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Tknum" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="InbDelivVbeln" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="InbDelivPosnr" Type="Edm.String" MaxLength="6" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="InbVbtyp" Type="Edm.String" MaxLength="4" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Vstel" Type="Edm.String" MaxLength="4" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Zeile" Type="Edm.String" MaxLength="4" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Vepos" Type="Edm.String" MaxLength="6" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Bwart" Type="Edm.String" MaxLength="3" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="SelectionStatus" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="PlanValidated" Type="Edm.Boolean" sap:unicode="true" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Matnr" Type="Edm.String" MaxLength="40" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Maktx" Type="Edm.String" MaxLength="40" sap:unicode="true" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Charg" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Menge" Type="Edm.Decimal" Precision="13" Scale="3" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Meins" Type="Edm.String" MaxLength="3" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Plant" Type="Edm.String" MaxLength="4" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="StgeLoc" Type="Edm.String" MaxLength="4" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Status" Type="Edm.String" MaxLength="1" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="Message" Type="Edm.String" MaxLength="255" sap:unicode="true" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="RunId" Type="Edm.String" MaxLength="32" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="LogId" Type="Edm.String" MaxLength="32" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="ProveedoresSel" Type="Edm.String" MaxLength="255" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="EbelnSel" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+                <Property Name="EbelnsSel" Type="Edm.String" MaxLength="255" sap:unicode="false" sap:creatable="true" sap:updatable="false"/>
+            </EntityType>
+            <Association Name="AnulacionPreviewHeaderToItems">
+                <End Type="ZGP_ANULACION_SRV.AnulacionPreviewHeader" Multiplicity="1" Role="AnulacionPreviewHeaderFromRole"/>
+                <End Type="ZGP_ANULACION_SRV.AnulacionPreview" Multiplicity="*" Role="AnulacionPreviewHeaderToItemsRole"/>
+                <ReferentialConstraint>
+                    <Principal Role="AnulacionPreviewHeaderFromRole">
+                        <PropertyRef Name="MatDoc"/>
+                    </Principal>
+                    <Dependent Role="AnulacionPreviewHeaderToItemsRole">
+                        <PropertyRef Name="MatDoc"/>
+                    </Dependent>
+                </ReferentialConstraint>
+            </Association>
+            <Association Name="AnulacionToItems">
+                <End Type="ZGP_ANULACION_SRV.Anulacion" Multiplicity="1" Role="AnulacionFromRole"/>
+                <End Type="ZGP_ANULACION_SRV.AnulacionPreview" Multiplicity="*" Role="AnulacionToItemsRole"/>
+            </Association>
             <EntityContainer Name="ZGP_ANULACION_SRV_Entities" m:IsDefaultEntityContainer="true" sap:supported-formats="atom json xlsx">
-                <EntitySet Name="AnulacionSet" EntityType="ZGP_ANULACION_SRV.Anulacion" sap:updatable="false" sap:deletable="false" sap:pageable="false" sap:content-version="1"/>
+                <EntitySet Name="AnulacionSet" EntityType="ZGP_ANULACION_SRV.Anulacion" sap:creatable="true" sap:updatable="false" sap:deletable="false" sap:pageable="false" sap:content-version="1"/>
                 <EntitySet Name="AnulacionDetalleSet" EntityType="ZGP_ANULACION_SRV.AnulacionDetalle" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:pageable="false" sap:addressable="false" sap:content-version="1"/>
+                <EntitySet Name="AnulacionDetallePreviewSet" EntityType="ZGP_ANULACION_SRV.AnulacionDetalle" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:pageable="false" sap:content-version="1"/>
+                <EntitySet Name="AnulacionPreviewHeaderSet" EntityType="ZGP_ANULACION_SRV.AnulacionPreviewHeader" sap:creatable="true" sap:updatable="false" sap:deletable="false" sap:pageable="false" sap:content-version="1"/>
+                <EntitySet Name="AnulacionPreviewSet" EntityType="ZGP_ANULACION_SRV.AnulacionPreview" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:pageable="false" sap:content-version="1"/>
+                <AssociationSet Name="AnulacionPreviewHeaderToItemsSet" Association="ZGP_ANULACION_SRV.AnulacionPreviewHeaderToItems">
+                    <End EntitySet="AnulacionPreviewHeaderSet" Role="AnulacionPreviewHeaderFromRole"/>
+                    <End EntitySet="AnulacionPreviewSet" Role="AnulacionPreviewHeaderToItemsRole"/>
+                </AssociationSet>
+                <AssociationSet Name="AnulacionToItemsSet" Association="ZGP_ANULACION_SRV.AnulacionToItems">
+                    <End EntitySet="AnulacionSet" Role="AnulacionFromRole"/>
+                    <End EntitySet="AnulacionPreviewSet" Role="AnulacionToItemsRole"/>
+                </AssociationSet>
             </EntityContainer>
             <atom:link rel="self" href="https://s4hdev:443/sap/opu/odata/sap/ZGP_ANULACION_SRV/$metadata" xmlns:atom="http://www.w3.org/2005/Atom"/>
             <atom:link rel="latest-version" href="https://s4hdev:443/sap/opu/odata/sap/ZGP_ANULACION_SRV/$metadata" xmlns:atom="http://www.w3.org/2005/Atom"/>

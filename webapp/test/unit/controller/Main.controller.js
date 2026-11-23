@@ -73,6 +73,99 @@ sap.ui.define([
 		}, /exactamente 10 dígitos/, "bloquea el payload antes de enviarlo a SAP");
 	});
 
+	QUnit.test("construye el payload QAS para anular sólo por MatDoc", function (assert) {
+		var oController = new Controller();
+
+		assert.deepEqual(
+			oController._buildMatDocOnlyPayload("5000561318"),
+			{
+				MatDoc: "5000561318",
+				HuVenum: "",
+				HuExidv: "",
+				ProveedoresSel: "",
+				EbelnSel: "",
+				EbelnsSel: ""
+			},
+			"envía exactamente el contrato actual de QAS"
+		);
+	});
+
+	QUnit.test("exige seleccionar un material antes de habilitar la anulación por MatDoc", function (assert) {
+		var oController = new Controller();
+		var mState = {
+			"/matDocOnlyMode": true
+		};
+		var aPreview = [{
+			Message: "HU",
+			Status: "S",
+			HuVenum: "0001519552",
+			huMaterialDetails: [{
+				Matnr: "000000000014000231",
+				MaterialSelected: false
+			}],
+			providerOptions: []
+		}];
+
+		oController.getVM = function () {
+			return {
+				getProperty: function (sPath) {
+					return mState[sPath];
+				},
+				setProperty: function (sPath, vValue) {
+					mState[sPath] = vValue;
+				}
+			};
+		};
+
+		oController._evaluatePreviewBeforeCancel(aPreview);
+
+		assert.notOk(mState["/canCancel"], "bloquea la anulación sin material seleccionado");
+		assert.strictEqual(mState["/resultadoState"], "Warning", "solicita seleccionar un material");
+
+		aPreview[0].huMaterialDetails[0].MaterialSelected = true;
+		oController._evaluatePreviewBeforeCancel(aPreview);
+
+		assert.ok(mState["/canCancel"], "habilita la anulación al seleccionar el material");
+		assert.strictEqual(mState["/materialSelectionCount"], 1, "cuenta el material seleccionado");
+		assert.strictEqual(mState["/resultadoState"], "Success", "deja listo el MatDoc completo");
+	});
+
+	QUnit.test("confirma el modo MatDoc con una sola solicitud sin selecciones", function (assert) {
+		var oController = new Controller();
+		var mState = { "/busy": false };
+		var oPostCall;
+
+		oController.getVM = function () {
+			return {
+				getProperty: function (sPath) {
+					return mState[sPath];
+				},
+				setProperty: function (sPath, vValue) {
+					mState[sPath] = vValue;
+				}
+			};
+		};
+		oController._postAnulacion = function (sMatDoc, aSelections, oOptions) {
+			oPostCall = {
+				matDoc: sMatDoc,
+				selections: aSelections,
+				options: oOptions
+			};
+		};
+		oController._oPendingCancellation = {
+			matDoc: "5000561318",
+			matDocOnly: true,
+			huSelections: []
+		};
+
+		oController.onConfirmCancellation();
+
+		assert.strictEqual(oPostCall.matDoc, "5000561318", "conserva el MatDoc confirmado");
+		assert.deepEqual(oPostCall.selections, [], "no requiere HUs, proveedores ni pedidos");
+		assert.ok(oPostCall.options.matDocOnly, "activa el constructor exclusivo de MatDoc");
+		assert.notOk(oController._oPendingCancellation, "consume la confirmación para evitar doble envío");
+	});
+
 	QUnit.test("libera la pantalla si SAP no responde a la vista previa", function (assert) {
 		var fnDone = assert.async();
 		var oController = new Controller();
@@ -236,13 +329,15 @@ sap.ui.define([
 			providerOptions: [{
 				providerKey: "OPCION_1",
 				Ebeln: "4700090573",
+				SoVbeln: "0060106148",
 				MaterialExpanded: true,
 				itemDetails: [{
 					Matnr: "000000000014000231",
 					Maktx: "HARINA DE TRIGO PARA PRODUCCIÓN",
 					Menge: "394.000",
 					Meins: "KG",
-					Charg: "0000219167"
+					Charg: "0000219167",
+					MaterialSelected: true
 				}]
 			}]
 		};
@@ -254,10 +349,130 @@ sap.ui.define([
 		assert.strictEqual(aFlowOptions.length, 1, "crea un pedido dentro de la HU");
 		assert.ok(aFlowOptions[0].selected, "refleja el pedido seleccionado");
 		assert.ok(aFlowOptions[0].MaterialExpanded, "conserva desplegada la tabla de materiales");
+		assert.strictEqual(aFlowOptions[0].SoVbeln, "0060106148", "conserva el pedido de ventas para mostrarlo en el flujo");
 		assert.strictEqual(aFlowOptions[0].MaterialDetails[0].Matnr, "000000000014000231", "muestra el material");
 		assert.strictEqual(aFlowOptions[0].MaterialDetails[0].DisplayMatnr, "0014000231", "muestra solo los últimos diez dígitos");
 		assert.strictEqual(aFlowOptions[0].MaterialDetails[0].Maktx, "HARINA DE TRIGO PARA PRODUCCIÓN", "muestra el nombre del material");
 		assert.strictEqual(aFlowOptions[0].MaterialDetails[0].Menge, "394.000", "muestra la cantidad");
+		assert.ok(aFlowOptions[0].MaterialDetails[0].MaterialSelected, "conserva la selección del material");
+		assert.strictEqual(
+			aFlowOptions[0].MaterialDetails[0].MaterialSourcePath,
+			"/preview/4/providerOptions/0/itemDetails/0",
+			"vincula la casilla con la línea original del material"
+		);
+	});
+
+	QUnit.test("selecciona por MatDoc y ejercicio sin propagar por material", function (assert) {
+		var oController = new Controller();
+		var aPreview = [{
+			Message: "HU",
+			HuVenum: "HU_1",
+			huMaterialDetails: [
+				{ Matnr: "000000000014000231", GrMatDoc: "5000561326", GrYear: "2026" },
+				{ Matnr: "000000000024000056", GrMatDoc: "5000561325", GrYear: "2026" }
+			],
+			providerOptions: []
+		}, {
+			Message: "HU",
+			HuVenum: "HU_2",
+			huMaterialDetails: [],
+			providerOptions: [{
+				itemDetails: [
+					{ Matnr: "0099999999", GrMatDoc: "5000561326", GrYear: "2026" },
+					{ Matnr: "000000000014000231", GrMatDoc: "5000561324", GrYear: "2026" }
+				]
+			}]
+		}];
+		var oResult = oController._setMaterialSelectionByMatDoc(
+			aPreview,
+			"5000561326",
+			"2026",
+			true
+		);
+
+		assert.strictEqual(oResult.matches, 2, "encuentra las dos posiciones confirmadas por ECC");
+		assert.strictEqual(oResult.huCount, 2, "incluye las posiciones del MatDoc en dos HU");
+		assert.ok(aPreview[0].huMaterialDetails[0].MaterialSelected, "selecciona la posición del MatDoc en la primera HU");
+		assert.ok(aPreview[1].providerOptions[0].itemDetails[0].MaterialSelected, "selecciona otra posición del MatDoc aunque tenga otro material");
+		assert.notOk(aPreview[0].huMaterialDetails[1].MaterialSelected, "conserva la posición de otro MatDoc");
+		assert.notOk(aPreview[1].providerOptions[0].itemDetails[1].MaterialSelected, "no selecciona el mismo material cuando pertenece a otro MatDoc");
+	});
+
+	QUnit.test("el alcance ECC marca sólo el MatDoc solicitado y bloquea los ajenos", function (assert) {
+		var oController = new Controller();
+		var aPreview = [{
+			Message: "HU",
+			HuVenum: "HU_1",
+			huMaterialDetails: [
+				{ Matnr: "000000000024000056", GrMatDoc: "5000561326", GrYear: "2026", Bwart: "101", Zeile: "0001", Vepos: "000001", SelectionStatus: "ANULAR", PlanValidated: true },
+				{ Matnr: "000000000024000056", GrMatDoc: "5000561325", GrYear: "2026", SelectionStatus: "CONSERVAR", PlanValidated: true }
+			],
+			providerOptions: []
+		}, {
+			Message: "HU",
+			HuVenum: "HU_2",
+			huMaterialDetails: [{ Matnr: "000000000014000010", GrMatDoc: "5000561326", GrYear: "2026", Bwart: "101", Zeile: "0002", Vepos: "000002", SelectionStatus: "ANULAR", PlanValidated: true }],
+			providerOptions: []
+		}];
+		var oResult = oController._applyEccMatDocSelection(
+			aPreview,
+			"5000561326",
+			{ PlanValidated: "X" }
+		);
+
+		assert.notOk(oResult.error, "ECC devuelve un solo ejercicio válido");
+		assert.strictEqual(oResult.matches, 2, "selecciona todas las posiciones del MatDoc");
+		assert.strictEqual(oResult.huCount, 2, "incluye todas las HU relacionadas");
+		assert.ok(aPreview[0].huMaterialDetails[0].MaterialSelected, "selecciona la posición solicitada");
+		assert.ok(aPreview[1].huMaterialDetails[0].MaterialSelected, "selecciona el mismo MatDoc en otra HU");
+		assert.notOk(aPreview[0].huMaterialDetails[1].MaterialSelected, "conserva la posición ajena aunque comparta material");
+		assert.notOk(aPreview[0].huMaterialDetails[1].MaterialSelectable, "no permite seleccionar la posición ajena");
+	});
+
+	QUnit.test("bloquea un MatDoc ambiguo entre ejercicios", function (assert) {
+		var oController = new Controller();
+		var aPreview = [{
+			Message: "HU",
+			HuVenum: "HU_1",
+			huMaterialDetails: [
+				{ GrMatDoc: "5000561326", GrYear: "2025", Bwart: "101", Zeile: "0001", Vepos: "000001", SelectionStatus: "ANULAR", PlanValidated: true },
+				{ GrMatDoc: "5000561326", GrYear: "2026", Bwart: "101", Zeile: "0002", Vepos: "000002", SelectionStatus: "ANULAR", PlanValidated: true }
+			],
+			providerOptions: []
+		}];
+		var oResult = oController._applyEccMatDocSelection(
+			aPreview,
+			"5000561326",
+			{ PlanValidated: "X" }
+		);
+
+		assert.ok(oResult.error, "exige que ECC determine un único ejercicio");
+		assert.notOk(aPreview[0].huMaterialDetails[0].MaterialSelected, "no selecciona 2025");
+		assert.notOk(aPreview[0].huMaterialDetails[1].MaterialSelected, "no selecciona 2026");
+	});
+
+	QUnit.test("no considera éxito sin documento de reversa 102", function (assert) {
+		var oController = new Controller();
+		var oResult = oController._validateCancellationResponse({
+			Status: "S",
+			Message: "Prevalidación completada"
+		});
+
+		assert.notOk(oResult.success, "un Status S sin reversa no es éxito real");
+		assert.strictEqual(oResult.status, "W", "lo mantiene como advertencia");
+	});
+
+	QUnit.test("confirma éxito sólo con movimiento 102 y documento real", function (assert) {
+		var oController = new Controller();
+		var oResult = oController._validateCancellationResponse({
+			Status: "S",
+			ReverseMatDoc: "5000569999",
+			ReverseMatYear: "2026",
+			ReverseMovement: "102"
+		});
+
+		assert.ok(oResult.success, "confirma la reversa MM real");
+		assert.strictEqual(oResult.reverseMatDoc, "5000569999", "conserva el documento 102");
 	});
 
 	QUnit.test("permite mantener varias HU seleccionadas", function (assert) {

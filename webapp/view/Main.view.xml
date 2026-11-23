@@ -64,7 +64,7 @@
                 class="heroTitle" />
 
             <Text
-                text="Consulta el documento material, valida la cadena relacionada, selecciona los proveedores de las HU y ejecuta la anulación."
+                text="Consulta el documento material, revisa sus posiciones y selecciona las mercancías que deseas anular."
                 wrapping="true"
                 class="heroSubtitle" />
         </VBox>
@@ -135,6 +135,24 @@
                                         class="modernInput" />
                                 </VBox>
 
+                                <VBox class="searchInputArea">
+                                    <Label
+                                        text="Ejercicio"
+                                        labelFor="matYearInput"
+                                        design="Bold"
+                                        class="fieldLabel" />
+
+                                    <Input
+                                        id="matYearInput"
+                                        value="{viewModel>/matYear}"
+                                        placeholder="Ej. 2026"
+                                        liveChange=".onMatYearLiveChange"
+                                        submit=".onBuscarDocumento"
+                                        width="100%"
+                                        maxLength="4"
+                                        class="modernInput" />
+                                </VBox>
+
                                 <HBox
                                     alignItems="Center"
                                     wrap="Wrap"
@@ -154,7 +172,7 @@
                                         type="Reject"
                                         icon="sap-icon://decline"
                                         press=".onAnularDocumento"
-                                        enabled="{= ${viewModel>/canCancel} &amp;&amp; !${viewModel>/busy} }"
+                                        enabled="{= ${viewModel>/canCancel} &amp;&amp; !${viewModel>/busy} &amp;&amp; !${viewModel>/backendPrevalidationOnly} &amp;&amp; ${viewModel>/backendPlanValidated} }"
                                         class="btnDanger" />
 
                                     <Button
@@ -169,6 +187,14 @@
                         </VBox>
                     </content>
                 </Panel>
+
+                <MessageStrip
+                    text="ECC está en fase de prevalidación. Puedes revisar el alcance, pero la anulación real permanece bloqueada."
+                    type="Warning"
+                    showIcon="true"
+                    showCloseButton="false"
+                    visible="{viewModel>/backendPrevalidationOnly}"
+                    class="sapUiSmallMarginBottom" />
 
                 <VBox
                     visible="{viewModel>/cancellationProgress/active}"
@@ -483,23 +509,43 @@
 
         <VBox>
             <Title
-                text="Selección por HU"
+                text="{= ${viewModel>/matDocOnlyMode} ? 'Selección de HU y material' : 'Selección de HU y pedidos' }"
                 level="H4"
                 class="dataSectionTitle" />
 
             <Text
-                text="Selecciona una HU para incluir todos sus pedidos; después puedes ajustar pedidos individuales y consultar sus materiales."
+                text="{= ${viewModel>/matDocOnlyMode} ? 'Selecciona individualmente las mercancías. Las posiciones no elegidas se conservarán y los auxiliares serán gestionados por ECC.' : 'Selecciona las HUs y los pedidos que deseas incluir en la anulación.' }"
                 class="dataSectionSubtitle" />
         </VBox>
 
         <ToolbarSpacer />
 
+        <ObjectStatus
+            text="{= ${viewModel>/materialSelectionCount} === 1 ? '1 mercancía seleccionada' : ${viewModel>/materialSelectionCount} + ' mercancías seleccionadas' }"
+            state="{= ${viewModel>/materialSelectionCount} > 0 ? 'Success' : 'Warning' }"
+            visible="{viewModel>/matDocOnlyMode}"
+            class="dataCountStatus" />
+
+        <Button
+            text="Anular selección"
+            type="Reject"
+            icon="sap-icon://decline"
+            press=".onAnularDocumento"
+            enabled="{= ${viewModel>/canCancel} &amp;&amp; !${viewModel>/busy} &amp;&amp; !${viewModel>/backendPrevalidationOnly} &amp;&amp; ${viewModel>/backendPlanValidated} }"
+            visible="{viewModel>/matDocOnlyMode}"
+            tooltip="{= ${viewModel>/backendPrevalidationOnly} ? 'Pendiente de habilitación final del backend ECC' : 'Enviar las mercancías seleccionadas para anulación' }"
+            class="dataSectionCancelButton" />
+
+        <!-- RETORNO AL FLUJO ANTERIOR:
+             cambiar /matDocOnlyMode a false en _getInitialState para
+             volver a mostrar los selectores de HU y pedidos. -->
         <Button
             text="Seleccionar todo"
             type="Transparent"
             icon="sap-icon://multi-select"
             press=".onSelectAllHu"
             enabled="{= ${viewModel>/summary/hu} > 0 &amp;&amp; !${viewModel>/busy} }"
+            visible="{= !${viewModel>/matDocOnlyMode} }"
             tooltip="Seleccionar todas las HU y todos sus pedidos" />
 
         <ObjectStatus
@@ -511,6 +557,28 @@
             state="Information"
             class="dataCountStatus" />
     </Toolbar>
+
+    <HBox
+        visible="{viewModel>/matDocOnlyMode}"
+        wrap="Wrap"
+        alignItems="Center"
+        class="sapUiSmallMarginBottom">
+        <ObjectStatus
+            text="{= 'HUs encontradas: ' + ${viewModel>/eccPlan/huFound} }"
+            state="Information"
+            class="sapUiTinyMarginEnd" />
+        <ObjectStatus
+            text="{= 'HUs afectadas: ' + ${viewModel>/eccPlan/huAffected} }"
+            state="Warning"
+            class="sapUiTinyMarginEnd" />
+        <ObjectStatus
+            text="{= 'Posiciones a anular: ' + ${viewModel>/eccPlan/cancelPositions} }"
+            state="Error"
+            class="sapUiTinyMarginEnd" />
+        <ObjectStatus
+            text="{= 'Cantidad: ' + ${viewModel>/eccPlan/cancelQuantity} + ' ' + ${viewModel>/eccPlan/unit} }"
+            state="Information" />
+    </HBox>
 
     <Table
         id="previewTable"
@@ -681,6 +749,7 @@
                                     text="{viewModel>ProviderCountText}"
                                     class="huHorizontalLabel" />
                                 <HBox
+                                    width="100%"
                                     items="{ path: 'viewModel>ProviderSummaries', templateShareable: false }"
                                     wrap="Wrap"
                                     class="huHorizontalProviderList">
@@ -758,6 +827,7 @@
                                 <ObjectStatus
                                     text="{= ${viewModel>HuSelected} ? 'HU activa' : 'Selecciona la HU' }"
                                     state="{= ${viewModel>HuSelected} ? 'Success' : 'Information' }"
+                                    visible="{= !${viewModel>/matDocOnlyMode} }"
                                     class="huFlowHuState" />
                             </HBox>
 
@@ -775,27 +845,30 @@
                                             templateShareable: false
                                         }"
                                         inset="false"
-                                        fixedLayout="false"
+                                        fixedLayout="true"
                                         width="100%"
                                         noDataText="La HU no contiene materiales sin pedido."
                                         class="huFlowMaterialTable">
                                         <columns>
-                                            <Column width="3rem" hAlign="Center">
-                                                <Text text="#" />
+                                            <Column width="8%" hAlign="Center">
+                                                <Text text="Pos. MatDoc" />
                                             </Column>
-                                            <Column width="12rem">
+                                            <Column width="16%">
                                                 <Text text="Material" />
                                             </Column>
-                                            <Column width="18rem">
+                                            <Column width="22%">
                                                 <Text text="Nombre del material" />
                                             </Column>
-                                            <Column width="10rem">
+                                            <Column width="24%">
+                                                <Text text="Documentos relacionados" />
+                                            </Column>
+                                            <Column width="12%">
                                                 <Text text="Lote" />
                                             </Column>
-                                            <Column width="8rem" hAlign="End">
+                                            <Column width="11%" hAlign="End">
                                                 <Text text="Cantidad" />
                                             </Column>
-                                            <Column width="6rem">
+                                            <Column width="7%">
                                                 <Text text="Unidad" />
                                             </Column>
                                         </columns>
@@ -806,19 +879,45 @@
                                                 class="huFlowMaterialTableRow">
                                                 <cells>
                                                     <ObjectStatus
-                                                        text="{viewModel>MaterialPosition}"
+                                                        text="{= ${viewModel>Zeile} || '-' }"
+                                                        tooltip="{= 'Posición MSEG-ZEILE: ' + (${viewModel>Zeile} || '-') }"
                                                         state="Information"
                                                         class="huFlowMaterialPosition" />
-                                                    <Text
-                                                        text="{= ${viewModel>DisplayMatnr} || '-' }"
-                                                        wrapping="false"
-                                                        tooltip="{viewModel>Matnr}"
-                                                        class="huFlowMaterialNumber" />
+                                                    <!-- ALCANCE ECC: sólo las posiciones
+                                                         del MatDoc + ejercicio son seleccionables. -->
+                                                    <VBox class="huFlowMaterialSelectionCell">
+                                                    <HBox alignItems="Center">
+                                                        <CheckBox
+                                                            text="{= ${viewModel>DisplayMatnr} || '-' }"
+                                                            selected="{viewModel>MaterialSelected}"
+                                                            enabled="{= !${viewModel>/busy} &amp;&amp; ${viewModel>MaterialSelectable} }"
+                                                            visible="{= ${viewModel>/matDocOnlyMode} &amp;&amp; ${viewModel>MaterialSelectable} }"
+                                                            tooltip="Seleccionar esta mercancía para anular"
+                                                            select=".onSelectMaterial"
+                                                            class="huFlowMaterialCheck" />
+                                                        <Text
+                                                            text="{= ${viewModel>DisplayMatnr} || '-' }"
+                                                            wrapping="false"
+                                                            tooltip="{viewModel>Matnr}"
+                                                            visible="{= !${viewModel>/matDocOnlyMode} || !${viewModel>MaterialSelectable} }"
+                                                            class="huFlowMaterialNumber" />
+                                                    </HBox>
+                                                    <ObjectStatus
+                                                        text="Auxiliar"
+                                                        state="Information"
+                                                        visible="{= ${viewModel>/matDocOnlyMode} &amp;&amp; !${viewModel>MaterialSelectable} }"
+                                                        class="huFlowAuxiliaryTag" />
+                                                    </VBox>
                                                     <Text
                                                         text="{viewModel>Maktx}"
                                                         wrapping="true"
                                                         tooltip="{viewModel>Maktx}"
                                                         class="huFlowMaterialDescription" />
+                                                    <VBox class="huFlowDocumentStack">
+                                                        <Text text="{= 'GR: ' + (${viewModel>GrMatDoc} || '-') }" />
+                                                        <Text text="{= 'Pedido: ' + (${viewModel>Ebeln} || '-') }" />
+                                                        <Text text="{= 'Entrega: ' + (${viewModel>InbDelivVbeln} || '-') }" />
+                                                    </VBox>
                                                     <Text
                                                         text="{= ${viewModel>Charg} || '-' }"
                                                         wrapping="false"
@@ -864,10 +963,12 @@
                                             <HBox
                                                 alignItems="Center"
                                                 justifyContent="Center"
+                                                visible="{= !${viewModel>/matDocOnlyMode} }"
                                                 class="huFlowOrderSelectionBox">
                                                 <CheckBox
                                                     selected="{viewModel>selected}"
-                                                    tooltip="{= ${viewModel>selected} ? 'Quitar pedido de la selección' : 'Seleccionar pedido de compra' }"
+                                                    enabled="{= !${viewModel>/busy} }"
+                                                    tooltip="Incluir o quitar este pedido de la anulación"
                                                     select=".onInlineOrderSelection"
                                                     class="huFlowOrderCheck" />
                                             </HBox>
@@ -885,13 +986,44 @@
 
                                             <VBox alignItems="End">
                                                 <ObjectStatus
-                                                    text="{= ${viewModel>selected} ? 'Seleccionado' : 'Disponible' }"
-                                                    state="{= ${viewModel>selected} ? 'Success' : 'Information' }"
+                                                    text="Relacionado"
+                                                    state="Information"
                                                     class="huFlowOrderState" />
                                                 <Text
                                                     text="{viewModel>MaterialCountText}"
                                                     class="huFlowOrderMaterialCount" />
                                             </VBox>
+                                        </HBox>
+
+                                        <HBox
+                                            alignItems="Center"
+                                            visible="{= !!${viewModel>SoVbeln} &amp;&amp; ${viewModel>SoVbeln} !== '-' }"
+                                            class="huFlowSalesOrder">
+                                            <HBox
+                                                alignItems="Center"
+                                                justifyContent="Center"
+                                                class="huFlowSalesOrderIconBox">
+                                                <core:Icon
+                                                    src="sap-icon://sales-order"
+                                                    class="huFlowSalesOrderIcon" />
+                                            </HBox>
+
+                                            <VBox
+                                                width="100%"
+                                                class="huFlowSalesOrderTextBox">
+                                                <Text
+                                                    text="Pedido de ventas · Nivel 3"
+                                                    class="huFlowSalesOrderLabel" />
+                                                <Text
+                                                    text="{viewModel>SoVbeln}"
+                                                    wrapping="false"
+                                                    class="huFlowSalesOrderNumber" />
+                                            </VBox>
+
+                                            <ObjectStatus
+                                                text="Relacionado"
+                                                state="Information"
+                                                class="huFlowSalesOrderState" />
                                         </HBox>
 
                                         <HBox
@@ -919,7 +1051,7 @@
                                                     src="sap-icon://product"
                                                     class="huFlowMaterialSectionIcon" />
                                                 <Text
-                                                    text="Nivel 3 · Materiales del pedido"
+                                                    text="{= !!${viewModel>SoVbeln} &amp;&amp; ${viewModel>SoVbeln} !== '-' ? 'Nivel 4 · Materiales del pedido' : 'Nivel 3 · Materiales del pedido' }"
                                                     class="huFlowMaterialSectionTitle" />
                                             </HBox>
 
@@ -929,27 +1061,30 @@
                                                     templateShareable: false
                                                 }"
                                                 inset="false"
-                                                fixedLayout="false"
+                                                fixedLayout="true"
                                                 width="100%"
                                                 noDataText="El pedido no contiene materiales."
                                                 class="huFlowMaterialTable">
                                                 <columns>
-                                                    <Column width="3rem" hAlign="Center">
-                                                        <Text text="#" />
+                                                    <Column width="8%" hAlign="Center">
+                                                        <Text text="Pos. MatDoc" />
                                                     </Column>
-                                                    <Column width="12rem">
+                                                    <Column width="16%">
                                                         <Text text="Material" />
                                                     </Column>
-                                                    <Column width="18rem">
+                                                    <Column width="22%">
                                                         <Text text="Nombre del material" />
                                                     </Column>
-                                                    <Column width="10rem">
+                                                    <Column width="24%">
+                                                        <Text text="Documentos relacionados" />
+                                                    </Column>
+                                                    <Column width="12%">
                                                         <Text text="Lote" />
                                                     </Column>
-                                                    <Column width="8rem" hAlign="End">
+                                                    <Column width="11%" hAlign="End">
                                                         <Text text="Cantidad" />
                                                     </Column>
-                                                    <Column width="6rem">
+                                                    <Column width="7%">
                                                         <Text text="Unidad" />
                                                     </Column>
                                                 </columns>
@@ -960,19 +1095,45 @@
                                                         class="huFlowMaterialTableRow">
                                                         <cells>
                                                             <ObjectStatus
-                                                                text="{viewModel>MaterialPosition}"
+                                                                text="{= ${viewModel>Zeile} || '-' }"
+                                                                tooltip="{= 'Posición MSEG-ZEILE: ' + (${viewModel>Zeile} || '-') }"
                                                                 state="Information"
                                                                 class="huFlowMaterialPosition" />
-                                                            <Text
-                                                                text="{= ${viewModel>DisplayMatnr} || '-' }"
-                                                                wrapping="false"
-                                                                tooltip="{viewModel>Matnr}"
-                                                                class="huFlowMaterialNumber" />
+                                                            <!-- ALCANCE ECC: sólo las posiciones
+                                                                 del MatDoc + ejercicio son seleccionables. -->
+                                                            <VBox class="huFlowMaterialSelectionCell">
+                                                            <HBox alignItems="Center">
+                                                                <CheckBox
+                                                                    text="{= ${viewModel>DisplayMatnr} || '-' }"
+                                                                    selected="{viewModel>MaterialSelected}"
+                                                                    enabled="{= !${viewModel>/busy} &amp;&amp; ${viewModel>MaterialSelectable} }"
+                                                                    visible="{= ${viewModel>/matDocOnlyMode} &amp;&amp; ${viewModel>MaterialSelectable} }"
+                                                                    tooltip="Seleccionar esta mercancía para anular"
+                                                                    select=".onSelectMaterial"
+                                                                    class="huFlowMaterialCheck" />
+                                                                <Text
+                                                                    text="{= ${viewModel>DisplayMatnr} || '-' }"
+                                                                    wrapping="false"
+                                                                    tooltip="{viewModel>Matnr}"
+                                                                    visible="{= !${viewModel>/matDocOnlyMode} || !${viewModel>MaterialSelectable} }"
+                                                                    class="huFlowMaterialNumber" />
+                                                            </HBox>
+                                                            <ObjectStatus
+                                                                text="Auxiliar"
+                                                                state="Information"
+                                                                visible="{= ${viewModel>/matDocOnlyMode} &amp;&amp; !${viewModel>MaterialSelectable} }"
+                                                                class="huFlowAuxiliaryTag" />
+                                                            </VBox>
                                                             <Text
                                                                 text="{viewModel>Maktx}"
                                                                 wrapping="true"
                                                                 tooltip="{viewModel>Maktx}"
                                                                 class="huFlowMaterialDescription" />
+                                                            <VBox class="huFlowDocumentStack">
+                                                                <Text text="{= 'GR: ' + (${viewModel>GrMatDoc} || '-') }" />
+                                                                <Text text="{= 'Pedido: ' + (${viewModel>Ebeln} || '-') }" />
+                                                                <Text text="{= 'Entrega: ' + (${viewModel>InbDelivVbeln} || '-') }" />
+                                                            </VBox>
                                                             <Text
                                                                 text="{= ${viewModel>Charg} || '-' }"
                                                                 wrapping="false"
@@ -995,9 +1156,9 @@
                             </VBox>
 
                             <Text
-                                text="Selecciona esta HU para incluir todos sus pedidos de compra."
+                                text="{= ${viewModel>/matDocOnlyMode} ? 'Selecciona únicamente mercancías con documento GR y posición. Los embalajes se muestran como información.' : 'Selecciona la HU completa o elige únicamente los pedidos que deseas anular.' }"
                                 wrapping="true"
-                                visible="{= !${viewModel>HuSelected} }"
+                                visible="{= ${viewModel>IsHU} &amp;&amp; !${viewModel>IsGroupHeader} }"
                                 class="huFlowHint" />
                         </VBox>
 
@@ -1022,18 +1183,18 @@
                             class="rowStatusBadge" />
 
                         <CheckBox
-                            text="Seleccionar HU"
-                            selected="{viewModel>HuSelected}"
+                            text="{= ${viewModel>/matDocOnlyMode} ? 'Seleccionar materiales de HU' : 'Seleccionar HU' }"
+                            selected="{= ${viewModel>/matDocOnlyMode} ? ${viewModel>HuMaterialSelected} : ${viewModel>HuSelected} }"
+                            partiallySelected="{= ${viewModel>/matDocOnlyMode} &amp;&amp; ${viewModel>HuMaterialPartiallySelected} }"
+                            enabled="{= !${viewModel>/busy} }"
                             tooltip="{=
-                                ${viewModel>HuSelected}
+                                ${viewModel>/matDocOnlyMode}
+                                    ? 'Seleccionar todas las posiciones ECC del MatDoc en las HUs relacionadas'
+                                    : ${viewModel>HuSelected}
                                     ? 'Quitar selección de HU'
                                     : 'Seleccionar HU'
                             }"
-                            visible="{=
-                                ${viewModel>IsHU}
-                                &amp;&amp;
-                                !${viewModel>IsGroupHeader}
-                            }"
+                            visible="{= ${viewModel>IsHU} &amp;&amp; !${viewModel>IsGroupHeader} &amp;&amp; !${viewModel>/matDocOnlyMode} }"
                             select=".onSelectHu"
                             class="selectHuCheckBox" />
                     </HBox>
@@ -1043,17 +1204,11 @@
     </Table>
 
     <MessageStrip
-        text="{=
-            ${viewModel>/summary/huSelectionPending} > 0
-                ? 'Selecciona una o varias HU disponibles para continuar.'
-                : 'Selecciona los pedidos de compra de cada HU elegida y revisa sus materiales.'
-        }"
+        text="{= ${viewModel>/matDocOnlyMode} ? 'La anulación se enviará por MatDoc completo con el alcance confirmado por ECC.' : 'Puedes seleccionar una HU completa o ajustar individualmente los pedidos incluidos en la anulación.' }"
         type="Information"
         showIcon="true"
         showCloseButton="false"
-        visible="{=
-            ${viewModel>/summary/huPendientes} > 0
-        }"
+        visible="{= ${viewModel>/summary/hu} > 0 }"
         class="providerInfoStrip" />
 </VBox>
 

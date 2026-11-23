@@ -4,7 +4,7 @@
 
     <Dialog
         id="cancellationConfirmationDialog"
-        contentWidth="32rem"
+        contentWidth="48rem"
         stretchOnPhone="true"
         draggable="true"
         afterClose=".onAfterCancellationConfirmationClose"
@@ -48,14 +48,78 @@
                         level="H3"
                         class="cancellationConfirmDocument" />
                     <Text
-                        text="Revisa el resumen antes de continuar."
+                        text="{= 'Ejercicio: ' + (${viewModel>/eccPlan/year} || 'pendiente') + ' · Movimiento: ' + (${viewModel>/eccPlan/movementType} || 'pendiente') }"
                         wrapping="true"
                         class="cancellationConfirmDescription" />
+                    <Text
+                        text="{= ${viewModel>/confirmationDialog/matDocOnly} ? 'Revisa las posiciones confirmadas por ECC. Se enviará un único POST por el documento material completo.' : 'Revisa las HUs, los pedidos y los materiales seleccionados antes de continuar.' }"
+                        wrapping="true"
+                        class="cancellationConfirmDescription" />
+                </VBox>
+
+                <MessageStrip
+                    text="Las posiciones seleccionadas provienen del alcance validado por ECC. ECC recibirá el MatDoc completo y los campos HuVenum, HuExidv, ProveedoresSel, EbelnSel y EbelnsSel vacíos."
+                    type="Information"
+                    showIcon="true"
+                    showCloseButton="false"
+                    visible="{viewModel>/confirmationDialog/matDocOnly}" />
+
+                <VBox
+                    width="100%"
+                    visible="{viewModel>/confirmationDialog/matDocOnly}"
+                    class="cancellationConfirmSelection">
+
+                    <HBox
+                        width="100%"
+                        alignItems="Center"
+                        class="cancellationConfirmSelectionHeader">
+                        <core:Icon
+                            src="sap-icon://product"
+                            class="cancellationConfirmSelectionIcon" />
+                        <VBox width="100%">
+                            <Text
+                                text="Materiales seleccionados"
+                                class="cancellationConfirmSelectionLabel" />
+                            <Text
+                                text="{= ${viewModel>/confirmationDialog/selectionCount} === 1 ? '1 posición ECC seleccionada' : ${viewModel>/confirmationDialog/selectionCount} + ' posiciones ECC seleccionadas' }"
+                                class="cancellationConfirmSelectionValue" />
+                        </VBox>
+                    </HBox>
+
+                    <VBox
+                        width="100%"
+                        items="{
+                            path: 'viewModel>/confirmationDialog/materialSelections',
+                            templateShareable: false
+                        }"
+                        class="cancellationConfirmSelectionList">
+                        <items>
+                            <HBox
+                                width="100%"
+                                alignItems="Center"
+                                class="cancellationConfirmSelectionItem">
+                                <ObjectStatus
+                                    text="{= '#' + ${viewModel>Sequence} }"
+                                    state="Information"
+                                    class="cancellationConfirmSequence" />
+                                <VBox width="100%">
+                                    <Text
+                                        text="{= ${viewModel>DisplayMatnr} || '-' }"
+                                        class="cancellationConfirmMaterial" />
+                                    <Text
+                                        text="{= (${viewModel>Maktx} || 'Sin nombre disponible') + ' · HU ' + (${viewModel>HuExidv} || ${viewModel>HuVenum} || '-') }"
+                                        wrapping="true"
+                                        class="cancellationConfirmProviderNumber" />
+                                </VBox>
+                            </HBox>
+                        </items>
+                    </VBox>
                 </VBox>
 
                 <HBox
                     width="100%"
                     wrap="Wrap"
+                    visible="{= !${viewModel>/confirmationDialog/matDocOnly} }"
                     class="cancellationConfirmMetrics">
                     <VBox class="cancellationConfirmMetric cancellationConfirmMetricTotal">
                         <Text text="Objetos" class="cancellationConfirmMetricLabel" />
@@ -64,27 +128,28 @@
                             class="cancellationConfirmMetricValue" />
                     </VBox>
                     <VBox class="cancellationConfirmMetric cancellationConfirmMetricHu">
-                        <Text text="HU" class="cancellationConfirmMetricLabel" />
+                        <Text text="HU disponibles" class="cancellationConfirmMetricLabel" />
                         <ObjectNumber
                             number="{viewModel>/confirmationDialog/hu}"
                             class="cancellationConfirmMetricValue" />
                     </VBox>
                     <VBox class="cancellationConfirmMetric cancellationConfirmMetricMaterial">
-                        <Text text="Doc. material" class="cancellationConfirmMetricLabel" />
+                        <Text text="HU seleccionadas" class="cancellationConfirmMetricLabel" />
                         <ObjectNumber
-                            number="{viewModel>/confirmationDialog/material}"
+                            number="{viewModel>/confirmationDialog/huSeleccionadas}"
                             class="cancellationConfirmMetricValue" />
                     </VBox>
                     <VBox class="cancellationConfirmMetric cancellationConfirmMetricOther">
-                        <Text text="Otros" class="cancellationConfirmMetricLabel" />
+                        <Text text="Pedidos" class="cancellationConfirmMetricLabel" />
                         <ObjectNumber
-                            number="{viewModel>/confirmationDialog/otros}"
+                            number="{viewModel>/confirmationDialog/selectionCount}"
                             class="cancellationConfirmMetricValue" />
                     </VBox>
                 </HBox>
 
                 <VBox
                     width="100%"
+                    visible="{= !${viewModel>/confirmationDialog/matDocOnly} }"
                     class="cancellationConfirmSelection">
 
                     <HBox
@@ -96,10 +161,10 @@
                             class="cancellationConfirmSelectionIcon" />
                         <VBox width="100%">
                             <Text
-                                text="Selecciones de HU y proveedor"
+                                text="Selección preparada"
                                 class="cancellationConfirmSelectionLabel" />
                             <Text
-                                text="{= ${viewModel>/confirmationDialog/selectionCount} === 1 ? '1 selección preparada' : ${viewModel>/confirmationDialog/selectionCount} + ' selecciones preparadas' }"
+                                text="{= ${viewModel>/confirmationDialog/selectionCount} === 1 ? '1 pedido seleccionado' : ${viewModel>/confirmationDialog/selectionCount} + ' pedidos seleccionados' }"
                                 class="cancellationConfirmSelectionValue" />
                         </VBox>
                     </HBox>
@@ -127,16 +192,14 @@
                                         <Text
                                             text="{= ${viewModel>Name1} || 'Proveedor sin nombre' }"
                                             wrapping="true"
-                                            tooltip="{viewModel>Name1}"
                                             class="cancellationConfirmProviderName" />
                                         <Text
-                                            text="{viewModel>Lifnr}"
-                                            visible="{= !!${viewModel>Lifnr} }"
+                                            text="{= (${viewModel>Lifnr} || '-') + ' · HU ' + (${viewModel>HuExidv} || ${viewModel>HuVenum} || '-') }"
                                             class="cancellationConfirmProviderNumber" />
                                     </VBox>
-                                    <Text
-                                        text="{= '#' + ${viewModel>SeqNo} }"
-                                        visible="{= ${viewModel>SeqNo} !== null &amp;&amp; ${viewModel>SeqNo} !== undefined }"
+                                    <ObjectStatus
+                                        text="{= '#' + ${viewModel>Sequence} }"
+                                        state="Information"
                                         class="cancellationConfirmSequence" />
                                 </HBox>
 
@@ -147,25 +210,14 @@
                                     <VBox
                                         width="58%"
                                         class="cancellationConfirmFact">
-                                        <Text
-                                            text="Material"
-                                            class="cancellationConfirmDetailLabel" />
-                                        <Text
-                                            text="{= ${viewModel>DisplayMatnr} || '-' }"
-                                            wrapping="false"
-                                            tooltip="{viewModel>Matnr}"
-                                            class="cancellationConfirmMaterial" />
+                                        <Text text="Pedido" class="cancellationConfirmDetailLabel" />
+                                        <Text text="{= ${viewModel>Ebeln} || '-' }" wrapping="false" class="cancellationConfirmMaterial" />
                                     </VBox>
                                     <VBox
                                         width="42%"
                                         class="cancellationConfirmFact cancellationConfirmQuantityFact">
-                                        <Text
-                                            text="Cantidad"
-                                            class="cancellationConfirmDetailLabel" />
-                                        <ObjectNumber
-                                            number="{= ${viewModel>Menge} || '-' }"
-                                            unit="{viewModel>Meins}"
-                                            class="cancellationConfirmQuantity" />
+                                        <Text text="Material" class="cancellationConfirmDetailLabel" />
+                                        <Text text="{= ${viewModel>DisplayMatnr} || '-' }" wrapping="false" tooltip="{viewModel>Matnr}" class="cancellationConfirmMaterial" />
                                     </VBox>
                                 </HBox>
 
@@ -190,7 +242,7 @@
                         type="Reject"
                         icon="sap-icon://decline"
                         press=".onConfirmCancellation"
-                        enabled="{= !${viewModel>/busy} }"
+                        enabled="{= !${viewModel>/busy} &amp;&amp; !${viewModel>/backendPrevalidationOnly} &amp;&amp; ${viewModel>/backendPlanValidated} }"
                         class="cancellationConfirmSubmitButton" />
                 </HBox>
 
